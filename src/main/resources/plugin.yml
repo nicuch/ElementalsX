@@ -1,0 +1,8 @@
+name: ElementalsX
+version: ${project.version}
+main: ro.nicuch.elementalsx.ElementalsX
+api-version: 1.13
+authors: [nicuch]
+description: Elementals 2 for Pikacraft server.
+website: pikacraft.ro
+depend: [GroupManager, TagRegisterLib, WorldEdit, Vault, Votifier, Citizens, AuthMe]
