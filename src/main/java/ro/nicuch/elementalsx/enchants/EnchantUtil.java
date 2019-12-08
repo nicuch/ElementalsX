@@ -236,10 +236,10 @@ public class EnchantUtil {
         ItemMeta itemMeta = item.getItemMeta();
         List<String> lore = itemMeta.getLore();
         for (int i = 0; i < lore.size(); i++)
-            if (lore.get(i).equals(one.getName()))
-                lore.set(i, two.getName());
+            if (lore.get(i).equals(ElementalsUtil.color(one.getName())))
+                lore.set(i, ElementalsUtil.color(two.getName()));
             else
-                lore.set(i, lore.get(i));
+                lore.set(i, ElementalsUtil.color(lore.get(i)));
         itemMeta.setLore(lore);
         item.setItemMeta(itemMeta);
         return item;
@@ -278,7 +278,7 @@ public class EnchantUtil {
             return false;
         if (meta.getLore().get(0) == null)
             return false;
-        return meta.getLore().get(0).equals(type.getName());
+        return meta.getLore().get(0).equals(ElementalsUtil.color(type.getName()));
     }
 
     public static boolean isCurseEnchBook(ItemStack item, CCurseEnchType type) {
@@ -295,7 +295,7 @@ public class EnchantUtil {
             return false;
         if (meta.getLore().get(1) == null)
             return false;
-        return meta.getLore().get(1).equals("&aRemoving: " + type.getName());
+        return meta.getLore().get(1).equals(ElementalsUtil.color("&aRemoving: " + type.getName()));
     }
 
     public static ItemStack getEnchantedBook(CCurseEnchType type) {
@@ -1129,7 +1129,7 @@ public class EnchantUtil {
     public static ItemStack enchantItem(ItemStack item, CEnchantType type) {
         ItemMeta itemMeta = item.getItemMeta();
         List<String> itemLore = new ArrayList<>();
-        itemLore.add(type.getName());
+        itemLore.add(ElementalsUtil.color(type.getName()));
         if (itemMeta.hasLore())
             itemLore.addAll(itemMeta.getLore());
         itemMeta.setLore(itemLore);
@@ -1138,7 +1138,7 @@ public class EnchantUtil {
     }
 
     public static void openEnchanter(Player player, Dropper block) {
-        Inventory inv = Bukkit.createInventory(block, 9, "&5Enchanter");
+        Inventory inv = Bukkit.createInventory(block, 9, ElementalsUtil.color("&5Enchanter"));
         inv.setItem(0, new ItemStack(Material.BLACK_STAINED_GLASS_PANE, 1));
         inv.setItem(1, new ItemStack(Material.BLACK_STAINED_GLASS_PANE, 1));
         inv.setItem(3, new ItemStack(Material.BLACK_STAINED_GLASS_PANE, 1) /*TODO <item*/);
@@ -1440,9 +1440,9 @@ public class EnchantUtil {
             }
         } else if (ent_d instanceof Projectile) {
             if (ent_v.getWorld().getName().equals("spawn"))
-                    return;
+                return;
             if (ent_d.getWorld().getName().equals("spawn"))
-                    return;
+                return;
             if (ent_d.isDead())
                 return;
             if (FieldUtil.isFieldAtLocation(ent_v.getLocation()))
@@ -1605,7 +1605,7 @@ public class EnchantUtil {
             return false;
         if (item.getItemMeta().getLore().isEmpty())
             return false;
-        return item.getItemMeta().getLore().contains(type.getName());
+        return item.getItemMeta().getLore().contains(ElementalsUtil.color(type.getName()));
     }
 
     public static boolean chanceEnchant(CEnchantType type) {

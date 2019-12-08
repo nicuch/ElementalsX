@@ -107,15 +107,21 @@ public class FieldListener implements Listener {
             event.setCancelled(true);
             return;
         }
-        for (Entity entity : event.getPlayer().getNearbyEntities(25, 64, 25))
-            if (entity.getType().equals(EntityType.PLAYER)) {
-                User entityuser = ElementalsX.getUser((Player) entity);
-                if (!entityuser.hasPermission("elementals.protection.override")) {
-                    event.getPlayer().sendMessage(ElementalsUtil.color("&3Nu poti pune protectii cat timp sunt jucatori in zona!"));
-                    event.setCancelled(true);
-                    return;
+        if (!user.hasPermission("elementals.protection.override"))
+            for (Entity entity : event.getPlayer().getNearbyEntities(25, 64, 25))
+                if (entity.getType().equals(EntityType.PLAYER)) {
+                    User entityuser = ElementalsX.getUser((Player) entity);
+                    if (!entityuser.hasPermission("elementals.protection.override")) {
+                        event.getPlayer().sendMessage(ElementalsUtil.color("&3Nu poti pune protectii cat timp sunt jucatori in zona!"));
+                        event.setCancelled(true);
+                        return;
+                    }
                 }
-            }
+        if (FieldUtil.areThereEnoughProtections(block.getChunk()) && (!user.hasPermission("elementals.protection.override"))) {
+            event.getPlayer().sendMessage(ElementalsUtil.color("&3Limita de 4 protectii intr-un chunk a fost atinsa! Nu mai poti pune alte protectii."));
+            event.setCancelled(true);
+            return;
+        }
         String id = FieldUtil.getFieldIdByBlock(block);
         Location loc = block.getLocation();
         Block maxLoc = loc.clone().add(25, 0, 25).getBlock();
@@ -431,17 +437,16 @@ public class FieldListener implements Listener {
         event.setCancelled(true);
     }
 
-    @EventHandler(priority = EventPriority.LOW)
+    @EventHandler(priority = EventPriority.HIGHEST)
     public void event0(PlayerInteractEvent event) {
         if (!event.getAction().equals(Action.RIGHT_CLICK_BLOCK))
             return;
         Material clickedBlockType = event.getClickedBlock().getType();
         if (!(clickedBlockType.equals(Material.CHEST)
+                || clickedBlockType.equals(Material.FLOWER_POT)
                 || clickedBlockType.equals(Material.TRAPPED_CHEST)
                 || clickedBlockType.equals(Material.FURNACE)
                 || clickedBlockType.equals(Material.JUKEBOX)
-                || clickedBlockType.equals(Material.ENCHANTING_TABLE)
-                || clickedBlockType.equals(Material.ENDER_CHEST)
                 || clickedBlockType.equals(Material.DROPPER)
                 || clickedBlockType.equals(Material.DISPENSER)
                 || clickedBlockType.equals(Material.NOTE_BLOCK)
@@ -452,9 +457,39 @@ public class FieldListener implements Listener {
                 || clickedBlockType.equals(Material.REPEATER)
                 || clickedBlockType.equals(Material.COMPARATOR)
                 || clickedBlockType.equals(Material.BEACON)
-                || clickedBlockType.equals(Material.BREWING_STAND)))
-            return;
-        if (!(Tag.DOORS.isTagged(clickedBlockType)
+                || clickedBlockType.equals(Material.BREWING_STAND)
+                || clickedBlockType.equals(Material.ACACIA_FENCE_GATE)
+                || clickedBlockType.equals(Material.BIRCH_FENCE_GATE)
+                || clickedBlockType.equals(Material.DARK_OAK_FENCE_GATE)
+                || clickedBlockType.equals(Material.JUNGLE_FENCE_GATE)
+                || clickedBlockType.equals(Material.OAK_FENCE_GATE)
+                || clickedBlockType.equals(Material.SPRUCE_FENCE_GATE)
+                || clickedBlockType.equals(Material.SHULKER_BOX)
+                || clickedBlockType.equals(Material.BLACK_SHULKER_BOX)
+                || clickedBlockType.equals(Material.BLUE_SHULKER_BOX)
+                || clickedBlockType.equals(Material.BROWN_SHULKER_BOX)
+                || clickedBlockType.equals(Material.CYAN_SHULKER_BOX)
+                || clickedBlockType.equals(Material.GRAY_SHULKER_BOX)
+                || clickedBlockType.equals(Material.GREEN_SHULKER_BOX)
+                || clickedBlockType.equals(Material.LIGHT_BLUE_SHULKER_BOX)
+                || clickedBlockType.equals(Material.LIGHT_GRAY_SHULKER_BOX)
+                || clickedBlockType.equals(Material.LIME_SHULKER_BOX)
+                || clickedBlockType.equals(Material.MAGENTA_SHULKER_BOX)
+                || clickedBlockType.equals(Material.ORANGE_SHULKER_BOX)
+                || clickedBlockType.equals(Material.PINK_SHULKER_BOX)
+                || clickedBlockType.equals(Material.PURPLE_SHULKER_BOX)
+                || clickedBlockType.equals(Material.RED_SHULKER_BOX)
+                || clickedBlockType.equals(Material.WHITE_SHULKER_BOX)
+                || clickedBlockType.equals(Material.YELLOW_SHULKER_BOX)
+                || clickedBlockType.equals(Material.BLAST_FURNACE)
+                || clickedBlockType.equals(Material.SMOKER)
+                || clickedBlockType.equals(Material.BARREL)
+                || clickedBlockType.equals(Material.CAMPFIRE)
+                || clickedBlockType.equals(Material.HEAVY_WEIGHTED_PRESSURE_PLATE)
+                || clickedBlockType.equals(Material.LIGHT_WEIGHTED_PRESSURE_PLATE)
+                || clickedBlockType.equals(Material.STONE_PRESSURE_PLATE)
+                || Tag.WOODEN_PRESSURE_PLATES.isTagged(clickedBlockType)
+                || Tag.DOORS.isTagged(clickedBlockType)
                 || Tag.ANVIL.isTagged(clickedBlockType)
                 || Tag.BEDS.isTagged(clickedBlockType)
                 || Tag.TRAPDOORS.isTagged(clickedBlockType)
@@ -569,7 +604,7 @@ public class FieldListener implements Listener {
             damager = (Entity) proj.getShooter();
         } else
             damager = event.getDamager();
-        if (!(damager instanceof Player))
+        if (damager.getType() != EntityType.PLAYER)
             return;
         Location loc = entity.getLocation();
         if (!FieldUtil.isFieldAtLocation(loc))

@@ -18,11 +18,11 @@ import ro.nicuch.elementalsx.User;
 import ro.nicuch.elementalsx.elementals.ElementalsUtil;
 
 public class FieldUtil {
-    private final static Map<String, Field> fields = new HashMap<>();
+    private final static Map<String, Field> loadedFields = new HashMap<>();
 
     public static void registerField(User user, Block block, String id, Block maxLoc, Block minLoc) {
         Field field = new Field(id, user.getBase().getUniqueId(), maxLoc, minLoc, block.getChunk(), block.getWorld());
-        fields.putIfAbsent(id, field);
+        loadedFields.putIfAbsent(id, field);
     }
 
     public static void unregisterField(Block block) {
@@ -30,7 +30,7 @@ public class FieldUtil {
         if (isFieldLoaded(id)) {
             Field field = getFieldById(id);
             field.delete();
-            fields.remove(id);
+            loadedFields.remove(id);
         }
     }
 
@@ -65,6 +65,20 @@ public class FieldUtil {
         return list;
     }
 
+    public static boolean areThereEnoughProtections(Chunk chunk) {
+        try {
+            ResultSet rs = ElementalsX
+                    .getBase().prepareStatement("SELECT COUNT(*) FROM protection WHERE chunkx='" + chunk.getX()
+                            + "' AND chunkz='" + chunk.getZ() + "' AND world='" + chunk.getWorld().getName() + "';")
+                    .executeQuery();
+            if (rs.next())
+                return rs.getInt(0) < 4;
+        } catch (SQLException ex) {
+            ex.printStackTrace();
+        }
+        return false;
+    }
+
     public static void loadFieldsInChunk(Chunk chunk) {
         Bukkit.getScheduler().runTaskAsynchronously(ElementalsX.get(), () -> {
             try {
@@ -88,7 +102,7 @@ public class FieldUtil {
                         Block maxLoc = world.getBlockAt(maxx, y, maxz);
                         Block minLoc = world.getBlockAt(minx, y, minz);
                         Field field = new Field(id, uuid, maxLoc, minLoc, chunk, world);
-                        fields.putIfAbsent(id, field);
+                        loadedFields.putIfAbsent(id, field);
                     });
                 }
             } catch (SQLException exception) {
@@ -120,9 +134,9 @@ public class FieldUtil {
                 while (rs.next()) {
                     String id = rs.getString("id");
                     Bukkit.getScheduler().runTask(ElementalsX.get(), () -> {
-                        Field field = fields.get(id);
+                        Field field = loadedFields.get(id);
                         field.save();
-                        fields.remove(id);
+                        loadedFields.remove(id);
                     });
                 }
             } catch (SQLException exception) {
@@ -132,7 +146,7 @@ public class FieldUtil {
     }
 
     public static boolean isFieldAtLocation(Location location) {
-        for (Field field : fields.values())
+        for (Field field : loadedFields.values())
             if (field.getMaximLocation().getX() >= location.getBlockX()
                     && field.getMaximLocation().getZ() >= location.getBlockZ()
                     && field.getMinimLocation().getX() <= location.getBlockX()
@@ -143,7 +157,7 @@ public class FieldUtil {
     }
 
     public static Field getFieldByLocation(Location location) {
-        for (Field field : fields.values())
+        for (Field field : loadedFields.values())
             if (field.getMaximLocation().getX() >= location.getBlockX()
                     && field.getMaximLocation().getZ() >= location.getBlockZ()
                     && field.getMinimLocation().getX() <= location.getBlockX()
@@ -154,18 +168,18 @@ public class FieldUtil {
     }
 
     public static Field getFieldById(String id) {
-        if (fields.containsKey(id))
-            return fields.get(id);
+        if (loadedFields.containsKey(id))
+            return loadedFields.get(id);
         else
             throw new NullPointerException("Nici o protectie gasita dupa id-ul dat.");
     }
 
     public static boolean isFieldLoaded(String id) {
-        return fields.containsKey(id);
+        return loadedFields.containsKey(id);
     }
 
     public static Collection<Field> getLoadedFields() {
-        return fields.values();
+        return loadedFields.values();
     }
 
     public static boolean isFieldBlock(Block block) {

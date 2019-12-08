@@ -10,7 +10,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.function.Consumer;
 
-import org.anjocaido.groupmanager.GroupManager;
 import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
 import org.bukkit.Difficulty;
@@ -18,7 +17,6 @@ import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.World.Environment;
 import org.bukkit.WorldCreator;
-import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.Plugin;
@@ -61,7 +59,6 @@ public class ElementalsX extends JavaPlugin {
     private final static ConcurrentMap<UUID, User> players = new ConcurrentHashMap<>();
     private static Economy vault;
     private static Permission perm;
-    private static GroupManager gm;
 
 
     @Override
@@ -69,7 +66,6 @@ public class ElementalsX extends JavaPlugin {
         long start = System.currentTimeMillis();
         getServer().setSpawnRadius(1);
         new File(this.getDataFolder() + File.separator + "regiuni").mkdirs();
-        gm = (GroupManager) Bukkit.getPluginManager().getPlugin("GroupManager");
         vault = this.getServer().getServicesManager().getRegistration(Economy.class).getProvider();
         perm = this.getServer().getServicesManager().getRegistration(Permission.class).getProvider();
         new WorldCreator("spawn").environment(Environment.NORMAL).generateStructures(false).createWorld();
@@ -103,10 +99,6 @@ public class ElementalsX extends JavaPlugin {
         sendConsoleMessage("&bPluginul s-a oprit!");
     }
 
-    public static GroupManager getGM() {
-        return gm;
-    }
-
     public static void createUser(Player player) {
         players.putIfAbsent(player.getUniqueId(), new User(player));
     }
@@ -120,7 +112,7 @@ public class ElementalsX extends JavaPlugin {
     }
 
     public static Plugin get() {
-        return Bukkit.getPluginManager().getPlugin("Elementals");
+        return Bukkit.getPluginManager().getPlugin("ElementalsX");
     }
 
     public static Connection getBase() {
@@ -190,14 +182,10 @@ public class ElementalsX extends JavaPlugin {
     }
 
     private void createDataBase() {
-        FileConfiguration cfg = this.getConfig();
-        String username = cfg.getString("db_user");
-        String password = cfg.getString("db_pass");
-        String ip = cfg.getString("db_ip");
-        String db_name = cfg.getString("db_name");
-        String url = "jdbc:mysql://" + ip + "/" + db_name + "?autoReconnect=true";
+        File file = new File(this.getDataFolder() + File.separator + "database.db");
+        String url = "jdbc:sqlite:" + file.getAbsolutePath();
         try {
-            database = DriverManager.getConnection(url, username, password);
+            database = DriverManager.getConnection(url);
             database.prepareStatement(
                     "CREATE TABLE IF NOT EXISTS protection(id VARCHAR(50) PRIMARY KEY, x INT, y INT, z INT, world VARCHAR(50), owner VARCHAR(50), maxx INT, maxz INT, minx INT, minz INT, chunkx INT, chunkz INT);")
                     .executeUpdate();

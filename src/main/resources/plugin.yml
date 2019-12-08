@@ -5,4 +5,35 @@ api-version: 1.13
 authors: [nicuch]
 description: Elementals 2 for Pikacraft server.
 website: pikacraft.ro
-depend: [GroupManager, TagRegisterLib, WorldEdit, Vault, Votifier, Citizens, AuthMe]
+depend: [LuckPerms, TagRegisterLib, WorldEdit, Vault, Votifier, Citizens, AuthMe]
+commands:
+  show:
+    description: Arata jucatorilor itemul din mana!
+  randomtp:
+    aliases: [rdtp, rtp]
+    description: Teleportare random.
+  adminchat:
+    aliases: [ac]
+    description: Chat pentru staff.
+  chat:
+    description: Comanda pentru chat.
+  ps:
+    description: Comanda pentru protectie.
+  sound:
+    description: Comanda pentru sunete.
+  giveall:
+    description: Comanda pentru giveall.
+  points:
+    description: Comanda pentru PikaPoints.
+  test:
+    description: Comanda folosita pentru test.
+  admin:
+    description: Comanda folosita de admin.
+  ce:
+    description: Comanda pentru custom enchants.
+  achivements:
+    description: Comanda pentru achivementuri.
+  sort:
+    description: Comanda pentru sortare.
+  curse:
+    description: Comanda pentru curse.

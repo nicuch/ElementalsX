@@ -30,6 +30,7 @@ import java.sql.SQLException;
 import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.Comparator;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
@@ -885,6 +886,14 @@ public class ElementalsUtil {
         Bukkit.getConsoleSender().sendMessage(raw);
     }
 
+    public static Player getPlayer(String name) {
+        return Bukkit.getOnlinePlayers().stream().filter(p -> p.getName().equals(name)).findFirst().orElseGet(null);
+    }
+
+    public static OfflinePlayer getOfflinePlayer(String name) {
+        return Arrays.stream(Bukkit.getOfflinePlayers()).filter(p -> p.getName().equals(name)).findFirst().orElseGet(null);
+    }
+
     public static void changePoints(CommandSender sender, String name, String amount, boolean give) {
         int a;
         try {
@@ -894,9 +903,13 @@ public class ElementalsUtil {
             return;
         }
         try {
-            OfflinePlayer off = Bukkit.getOfflinePlayer(name);
-            if (off.isOnline()) {
-                User user = ElementalsX.getUser(off.getPlayer());
+            Optional<OfflinePlayer> player = Optional.ofNullable(getOfflinePlayer(name));
+            if (!player.isPresent()) {
+                sender.sendMessage(color("&cJucatorul nu a fost gasit!"));
+                return;
+            }
+            if (player.get().isOnline()) {
+                User user = ElementalsX.getUser(player.get().getPlayer());
                 if (give) {
                     user.addPoints(a);
                     sender.sendMessage(color("&3Ai adaugat &a" + a + " &3points in contul lui &c" + name + "&3!"));
@@ -907,7 +920,7 @@ public class ElementalsUtil {
             } else {
                 ResultSet rs = ElementalsX.getBase()
                         .prepareStatement(
-                                "SELECT points FROM pikapoints WHERE uuid='" + off.getUniqueId().toString() + "';")
+                                "SELECT points FROM pikapoints WHERE uuid='" + player.get().getUniqueId().toString() + "';")
                         .executeQuery();
                 if (rs.next()) {
                     int points = rs.getInt("points");
@@ -919,7 +932,7 @@ public class ElementalsUtil {
                         sender.sendMessage(color("&3Ai scos &a" + a + " &3points din contul lui &c" + name + "&3!"));
                     }
                     ElementalsX.getBase().prepareStatement("UPDATE pikapoints SET points='" + points + "' WHERE uuid='"
-                            + off.getUniqueId().toString() + "';").executeUpdate();
+                            + player.get().getUniqueId().toString() + "';").executeUpdate();
                 } else {
                     sender.sendMessage(color("&cJucatorul nu a fost gasit!"));
                 }
@@ -1089,23 +1102,28 @@ public class ElementalsUtil {
 
     // TODO we have a lag-hole here
     public static void procesWorld(World world) {
-        for (Entity entity : world.getEntities()) {
+        for (LivingEntity entity : world.getLivingEntities()) {
             if (isValidEntity(entity, false)) {
                 int count = getEntityCount(entity);
-                for (Entity other : entity.getNearbyEntities(15, 15, 15))
-                    if (isValidEntity(other, false))
-                        if (match(entity, other)) {
-                            if (other.getCustomName() != null)
-                                if (other.getCustomName().startsWith(color("&cStack")))
-                                    continue;
-                            if (count <= getMaximEntityCount(entity.getType())) {
-                                other.remove();
-                                int finalCount = count + 1;
-                                setEntityCount(entity, finalCount);
-                                entity.setCustomName(color("&cStack&f: &a" + finalCount));
-                                entity.setCustomNameVisible(false);
-                            }
+                if (count <= getMaximEntityCount(entity.getType()) - 1) {
+                    for (Entity other : entity.getNearbyEntities(15, 15, 15)) {
+                        int otherCount = getEntityCount(other);
+                        if (otherCount <= getMaximEntityCount(other.getType()) - 1) {
+                            if (isValidEntity(other, false))
+                                if (match(entity, other)) {
+                                    if (count <= getMaximEntityCount(entity.getType()) - 1) {
+                                        count += otherCount;
+                                        setEntityCount(entity, count);
+                                        other.remove();
+                                    }
+                                }
                         }
+                    }
+                    if (count > 1) {
+                        entity.setCustomName(color("&cStack&f: &a" + count));
+                        entity.setCustomNameVisible(false);
+                    }
+                }
             }
         }
     }
@@ -1201,49 +1219,59 @@ public class ElementalsUtil {
     public static int getEntityCount(Entity entity) {
         if (!TagRegister.isStored(entity))
             return 1;
-        CompoundTag tag = TagRegister.getStored(entity);
+        if (!TagRegister.getStored(entity).isPresent())
+            return 1;
+        CompoundTag tag = TagRegister.getStored(entity).get();
         if (!tag.contains("count", TagType.INT))
             return 1;
         return tag.getInt("count");
     }
 
     public static void setEntityCount(Entity entity, int count) {
-        CompoundTag tag = TagRegister.isStored(entity) ? TagRegister.getStored(entity) : TagRegister.create(entity);
+        CompoundTag tag = TagRegister.isStored(entity) && TagRegister.getStored(entity).isPresent() ? TagRegister.getStored(entity).get() : TagRegister.create(entity);
         tag.putInt("count", count);
     }
 
     public static void setTag(Entity entity, String arg) {
-        CompoundTag tag = TagRegister.isStored(entity) ? TagRegister.getStored(entity) : TagRegister.create(entity);
+        CompoundTag tag = TagRegister.isStored(entity) && TagRegister.getStored(entity).isPresent() ? TagRegister.getStored(entity).get() : TagRegister.create(entity);
         tag.putByte(arg, (byte) 1);
     }
 
     public static boolean hasTag(Entity entity, String arg) {
         if (!TagRegister.isStored(entity))
             return false;
-        return TagRegister.getStored(entity).contains(arg);
+        if (!TagRegister.getStored(entity).isPresent())
+            return false;
+        return TagRegister.getStored(entity).get().contains(arg);
     }
 
     public static void setTag(Block block, String arg) {
-        CompoundTag tag = TagRegister.isStored(block) ? TagRegister.getStored(block) : TagRegister.create(block);
+        CompoundTag tag = TagRegister.isStored(block) && TagRegister.getStored(block).isPresent() ? TagRegister.getStored(block).get() : TagRegister.create(block);
         tag.putByte(arg, (byte) 1);
     }
 
     public static boolean hasTag(Block block, String arg) {
         if (!TagRegister.isStored(block))
             return false;
-        return TagRegister.getStored(block).contains(arg);
+        if (!TagRegister.getStored(block).isPresent())
+            return false;
+        return TagRegister.getStored(block).get().contains(arg);
     }
 
     public static void removeTag(Entity entity, String arg) {
         if (!TagRegister.isStored(entity))
             return;
-        TagRegister.getStored(entity).remove(arg);
+        if (!TagRegister.getStored(entity).isPresent())
+            return;
+        TagRegister.getStored(entity).get().remove(arg);
     }
 
     public static void removeTag(Block block, String arg) {
         if (!TagRegister.isStored(block))
             return;
-        TagRegister.getStored(block).remove(arg);
+        if (!TagRegister.getStored(block).isPresent())
+            return;
+        TagRegister.getStored(block).get().remove(arg);
     }
 
     public static void addDir(File dirObj, ZipOutputStream out) throws IOException {

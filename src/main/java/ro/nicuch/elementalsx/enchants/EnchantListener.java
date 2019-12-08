@@ -164,6 +164,7 @@ public class EnchantListener implements Listener {
             if (minEntity != null) {
                 Projectile proj = (Projectile) event.getProjectile();
                 Entity target = minEntity;
+
                 new BukkitRunnable() {
                     @Override
                     public void run() {
@@ -2693,7 +2694,7 @@ public class EnchantListener implements Listener {
         if (!block.getType().equals(Material.DROPPER))
             return;
         //TODO let's see
-        String customName = ((Dropper) event.getBlock().getBlockData()).getCustomName();
+        String customName = ((Dropper) event.getBlockPlaced().getBlockData()).getCustomName();
         if (customName == null)
             return;
         if (!customName.equals(ElementalsUtil.color("&5Enchanter")))

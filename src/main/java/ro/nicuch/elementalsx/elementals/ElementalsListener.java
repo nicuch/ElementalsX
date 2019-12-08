@@ -31,15 +31,9 @@ import org.bukkit.event.block.BlockIgniteEvent.IgniteCause;
 import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.block.BlockSpreadEvent;
 import org.bukkit.event.block.LeavesDecayEvent;
-import org.bukkit.event.entity.CreatureSpawnEvent;
+import org.bukkit.event.entity.*;
 import org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason;
-import org.bukkit.event.entity.EntityDamageByEntityEvent;
-import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.EntityDamageEvent.DamageCause;
-import org.bukkit.event.entity.EntityDeathEvent;
-import org.bukkit.event.entity.EntityExplodeEvent;
-import org.bukkit.event.entity.EntityShootBowEvent;
-import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.hanging.HangingBreakByEntityEvent;
 import org.bukkit.event.hanging.HangingPlaceEvent;
 import org.bukkit.event.inventory.InventoryClickEvent;
@@ -68,7 +62,6 @@ import org.bukkit.event.server.ServerListPingEvent;
 import org.bukkit.inventory.EntityEquipment;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
-import org.bukkit.inventory.meta.SkullMeta;
 import org.bukkit.metadata.FixedMetadataValue;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
@@ -114,7 +107,6 @@ public class ElementalsListener implements Listener {
         event.getPlayer().setVelocity(vec);
     }
 
-
     @EventHandler
     public void event(EntityShootBowEvent event) {
         LivingEntity entity = event.getEntity();
@@ -143,7 +135,7 @@ public class ElementalsListener implements Listener {
             if (!a.getProjectile().equals(proj1))
                 proj1.remove();
             a.getProjectile().setMetadata("nano", new FixedMetadataValue(ElementalsX.get(), true));
-        }, 5L);
+        }, 20L);
         Bukkit.getScheduler().runTaskLater(ElementalsX.get(), () -> {
             Projectile proj2 = entity.launchProjectile(Arrow.class);
             proj2.setVelocity(vely);
@@ -155,7 +147,7 @@ public class ElementalsListener implements Listener {
             if (!b.getProjectile().equals(proj2))
                 proj2.remove();
             b.getProjectile().setMetadata("nano", new FixedMetadataValue(ElementalsX.get(), true));
-        }, 10L);
+        }, 40L);
     }
 
     @EventHandler
@@ -899,6 +891,7 @@ public class ElementalsListener implements Listener {
         }
     }
 
+    /*
     @EventHandler
     public void event(PlayerDeathEvent event) {
         if (CitizensAPI.getNPCRegistry().isNPC(event.getEntity()))
@@ -949,9 +942,9 @@ public class ElementalsListener implements Listener {
                     random = ElementalsUtil.nextDouble(100);
                     if (random <= 66.6)
                         event.getEntity().getWorld().dropItem(event.getEntity().getLocation(),
-                                event.getEntity().getInventory().getHelmet());
+                               helmet);
                     else
-                        items.add(event.getEntity().getInventory().getHelmet());
+                        helmet = null;
                 }
             }
         }
@@ -962,9 +955,9 @@ public class ElementalsListener implements Listener {
                     random = ElementalsUtil.nextDouble(100);
                     if (random <= 66.6)
                         event.getEntity().getWorld().dropItem(event.getEntity().getLocation(),
-                                event.getEntity().getInventory().getBoots());
+                                boots);
                     else
-                        items.add(event.getEntity().getInventory().getBoots());
+                        boots = null;
                 }
             }
         }
@@ -975,9 +968,9 @@ public class ElementalsListener implements Listener {
                     random = ElementalsUtil.nextDouble(100);
                     if (random <= 66.6)
                         event.getEntity().getWorld().dropItem(event.getEntity().getLocation(),
-                                event.getEntity().getInventory().getChestplate());
+                                chestplate);
                     else
-                        items.add(event.getEntity().getInventory().getChestplate());
+                        chestplate = null;
                 }
             }
         }
@@ -988,9 +981,9 @@ public class ElementalsListener implements Listener {
                     random = ElementalsUtil.nextDouble(100);
                     if (random <= 66.6)
                         event.getEntity().getWorld().dropItem(event.getEntity().getLocation(),
-                                event.getEntity().getInventory().getLeggings());
+                                leggings);
                     else
-                        items.add(event.getEntity().getInventory().getLeggings());
+                        leggings = null;
                 }
             }
         }
@@ -1001,16 +994,23 @@ public class ElementalsListener implements Listener {
                     random = ElementalsUtil.nextDouble(100);
                     if (random <= 66.6)
                         event.getEntity().getWorld().dropItem(event.getEntity().getLocation(),
-                                event.getEntity().getInventory().getItemInOffHand());
+                                offhand);
                     else
-                        items.add(event.getEntity().getInventory().getItemInOffHand());
+                        offhand = null;
                 }
             }
         }
         event.getEntity().getInventory().clear();
-        items.forEach((ItemStack item) -> event.getEntity().getInventory().setItem(items.indexOf(item), item));
+        PlayerInventory entityInv = event.getEntity().getInventory();
+        items.forEach((ItemStack item) -> entityInv.setItem(items.indexOf(item), item));
+        entityInv.setHelmet(helmet);
+        entityInv.setChestplate(chestplate);
+        entityInv.setLeggings(leggings);
+        entityInv.setBoots(boots);
+        entityInv.setItemInOffHand(offhand);
         items.clear();
     }
+     */
 
     @EventHandler
     public void event(PlayerInteractEntityEvent event) {
@@ -1106,7 +1106,7 @@ public class ElementalsListener implements Listener {
 
     @EventHandler
     public void event(EntityExplodeEvent event) {
-        if (!event.getLocation().getWorld().getName().equals("spawn"))
+        if (!event.getEntity().getWorld().getName().equals("spawn"))
             return;
         event.setCancelled(true);
     }
@@ -1317,7 +1317,7 @@ public class ElementalsListener implements Listener {
         Player player = event.getPlayer();
         double random = ElementalsUtil.nextDouble(100);
         ItemStack offhandItem = player.getInventory().getItemInOffHand();
-        if (offhandItem != null && offhandItem.getType().equals(Material.TOTEM_OF_UNDYING)) {
+        if (offhandItem != null && offhandItem.getType().equals(Material.TOTEM_OF_UNDYING)) { //TODO figure this out
             if (random > 33.3)
                 return;
         } else if (random > 20)

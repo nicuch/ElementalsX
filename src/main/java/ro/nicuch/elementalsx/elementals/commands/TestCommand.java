@@ -8,8 +8,6 @@ public class TestCommand implements CommandExecutor {
 
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
-        if (!sender.isOp())
-            return true;
-        return true;
+        return !sender.isOp();
     }
 }
