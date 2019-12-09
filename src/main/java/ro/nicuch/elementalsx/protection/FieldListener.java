@@ -20,10 +20,7 @@ import org.bukkit.event.block.BlockPistonExtendEvent;
 import org.bukkit.event.block.BlockPistonRetractEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.block.BlockSpreadEvent;
-import org.bukkit.event.entity.EntityChangeBlockEvent;
-import org.bukkit.event.entity.EntityDamageByEntityEvent;
-import org.bukkit.event.entity.EntityDamageEvent;
-import org.bukkit.event.entity.EntityExplodeEvent;
+import org.bukkit.event.entity.*;
 import org.bukkit.event.hanging.HangingBreakByEntityEvent;
 import org.bukkit.event.hanging.HangingPlaceEvent;
 import org.bukkit.event.player.PlayerArmorStandManipulateEvent;
@@ -440,8 +437,12 @@ public class FieldListener implements Listener {
                 || entityType.equals(EntityType.SQUID)
                 || entityType.equals(EntityType.ARMOR_STAND)
                 || entityType.equals(EntityType.ITEM_FRAME)) {
-            if (entityType.equals(EntityType.HORSE)) {
-                Horse horse = (Horse) event.getRightClicked();
+            if (entityType.equals(EntityType.ZOMBIE_HORSE)
+                    || entityType.equals(EntityType.MULE)
+                    || entityType.equals(EntityType.HORSE)
+                    || entityType.equals(EntityType.DONKEY)
+                    || entityType.equals(EntityType.SKELETON_HORSE)) {
+                AbstractHorse horse = (AbstractHorse) event.getRightClicked();
                 if (horse.isTamed())
                     if (horse.getOwner() != null && horse.getOwner().getUniqueId().equals(uuid))
                         return;
@@ -455,6 +456,45 @@ public class FieldListener implements Listener {
                 || entityType.equals(EntityType.MINECART_MOB_SPAWNER)
                 || entityType.equals(EntityType.MINECART_COMMAND)) {
             user.getBase().sendMessage(ElementalsUtil.color("&cNu poti interactiona cu aceast vehicul in protectie."));
+            event.setCancelled(true);
+        }
+    }
+
+    @EventHandler
+    public void event(EntityInteractEvent event) {
+        Entity entity = event.getEntity();
+        EntityType entityType = entity.getType();
+        Material blockType = event.getBlock().getType();
+        if (entityType.equals(EntityType.ZOMBIE_HORSE)
+                || entityType.equals(EntityType.MULE)
+                || entityType.equals(EntityType.HORSE)
+                || entityType.equals(EntityType.DONKEY)
+                || entityType.equals(EntityType.SKELETON_HORSE)) {
+            Field field = FieldUtil.getFieldByLocation(entity.getLocation());
+            if (field.hasFun())
+                return;
+            if (!(Tag.WOODEN_PRESSURE_PLATES.isTagged(blockType)
+                    || Tag.DOORS.isTagged(blockType)
+                    || Tag.TRAPDOORS.isTagged(blockType)
+                    || Tag.BUTTONS.isTagged(blockType)
+                    || blockType.equals(Material.HEAVY_WEIGHTED_PRESSURE_PLATE)
+                    || blockType.equals(Material.LIGHT_WEIGHTED_PRESSURE_PLATE)
+                    || blockType.equals(Material.STONE_PRESSURE_PLATE)
+                    || blockType.equals(Material.NOTE_BLOCK)
+                    || blockType.equals(Material.LEVER)
+                    || blockType.equals(Material.JUKEBOX)
+                    || blockType.equals(Material.ACACIA_FENCE_GATE)
+                    || blockType.equals(Material.BIRCH_FENCE_GATE)
+                    || blockType.equals(Material.DARK_OAK_FENCE_GATE)
+                    || blockType.equals(Material.JUNGLE_FENCE_GATE)
+                    || blockType.equals(Material.OAK_FENCE_GATE)
+                    || blockType.equals(Material.SPRUCE_FENCE_GATE)))
+                return;
+            AbstractHorse horse = (AbstractHorse) entity;
+            if (!horse.isTamed() && horse.getOwner() == null)
+                return;
+            if (field.isMember(horse.getOwner().getUniqueId()) || field.isOwner(horse.getOwner().getUniqueId()))
+                return;
             event.setCancelled(true);
         }
     }

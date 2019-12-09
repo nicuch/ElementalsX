@@ -72,7 +72,7 @@ public class FieldUtil {
                             + "' AND chunkz='" + chunk.getZ() + "' AND world='" + chunk.getWorld().getName() + "';")
                     .executeQuery();
             if (rs.next())
-                return rs.getInt(0) < 4;
+                return rs.getInt(1) < 4;
         } catch (SQLException ex) {
             ex.printStackTrace();
         }
@@ -272,13 +272,13 @@ public class FieldUtil {
     @SuppressWarnings("deprecation")
     public static void visualiseField(User user) {
         if (!isFieldAtLocation(user.getBase().getLocation())) {
-            user.getBase().sendMessage(ElementalsUtil.color("&cTrebuie sa fi in protectia ta ca sa poti vizualiza!"));
+            user.getBase().sendMessage(ElementalsUtil.color("&cTrebuie sa fii in protectia ta ca sa poti vizualiza!"));
             return;
         }
         Field field = getFieldByLocation(user.getBase().getLocation());
         if (!(field.isMember(user.getBase().getUniqueId()) || field.isOwner(user.getBase().getUniqueId())
                 || user.hasPermission("protection.override"))) {
-            user.getBase().sendMessage(ElementalsUtil.color("&cTrebuie sa fi membru al protectiei ca sa poti vizualiza!"));
+            user.getBase().sendMessage(ElementalsUtil.color("&cTrebuie sa fii membru al protectiei ca sa poti vizualiza!"));
             return;
         }
         int maxx = field.getMaximLocation().getX();
