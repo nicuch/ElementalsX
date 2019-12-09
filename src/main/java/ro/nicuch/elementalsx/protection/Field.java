@@ -25,6 +25,7 @@ public class Field {
     private final World world;
     private final YamlConfiguration config;
     private final File file;
+    private boolean fun;
 
     public Field(String id, UUID owner, Block maxLoc, Block minLoc, Chunk chunk, World world) {
         this.id = id;
@@ -37,8 +38,10 @@ public class Field {
         this.file = new File(
                 ElementalsX.get().getDataFolder() + File.separator + "regiuni" + File.separator + this.id + ".yml");
         this.config = YamlConfiguration.loadConfiguration(this.file);
-        if (this.file.exists())
+        if (this.file.exists()) {
             this.members.addAll(FieldUtil.convertStringsToUUIDs(this.config.getStringList("members")));
+            this.fun = this.config.getBoolean("fun", false);
+        }
         this.save();
     }
 
@@ -108,6 +111,7 @@ public class Field {
     public void save() {
         try {
             this.config.set("members", FieldUtil.convertUUIDsToStrings(this.members));
+            this.config.set("fun", this.fun);
             this.config.save(this.file);
         } catch (IOException exception) {
             exception.printStackTrace();
@@ -116,5 +120,13 @@ public class Field {
 
     public void delete() {
         this.file.delete();
+    }
+
+    public boolean hasFun() {
+        return this.fun;
+    }
+
+    public void toggleFun() {
+        this.fun = !this.fun;
     }
 }

@@ -64,13 +64,22 @@ public class RandomTpCommand implements CommandExecutor {
             else
                 y = world.getHighestBlockYAt(x, z);
             loc.setWorld(world);
-            loc.setX(x);
+            loc.setX(x + .5);
             loc.setY(y);
-            loc.setZ(z);
+            loc.setZ(z + .5);
         } while (world.getBiome(x, z) == Biome.OCEAN || world.getBiome(x, z) == Biome.DEEP_OCEAN
                 || world.getBiome(x, z) == Biome.NETHER || world.getBiome(x, z) == Biome.THE_VOID
                 || world.getBiome(x, z) == Biome.THE_END
-                || world.getBiome(x, z) == Biome.RIVER || FieldUtil.isFieldAtLocation(loc));
+                || world.getBiome(x, z) == Biome.RIVER
+                || world.getBiome(x, z) == Biome.COLD_OCEAN
+                || world.getBiome(x, z) == Biome.DEEP_COLD_OCEAN
+                || world.getBiome(x, z) == Biome.DEEP_FROZEN_OCEAN
+                || world.getBiome(x, z) == Biome.DEEP_LUKEWARM_OCEAN
+                || world.getBiome(x, z) == Biome.DEEP_WARM_OCEAN
+                || world.getBiome(x, z) == Biome.FROZEN_OCEAN
+                || world.getBiome(x, z) == Biome.LUKEWARM_OCEAN
+                || world.getBiome(x, z) == Biome.WARM_OCEAN
+        || FieldUtil.isFieldAtLocation(loc));
         loc.getBlock().setType(Material.AIR);
         loc.getBlock().getRelative(BlockFace.UP).setType(Material.AIR);
         user.getBase().sendMessage(ElementalsUtil.color("&6Nu te misca pana vei fi teleportat!"));

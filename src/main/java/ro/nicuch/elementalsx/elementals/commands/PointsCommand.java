@@ -5,10 +5,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
-import org.bukkit.command.Command;
-import org.bukkit.command.CommandExecutor;
-import org.bukkit.command.CommandSender;
-import org.bukkit.command.TabCompleter;
+import org.bukkit.command.*;
 import org.bukkit.entity.Player;
 import org.bukkit.util.StringUtil;
 
@@ -16,7 +13,7 @@ import ro.nicuch.elementalsx.ElementalsX;
 import ro.nicuch.elementalsx.User;
 import ro.nicuch.elementalsx.elementals.ElementalsUtil;
 
-public class PointsCommand implements CommandExecutor, TabCompleter {
+public class PointsCommand implements TabExecutor {
     private static final String[] COMMANDS = {"give", "take", "set", "reset"};
 
     @Override

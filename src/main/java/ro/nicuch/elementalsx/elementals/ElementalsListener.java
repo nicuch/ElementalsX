@@ -522,37 +522,22 @@ public class ElementalsListener implements Listener {
         String group = ElementalsX.getPermission().getPrimaryGroup(user.getBase());
         switch (group) {
             case "Helper":
-                event.setFormat(ElementalsUtil.color("&b[&9Helper&b] " + display + " &e➽ &b") + "%2$s");
-                break;
             case "Builder":
-                event.setFormat(ElementalsUtil.color("&8[&fBuilder&8] " + display + " &e➽ &f") + "%2$s");
-                break;
             case "Moderator":
-                event.setFormat(ElementalsUtil.color("&5[&2Moderator&5] " + display + " &e➽ &b") + "%2$s");
-                break;
-            case "Admin":
-                event.setFormat(ElementalsUtil.color("&8[&cAdmin&8] " + display + " &e➽ &a") + "%2$s");
+                event.setFormat(ElementalsUtil.color(display + " &e➽ &b") + "%2$s");
                 break;
             case "Iron":
-                event.setFormat(ElementalsUtil.color("&f[&7IronVip&f] " + display + " &e➽ &f") + "%2$s");
-                break;
             case "Gold":
-                event.setFormat(ElementalsUtil.color("&f[&6GoldVip&f] " + display + " &e➽ &f") + "%2$s");
-                break;
             case "Diamond":
-                event.setFormat(ElementalsUtil.color("&f[&bDiamondVip&f] " + display + " &e➽ &f") + "%2$s");
+                event.setFormat(ElementalsUtil.color(display + " &e➽ &f") + "%2$s");
                 break;
             case "Rainbow":
-                event.setFormat(ElementalsUtil.color("&f[&4&lR&6&la&e&li&a&ln&9&lB&5&lo&d&lw&f] " + display + " &e➽ &f") + "%2$s");
-                break;
+            case "Admin":
             case "Owner":
-                event.setFormat(ElementalsUtil.color("&6[&4Owner&6] " + display + " &e➽ &a") + "%2$s");
+                event.setFormat(ElementalsUtil.color(display + " &e➽ &a") + "%2$s");
                 break;
-            case "Developer":
-                event.setFormat(ElementalsUtil.color("&6[&eDeveloper&6] " + display + " &e➽ &f") + "%2$s");
-            // TODO Grade Custom
             default:
-                event.setFormat(ElementalsUtil.color("&8[&eJucator&8] " + display + " &e➽ &7") + "%2$s");
+                event.setFormat(ElementalsUtil.color(display + " &e➽ &7") + "%2$s");
                 break;
         }
         ElementalsX.getOnlineUsers().forEach((User user$) -> {
@@ -1125,16 +1110,15 @@ public class ElementalsListener implements Listener {
 
     @EventHandler(priority = EventPriority.NORMAL)
     public void event(VotifierEvent event) {
-        OfflinePlayer offline = Bukkit.getPlayerExact(event.getVote().getUsername());
-        if (offline.isOnline()) {
-            Player player = Bukkit.getPlayer(event.getVote().getUsername());
-            player.getInventory().addItem(new ItemStack(Material.DIAMOND, 5));
+        Optional<Player> player = (Optional<Player>) ElementalsUtil.getPlayer(event.getVote().getUsername());
+        if (player.isPresent()) {
+            player.get().getInventory().addItem(new ItemStack(Material.DIAMOND, 5));
             ItemStack key = new ItemStack(Material.PRISMARINE_SHARD);
             ItemMeta meta = key.getItemMeta();
-            meta.setDisplayName(ElementalsUtil.color(ChatColor.GREEN + "Crate Key"));
+            meta.setDisplayName(ElementalsUtil.color("&aCrate Key"));
             key.setItemMeta(meta);
-            player.getInventory().addItem(key);
-            ElementalsX.getVault().depositPlayer(offline, 500);
+            player.get().getInventory().addItem(key);
+            ElementalsX.getVault().depositPlayer(player.get(), 500);
             Bukkit.getPlayer(event.getVote().getUsername()).updateInventory();
             // TODO effect la warp vote
             Bukkit.broadcastMessage(ElementalsUtil.color(ChatColor.WHITE + "[" + ChatColor.GOLD + "/warp vote" + ChatColor.WHITE

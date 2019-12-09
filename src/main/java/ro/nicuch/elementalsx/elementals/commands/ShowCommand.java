@@ -13,9 +13,13 @@ import ro.nicuch.elementalsx.elementals.ElementalsUtil;
 import ro.nicuch.elementalsx.hover.HoverUtil;
 
 public class ShowCommand implements CommandExecutor {
+    private final boolean disabled = true;
 
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
+        if (this.disabled)
+            return false;
+
         User user = ElementalsX.getUser((Player) sender);
         /*
          * TODO Add later ess com.earth2me.essentials.User essUser =
@@ -30,7 +34,7 @@ public class ShowCommand implements CommandExecutor {
             return true;
         }
         ElementalsUtil.broadcastRawMessage(
-                "[\"\",{\"text\":\"[\",\"color\":\"yellow\"},{\"text\":\"/show\",\"color\":\"blue\"},{\"text\":\"]\",\"color\":\"yellow\"},{\"text\":\" " + user.getBase().getDisplayName() +  " \",\"color\":\"none\"},{\"text\":\">\",\"color\":\"red\"},{\"text\":\"" + "the item" + "\",\"hoverEvent\":{\"action\":\"show_item\",\"value\":\"" + HoverUtil.rawMessage(item) + "\"},\"color\":\"none\"}]"
+                HoverUtil.rawMessage(item)
         );
         // HoverUtil.convertItemToHover("&c[&b/show&c] &r" +
         // user.getBase().getDisplayName() + " &e&l> &r", null,

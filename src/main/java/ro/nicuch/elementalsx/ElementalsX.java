@@ -17,6 +17,7 @@ import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.World.Environment;
 import org.bukkit.WorldCreator;
+import org.bukkit.command.TabExecutor;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.Plugin;
@@ -30,19 +31,7 @@ import net.milkbowl.vault.permission.Permission;
 import ro.nicuch.elementalsx.deathmessage.DeathMessageListener;
 import ro.nicuch.elementalsx.elementals.ElementalsListener;
 import ro.nicuch.elementalsx.elementals.ElementalsUtil;
-import ro.nicuch.elementalsx.elementals.commands.AdminChatCommand;
-import ro.nicuch.elementalsx.elementals.commands.AdminCommand;
-import ro.nicuch.elementalsx.elementals.commands.ChatCommand;
-import ro.nicuch.elementalsx.elementals.commands.CurseEnchantCommand;
-import ro.nicuch.elementalsx.elementals.commands.CustomEnchantCommand;
-import ro.nicuch.elementalsx.elementals.commands.GiveAllCommand;
-import ro.nicuch.elementalsx.elementals.commands.PointsCommand;
-import ro.nicuch.elementalsx.elementals.commands.ProtectionCommand;
-import ro.nicuch.elementalsx.elementals.commands.RandomTpCommand;
-import ro.nicuch.elementalsx.elementals.commands.ShowCommand;
-import ro.nicuch.elementalsx.elementals.commands.SortCommand;
-import ro.nicuch.elementalsx.elementals.commands.SoundCommand;
-import ro.nicuch.elementalsx.elementals.commands.TestCommand;
+import ro.nicuch.elementalsx.elementals.commands.*;
 import ro.nicuch.elementalsx.enchants.EnchantListener;
 import ro.nicuch.elementalsx.enchants.EnchantUtil;
 import ro.nicuch.elementalsx.enchants.EnchantUtil.CEnchantType;
@@ -159,10 +148,12 @@ public class ElementalsX extends JavaPlugin {
     }
 
     private void commandsCreator() {
-        this.getCommand("ps").setExecutor(new ProtectionCommand());
-        this.getCommand("ps").setTabCompleter(new ProtectionCommand());
+        TabExecutor te = new ProtectionCommand();
+        this.getCommand("ps").setExecutor(te);
+        this.getCommand("ps").setTabCompleter(te);
         this.getCommand("adminchat").setExecutor(new AdminChatCommand());
         this.getCommand("adminchat").setAliases(AdminChatCommand.getAliases());
+
         this.getCommand("chat").setExecutor(new ChatCommand());
         this.getCommand("randomtp").setExecutor(new RandomTpCommand());
         this.getCommand("randomtp").setAliases(RandomTpCommand.getAliases());
@@ -179,6 +170,7 @@ public class ElementalsX extends JavaPlugin {
         this.getCommand("sort").setExecutor(new SortCommand());
         this.getCommand("sort").setExecutor(new SortCommand());
         this.getCommand("curse").setExecutor(new CurseEnchantCommand());
+        this.getCommand("vote").setExecutor(new VoteCommand());
     }
 
     private void createDataBase() {

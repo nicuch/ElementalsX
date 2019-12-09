@@ -1,6 +1,8 @@
 package ro.nicuch.elementalsx.elementals;
 
 import net.citizensnpcs.api.CitizensAPI;
+import net.md_5.bungee.api.chat.BaseComponent;
+import net.minecraft.server.v1_14_R1.IChatBaseComponent;
 import org.bukkit.*;
 import org.bukkit.FireworkEffect.Type;
 import org.bukkit.block.*;
@@ -30,7 +32,6 @@ import java.sql.SQLException;
 import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.Comparator;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
@@ -882,16 +883,15 @@ public class ElementalsUtil {
     }
 
     public static void broadcastRawMessage(String raw) {
-        Bukkit.getOnlinePlayers().forEach((Player player) -> player.sendRawMessage(raw));
-        Bukkit.getConsoleSender().sendMessage(raw);
+        Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "tellraw @a [\"\",{\"text\":\"[/show] nicuch> \"},{\"text\":\"Diamond Block\",\"hoverEvent\":{\"action\":\"show_item\",\"value\":\"{id:diamond_block, Count:1b}\"}}]");
     }
 
-    public static Player getPlayer(String name) {
-        return Bukkit.getOnlinePlayers().stream().filter(p -> p.getName().equals(name)).findFirst().orElseGet(null);
+    public static Optional<? extends Player> getPlayer(String name) {
+        return Bukkit.getOnlinePlayers().stream().filter(Objects::nonNull).filter(p -> name.equals(p.getName())).findFirst();
     }
 
-    public static OfflinePlayer getOfflinePlayer(String name) {
-        return Arrays.stream(Bukkit.getOfflinePlayers()).filter(p -> p.getName().equals(name)).findFirst().orElseGet(null);
+    public static Optional<OfflinePlayer> getOfflinePlayer(String name) {
+        return Arrays.stream(Bukkit.getOfflinePlayers()).filter(Objects::nonNull).filter(p -> name.equals(p.getName())).findFirst();
     }
 
     public static void changePoints(CommandSender sender, String name, String amount, boolean give) {
@@ -903,7 +903,7 @@ public class ElementalsUtil {
             return;
         }
         try {
-            Optional<OfflinePlayer> player = Optional.ofNullable(getOfflinePlayer(name));
+            Optional<OfflinePlayer> player = getOfflinePlayer(name);
             if (!player.isPresent()) {
                 sender.sendMessage(color("&cJucatorul nu a fost gasit!"));
                 return;

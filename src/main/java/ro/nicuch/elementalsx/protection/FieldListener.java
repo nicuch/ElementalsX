@@ -8,12 +8,7 @@ import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.Tag;
 import org.bukkit.block.Block;
-import org.bukkit.entity.Entity;
-import org.bukkit.entity.EntityType;
-import org.bukkit.entity.Firework;
-import org.bukkit.entity.Horse;
-import org.bukkit.entity.Player;
-import org.bukkit.entity.Projectile;
+import org.bukkit.entity.*;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
@@ -27,6 +22,7 @@ import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.block.BlockSpreadEvent;
 import org.bukkit.event.entity.EntityChangeBlockEvent;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
+import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.EntityExplodeEvent;
 import org.bukkit.event.hanging.HangingBreakByEntityEvent;
 import org.bukkit.event.hanging.HangingPlaceEvent;
@@ -39,6 +35,10 @@ import org.bukkit.event.player.PlayerInteractEntityEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.event.player.PlayerTeleportEvent;
+import org.bukkit.event.vehicle.VehicleCollisionEvent;
+import org.bukkit.event.vehicle.VehicleCreateEvent;
+import org.bukkit.event.vehicle.VehicleDamageEvent;
+import org.bukkit.event.vehicle.VehicleEnterEvent;
 import org.bukkit.event.world.ChunkLoadEvent;
 import org.bukkit.event.world.ChunkUnloadEvent;
 import org.bukkit.inventory.ItemStack;
@@ -411,35 +411,57 @@ public class FieldListener implements Listener {
             return;
         User user = ElementalsX.getUser(event.getPlayer());
         UUID uuid = user.getBase().getUniqueId();
-        EntityType entityType = event.getRightClicked().getType();
-        if (!(entityType.equals(EntityType.ITEM_FRAME) || entityType.equals(EntityType.PIG)
-                || entityType.equals(EntityType.COW) || entityType.equals(EntityType.OCELOT)
-                || entityType.equals(EntityType.MUSHROOM_COW) || entityType.equals(EntityType.MINECART)
-                || entityType.equals(EntityType.MINECART_CHEST) || entityType.equals(EntityType.MINECART_FURNACE)
-                || entityType.equals(EntityType.MINECART_HOPPER) || entityType.equals(EntityType.MINECART_TNT)
-                || entityType.equals(EntityType.BAT) || entityType.equals(EntityType.BOAT)
-                || entityType.equals(EntityType.CHICKEN) || entityType.equals(EntityType.WOLF)
-                || entityType.equals(EntityType.VILLAGER) || entityType.equals(EntityType.IRON_GOLEM)
-                || entityType.equals(EntityType.LEASH_HITCH) || entityType.equals(EntityType.RABBIT)
-                || entityType.equals(EntityType.SHEEP) || entityType.equals(EntityType.SNOWMAN)
-                || entityType.equals(EntityType.SQUID) || entityType.equals(EntityType.LLAMA)))
-            return; //TODO more mobs
-        if (entityType.equals(EntityType.HORSE)) {
-            Horse horse = (Horse) event.getRightClicked();
-            if (horse.isTamed())
-                if (horse.getOwner() != null && horse.getOwner().getUniqueId().equals(uuid))
-                    return;
-        }
         Field field = FieldUtil.getFieldByLocation(loc);
         if (field.isMember(uuid) || field.isOwner(uuid) || user.hasPermission("elementals.protection.override"))
             return;
-        user.getBase().sendMessage(ElementalsUtil.color("&cNu poti sa interactionezi cu aceasta entitate cat timp este in protectie."));
-        event.setCancelled(true);
+        EntityType entityType = event.getRightClicked().getType();
+        if (entityType.equals(EntityType.PARROT)
+                || entityType.equals(EntityType.LLAMA)
+                || entityType.equals(EntityType.TRADER_LLAMA)
+                || entityType.equals(EntityType.ZOMBIE_HORSE)
+                || entityType.equals(EntityType.MULE)
+                || entityType.equals(EntityType.HORSE)
+                || entityType.equals(EntityType.DONKEY)
+                || entityType.equals(EntityType.SKELETON_HORSE)
+                || entityType.equals(EntityType.PIG)
+                || entityType.equals(EntityType.COW)
+                || entityType.equals(EntityType.OCELOT)
+                || entityType.equals(EntityType.MUSHROOM_COW)
+                || entityType.equals(EntityType.BAT)
+                || entityType.equals(EntityType.BOAT)
+                || entityType.equals(EntityType.CHICKEN)
+                || entityType.equals(EntityType.WOLF)
+                || entityType.equals(EntityType.VILLAGER)
+                || entityType.equals(EntityType.IRON_GOLEM)
+                || entityType.equals(EntityType.LEASH_HITCH)
+                || entityType.equals(EntityType.RABBIT)
+                || entityType.equals(EntityType.SHEEP)
+                || entityType.equals(EntityType.SNOWMAN)
+                || entityType.equals(EntityType.SQUID)
+                || entityType.equals(EntityType.ARMOR_STAND)
+                || entityType.equals(EntityType.ITEM_FRAME)) {
+            if (entityType.equals(EntityType.HORSE)) {
+                Horse horse = (Horse) event.getRightClicked();
+                if (horse.isTamed())
+                    if (horse.getOwner() != null && horse.getOwner().getUniqueId().equals(uuid))
+                        return;
+            }
+            user.getBase().sendMessage(ElementalsUtil.color("&cNu poti interactiona cu aceasta entitate in protectie."));
+            event.setCancelled(true);
+        } else if (entityType.equals(EntityType.MINECART_CHEST)
+                || entityType.equals(EntityType.MINECART_FURNACE)
+                || entityType.equals(EntityType.MINECART_HOPPER)
+                || entityType.equals(EntityType.MINECART_TNT)
+                || entityType.equals(EntityType.MINECART_MOB_SPAWNER)
+                || entityType.equals(EntityType.MINECART_COMMAND)) {
+            user.getBase().sendMessage(ElementalsUtil.color("&cNu poti interactiona cu aceast vehicul in protectie."));
+            event.setCancelled(true);
+        }
     }
 
     @EventHandler(priority = EventPriority.HIGHEST)
     public void event0(PlayerInteractEvent event) {
-        if (!event.getAction().equals(Action.RIGHT_CLICK_BLOCK))
+        if (event.getAction() != Action.RIGHT_CLICK_BLOCK && event.getAction() != Action.PHYSICAL)
             return;
         Material clickedBlockType = event.getClickedBlock().getType();
         if (!(clickedBlockType.equals(Material.CHEST)
@@ -488,15 +510,67 @@ public class FieldListener implements Listener {
                 || clickedBlockType.equals(Material.HEAVY_WEIGHTED_PRESSURE_PLATE)
                 || clickedBlockType.equals(Material.LIGHT_WEIGHTED_PRESSURE_PLATE)
                 || clickedBlockType.equals(Material.STONE_PRESSURE_PLATE)
+                || clickedBlockType.equals(Material.TURTLE_EGG)
                 || Tag.WOODEN_PRESSURE_PLATES.isTagged(clickedBlockType)
                 || Tag.DOORS.isTagged(clickedBlockType)
                 || Tag.ANVIL.isTagged(clickedBlockType)
                 || Tag.BEDS.isTagged(clickedBlockType)
                 || Tag.TRAPDOORS.isTagged(clickedBlockType)
-                || Tag.BUTTONS.isTagged(clickedBlockType)
-                || Tag.FENCES.isTagged(clickedBlockType)))
+                || Tag.BUTTONS.isTagged(clickedBlockType)))
             return;
         //TODO more blocks
+        Location loc = event.getClickedBlock().getLocation();
+        if (!FieldUtil.isFieldAtLocation(loc))
+            return;
+        User user = ElementalsX.getUser(event.getPlayer());
+        Field field = FieldUtil.getFieldByLocation(loc);
+        if (field.hasFun()) {
+            if (Tag.WOODEN_PRESSURE_PLATES.isTagged(clickedBlockType)
+                    || Tag.DOORS.isTagged(clickedBlockType)
+                    || Tag.TRAPDOORS.isTagged(clickedBlockType)
+                    || Tag.BUTTONS.isTagged(clickedBlockType)
+                    || clickedBlockType.equals(Material.HEAVY_WEIGHTED_PRESSURE_PLATE)
+                    || clickedBlockType.equals(Material.LIGHT_WEIGHTED_PRESSURE_PLATE)
+                    || clickedBlockType.equals(Material.STONE_PRESSURE_PLATE)
+                    || clickedBlockType.equals(Material.NOTE_BLOCK)
+                    || clickedBlockType.equals(Material.LEVER)
+                    || clickedBlockType.equals(Material.JUKEBOX)
+                    || clickedBlockType.equals(Material.ACACIA_FENCE_GATE)
+                    || clickedBlockType.equals(Material.BIRCH_FENCE_GATE)
+                    || clickedBlockType.equals(Material.DARK_OAK_FENCE_GATE)
+                    || clickedBlockType.equals(Material.JUNGLE_FENCE_GATE)
+                    || clickedBlockType.equals(Material.OAK_FENCE_GATE)
+                    || clickedBlockType.equals(Material.SPRUCE_FENCE_GATE))
+                return;
+        }
+        UUID uuid = user.getBase().getUniqueId();
+        if (field.isMember(uuid) || field.isOwner(uuid) || user.hasPermission("elementals.protection.override"))
+            return;
+        if (event.getAction() != Action.PHYSICAL)
+            event.getPlayer().sendMessage(ElementalsUtil.color("&cNu poti interactiona cu acest bloc in protectie!"));
+        event.setCancelled(true);
+    }
+
+    @EventHandler
+    public void event1(PlayerInteractEvent event) {
+        if (!event.getAction().equals(Action.RIGHT_CLICK_BLOCK))
+            return;
+        ItemStack hand = event.getPlayer().getInventory().getItemInMainHand();
+        if (hand == null)
+            return;
+        Material handType = hand.getType();
+        if (!(handType.equals(Material.MINECART)
+                || handType.equals(Material.CHEST_MINECART)
+                || handType.equals(Material.FURNACE_MINECART)
+                || handType.equals(Material.HOPPER_MINECART)
+                || handType.equals(Material.TNT_MINECART)
+                || handType.equals(Material.BIRCH_BOAT)
+                || handType.equals(Material.OAK_BOAT)
+                || handType.equals(Material.ACACIA_BOAT)
+                || handType.equals(Material.DARK_OAK_BOAT)
+                || handType.equals(Material.JUNGLE_BOAT)
+                || handType.equals(Material.SPRUCE_BOAT)))
+            return;
         Location loc = event.getClickedBlock().getLocation();
         if (!FieldUtil.isFieldAtLocation(loc))
             return;
@@ -505,7 +579,7 @@ public class FieldListener implements Listener {
         UUID uuid = user.getBase().getUniqueId();
         if (field.isMember(uuid) || field.isOwner(uuid) || user.hasPermission("elementals.protection.override"))
             return;
-        event.getPlayer().sendMessage(ElementalsUtil.color("&cNu poti interactiona cu acest bloc in aceasta protectie!"));
+        user.getBase().sendMessage(ElementalsUtil.color("&cNu poti pune vehicule in protectie!"));
         event.setCancelled(true);
     }
 
@@ -566,7 +640,7 @@ public class FieldListener implements Listener {
         UUID uuid = user.getBase().getUniqueId();
         if (field.isMember(uuid) || field.isOwner(uuid) || user.hasPermission("elementals.protection.override"))
             return;
-        event.getPlayer().sendMessage(ElementalsUtil.color("&bNu poti sparge blocuri in aceasta protectie!"));
+        event.getPlayer().sendMessage(ElementalsUtil.color("&bNu poti sparge blocuri in protectie!"));
         event.setCancelled(true);
     }
 
@@ -583,7 +657,7 @@ public class FieldListener implements Listener {
         UUID uuid = user.getBase().getUniqueId();
         if (field.isMember(uuid) || field.isOwner(uuid) || user.hasPermission("elementals.protection.override"))
             return;
-        event.getPlayer().sendMessage(ElementalsUtil.color("&bNu poti pune blocuri in aceasta protectie!"));
+        event.getPlayer().sendMessage(ElementalsUtil.color("&bNu poti pune blocuri in protectie!"));
         event.setCancelled(true);
     }
 
@@ -610,17 +684,30 @@ public class FieldListener implements Listener {
         if (!FieldUtil.isFieldAtLocation(loc))
             return;
         EntityType entityType = entity.getType();
-        if (!(entityType.equals(EntityType.PARROT) || entityType.equals(EntityType.PIG) || entityType.equals(EntityType.COW)
-                || entityType.equals(EntityType.OCELOT) || entityType.equals(EntityType.MUSHROOM_COW)
-                || entityType.equals(EntityType.MINECART) || entityType.equals(EntityType.MINECART_CHEST)
-                || entityType.equals(EntityType.MINECART_FURNACE) || entityType.equals(EntityType.MINECART_HOPPER)
-                || entityType.equals(EntityType.MINECART_TNT) || entityType.equals(EntityType.BAT)
-                || entityType.equals(EntityType.BOAT) || entityType.equals(EntityType.CHICKEN)
-                || entityType.equals(EntityType.WOLF) || entityType.equals(EntityType.VILLAGER)
-                || entityType.equals(EntityType.HORSE) || entityType.equals(EntityType.IRON_GOLEM)
-                || entityType.equals(EntityType.LEASH_HITCH) || entityType.equals(EntityType.RABBIT)
-                || entityType.equals(EntityType.SHEEP) || entityType.equals(EntityType.SNOWMAN)
-                || entityType.equals(EntityType.SQUID) || entityType.equals(EntityType.ARMOR_STAND)
+        if (!(entityType.equals(EntityType.PARROT)
+                || entityType.equals(EntityType.LLAMA)
+                || entityType.equals(EntityType.TRADER_LLAMA)
+                || entityType.equals(EntityType.ZOMBIE_HORSE)
+                || entityType.equals(EntityType.MULE)
+                || entityType.equals(EntityType.HORSE)
+                || entityType.equals(EntityType.DONKEY)
+                || entityType.equals(EntityType.SKELETON_HORSE)
+                || entityType.equals(EntityType.PIG)
+                || entityType.equals(EntityType.COW)
+                || entityType.equals(EntityType.OCELOT)
+                || entityType.equals(EntityType.MUSHROOM_COW)
+                || entityType.equals(EntityType.BAT)
+                || entityType.equals(EntityType.BOAT)
+                || entityType.equals(EntityType.CHICKEN)
+                || entityType.equals(EntityType.WOLF)
+                || entityType.equals(EntityType.VILLAGER)
+                || entityType.equals(EntityType.IRON_GOLEM)
+                || entityType.equals(EntityType.LEASH_HITCH)
+                || entityType.equals(EntityType.RABBIT)
+                || entityType.equals(EntityType.SHEEP)
+                || entityType.equals(EntityType.SNOWMAN)
+                || entityType.equals(EntityType.SQUID)
+                || entityType.equals(EntityType.ARMOR_STAND)
                 || entityType.equals(EntityType.ITEM_FRAME)))
             return;
         User user = ElementalsX.getUser((Player) damager);
@@ -628,10 +715,73 @@ public class FieldListener implements Listener {
         UUID uuid = user.getBase().getUniqueId();
         if (field.isMember(uuid) || field.isOwner(uuid) || user.hasPermission("elementals.protection.override"))
             return;
-        user.getBase().sendMessage(ElementalsUtil.color("&cNu poti sa omori aceasta entitate cat timp este in protectie."));
+        user.getBase().sendMessage(ElementalsUtil.color("&cNu poti omora aceasta entitate in protectie."));
         event.setCancelled(true);
         if (event.getDamager().hasMetadata("flame_ench"))
             entity.setFireTicks(0);
+    }
+
+    @EventHandler
+    public void event(VehicleDamageEvent event) {
+        if (CitizensAPI.getNPCRegistry().isNPC(event.getVehicle()))
+            return;
+        if (CitizensAPI.getNPCRegistry().isNPC(event.getAttacker()))
+            return;
+        Vehicle vehicle = event.getVehicle();
+        Entity damager;
+        if (event.getAttacker() instanceof Projectile) {
+            Projectile proj = (Projectile) event.getAttacker();
+            if (proj.getShooter() == null)
+                return;
+            if (proj.getShooter() instanceof BlockProjectileSource)
+                return;
+            damager = (Entity) proj.getShooter();
+        } else
+            damager = event.getAttacker();
+        if (damager.getType() != EntityType.PLAYER)
+            return;
+        Location loc = vehicle.getLocation();
+        if (!FieldUtil.isFieldAtLocation(loc))
+            return;
+        EntityType entityType = vehicle.getType();
+        if (!(entityType.equals(EntityType.MINECART)
+                || entityType.equals(EntityType.MINECART_CHEST)
+                || entityType.equals(EntityType.MINECART_FURNACE)
+                || entityType.equals(EntityType.MINECART_HOPPER)
+                || entityType.equals(EntityType.MINECART_TNT)
+                || entityType.equals(EntityType.MINECART_MOB_SPAWNER)
+                || entityType.equals(EntityType.MINECART_COMMAND)
+                || entityType.equals(EntityType.BOAT)))
+            return;
+        User user = ElementalsX.getUser((Player) damager);
+        Field field = FieldUtil.getFieldByLocation(loc);
+        UUID uuid = user.getBase().getUniqueId();
+        if (field.isMember(uuid) || field.isOwner(uuid) || user.hasPermission("elementals.protection.override"))
+            return;
+        user.getBase().sendMessage(ElementalsUtil.color("&cNu poti distruge vehiculul in protectie."));
+        event.setCancelled(true);
+        if (event.getAttacker().hasMetadata("flame_ench"))
+            vehicle.setFireTicks(0);
+    }
+
+    @EventHandler
+    public void event(VehicleEnterEvent event) {
+        Vehicle vehicle = event.getVehicle();
+        User user = ElementalsX.getUser((Player) event.getEntered());
+        Field field = FieldUtil.getFieldByLocation(vehicle.getLocation());
+        if (field.hasFun())
+            return;
+        EntityType entityType = vehicle.getType();
+        if (!(entityType.equals(EntityType.MINECART)
+                || entityType.equals(EntityType.BOAT)))
+            return;
+        if (!(event.getEntered() instanceof Player))
+            return;
+        UUID uuid = user.getBase().getUniqueId();
+        if (field.isMember(uuid) || field.isOwner(uuid) || user.hasPermission("elementals.protection.override"))
+            return;
+        user.getBase().sendMessage(ElementalsUtil.color("&cNu poti intra in vehicul in protectie."));
+        event.setCancelled(true);
     }
 
     @EventHandler

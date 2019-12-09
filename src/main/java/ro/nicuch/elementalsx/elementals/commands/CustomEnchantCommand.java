@@ -5,10 +5,7 @@ import java.util.Collections;
 import java.util.List;
 
 import org.bukkit.Material;
-import org.bukkit.command.Command;
-import org.bukkit.command.CommandExecutor;
-import org.bukkit.command.CommandSender;
-import org.bukkit.command.TabCompleter;
+import org.bukkit.command.*;
 import org.bukkit.entity.Player;
 import org.bukkit.util.StringUtil;
 
@@ -18,7 +15,7 @@ import ro.nicuch.elementalsx.elementals.ElementalsUtil;
 import ro.nicuch.elementalsx.enchants.EnchantUtil;
 import ro.nicuch.elementalsx.enchants.EnchantUtil.CEnchantType;
 
-public class CustomEnchantCommand implements CommandExecutor, TabCompleter {
+public class CustomEnchantCommand implements TabExecutor {
 
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {

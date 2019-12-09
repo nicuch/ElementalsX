@@ -228,16 +228,12 @@ public class FieldUtil {
         try {
             OfflinePlayer member = Bukkit.getOfflinePlayer(name);
             if (!all) {
+                Field field;
                 Block block = user.getBase().getTargetBlock(null, 3);
-                if (!block.getType().equals(Material.DIAMOND_BLOCK)) {
-                    user.getBase().sendMessage(ElementalsUtil.color("&cTrebuie sa te uiti la blocul de diamant (&arespectiv protectia&c)!"));
-                    return;
-                }
-                if (!isFieldBlock(block)) {
-                    user.getBase().sendMessage(ElementalsUtil.color("&cTrebuie sa te uiti la blocul de diamant (&arespectiv protectia&c)!"));
-                    return;
-                }
-                Field field = getFieldById(getFieldIdByBlock(block));
+                if (block.getType().equals(Material.DIAMOND_BLOCK) && isFieldBlock(block))
+                    field = getFieldById(getFieldIdByBlock(block));
+                else
+                    field = getFieldByLocation(user.getBase().getLocation());
                 if (!(field.isOwner(user.getBase().getUniqueId()) || user.hasPermission("protection.override"))) {
                     user.getBase().sendMessage(ElementalsUtil.color("&bNu esti detinatorul protectiei!"));
                     return;
@@ -359,25 +355,36 @@ public class FieldUtil {
         }, 20 * 20);
     }
 
-    public static void infoField(User user) {
+    public static void toggleFun(User user) {
+        Field field;
         Block block = user.getBase().getTargetBlock(null, 3);
-        if (!block.getType().equals(Material.DIAMOND_BLOCK)) {
-            user.getBase().sendMessage(ElementalsUtil.color("&cTrebuie sa te uiti la blocul de diamant (&arespectiv protectia&c)!"));
+        if (block.getType().equals(Material.DIAMOND_BLOCK) && isFieldBlock(block))
+            field = getFieldById(getFieldIdByBlock(block));
+        else
+            field = getFieldByLocation(user.getBase().getLocation());
+        if (!(field.isOwner(user.getBase().getUniqueId()) || field.isMember(user.getBase().getUniqueId())
+                || user.hasPermission("protection.override"))) {
+            user.getBase().sendMessage(ElementalsUtil.color("&bNu poti seta modul &dfun &bin aceasta protectie!"));
             return;
         }
-        if (!isFieldBlock(block)) {
-            user.getBase().sendMessage(ElementalsUtil.color("&cTrebuie sa te uiti la blocul de diamant (&arespectiv protectia&c)!"));
-            return;
-        }
-        Field field = getFieldById(getFieldIdByBlock(block));
+        field.toggleFun();
+        user.getBase().sendMessage(ElementalsUtil.color("&bAi " + (field.hasFun() ? "&aactivat" : "&cdezactivat") + " &bmodul &dfun&b!"));
+    }
+
+    public static void infoField(User user) {
+        Field field;
+        Block block = user.getBase().getTargetBlock(null, 3);
+        if (block.getType().equals(Material.DIAMOND_BLOCK) && isFieldBlock(block))
+            field = getFieldById(getFieldIdByBlock(block));
+        else
+            field = getFieldByLocation(user.getBase().getLocation());
         if (!(field.isOwner(user.getBase().getUniqueId()) || field.isMember(user.getBase().getUniqueId())
                 || user.hasPermission("protection.override"))) {
             user.getBase().sendMessage(ElementalsUtil.color("&bNu poti vedea informatii despre protectie!"));
             return;
         }
-        user.getBase().sendMessage(ElementalsUtil.color("&b========================================"));
         user.getBase().sendMessage(ElementalsUtil.color("&a&lInformatii despre protectie:"));
-        user.getBase().sendMessage(ElementalsUtil.color(""));
+        user.getBase().sendMessage("");
         user.getBase().sendMessage(ElementalsUtil.color("&eLocatie: &6" + block.getWorld().getName() + " &c/ &6" + block.getX()
                 + "(x) &c/ &6" + block.getY() + "(y) &c/ &6" + block.getZ() + "(z)"));
         user.getBase().sendMessage(ElementalsUtil.color("&9Marime: &a51(x) &c/ &a256(y) &c/ &a51(x)"));
@@ -391,8 +398,8 @@ public class FieldUtil {
             user.getBase().sendMessage(ElementalsUtil.color("&bMembrii:"));
         field.getMembers().forEach((UUID uuid) -> user.getBase()
                 .sendMessage(ElementalsUtil.color("&e" + Bukkit.getOfflinePlayer(uuid).getName() + " &f-> &d" + uuid)));
-        user.getBase().sendMessage(ElementalsUtil.color(""));
-        user.getBase().sendMessage(ElementalsUtil.color("&b========================================"));
+        user.getBase().sendMessage(ElementalsUtil.color("&dFun mode: " + field.hasFun()));
+        user.getBase().sendMessage("");
     }
 
     @SuppressWarnings("deprecation")

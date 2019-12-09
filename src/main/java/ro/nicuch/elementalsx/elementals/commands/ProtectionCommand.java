@@ -5,10 +5,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
-import org.bukkit.command.Command;
-import org.bukkit.command.CommandExecutor;
-import org.bukkit.command.CommandSender;
-import org.bukkit.command.TabCompleter;
+import org.bukkit.command.*;
 import org.bukkit.entity.Player;
 import org.bukkit.util.StringUtil;
 
@@ -17,9 +14,9 @@ import ro.nicuch.elementalsx.User;
 import ro.nicuch.elementalsx.elementals.ElementalsUtil;
 import ro.nicuch.elementalsx.protection.FieldUtil;
 
-public class ProtectionCommand implements CommandExecutor, TabCompleter {
+public class ProtectionCommand implements TabExecutor {
     private static final String[] COMMANDS = {"info", "allow", "allowall", "remove", "removeall", "disable", "enable",
-            "visualise", "loc"};
+            "visualise", "loc", "fun"};
 
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
@@ -78,6 +75,9 @@ public class ProtectionCommand implements CommandExecutor, TabCompleter {
                     break;
                 case "take":
                     FieldUtil.takeProtection(user);
+                    break;
+                case "fun":
+                    FieldUtil.toggleFun(user);
                     break;
                 default:
                     sender.sendMessage(ElementalsUtil.color("&b/ps take &c-- &fDistruge protectia fara a folosi Pickaxe."));
