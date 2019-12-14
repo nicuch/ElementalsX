@@ -79,7 +79,7 @@ public class RandomTpCommand implements CommandExecutor {
                 || world.getBiome(x, z) == Biome.FROZEN_OCEAN
                 || world.getBiome(x, z) == Biome.LUKEWARM_OCEAN
                 || world.getBiome(x, z) == Biome.WARM_OCEAN
-        || FieldUtil.isFieldAtLocation(loc));
+                || FieldUtil.isFieldAtLocation(loc));
         loc.getBlock().setType(Material.AIR);
         loc.getBlock().getRelative(BlockFace.UP).setType(Material.AIR);
         user.getBase().sendMessage(ElementalsUtil.color("&6Nu te misca pana vei fi teleportat!"));
@@ -90,10 +90,8 @@ public class RandomTpCommand implements CommandExecutor {
                 user.getBase().sendMessage(ElementalsUtil.color("&bAi fost teleportat la x:" + loc.getBlockX() + " y:" + loc.getBlockY()
                         + " z:" + loc.getBlockZ() + "!"));
                 ElementalsUtil.delayRandomTPPlayer(user);
-                ElementalsUtil.removeTandomTpCmdDelay(user);
                 teleportRequest.remove(user.getBase().getUniqueId());
             }, 20L).getTaskId();
-            ElementalsUtil.delayRandomTPCmdPlayer(user, taskID);
         } else {
             user.getBase().teleport(loc);
             user.getBase().sendMessage(ElementalsUtil.color("&bAi fost teleportat la x:" + loc.getBlockX() + " y:" + loc.getBlockY() + " z:"

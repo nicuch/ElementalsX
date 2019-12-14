@@ -1,13 +1,16 @@
 package ro.nicuch.elementalsx.protection;
 
 import java.sql.SQLException;
+import java.util.Optional;
 import java.util.UUID;
 
+import com.gamingmesh.jobs.api.JobsPrePaymentEvent;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.Tag;
 import org.bukkit.block.Block;
+import org.bukkit.block.BlockFace;
 import org.bukkit.entity.*;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -32,8 +35,6 @@ import org.bukkit.event.player.PlayerInteractEntityEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.event.player.PlayerTeleportEvent;
-import org.bukkit.event.vehicle.VehicleCollisionEvent;
-import org.bukkit.event.vehicle.VehicleCreateEvent;
 import org.bukkit.event.vehicle.VehicleDamageEvent;
 import org.bukkit.event.vehicle.VehicleEnterEvent;
 import org.bukkit.event.world.ChunkLoadEvent;
@@ -46,37 +47,86 @@ import net.citizensnpcs.api.CitizensAPI;
 import ro.nicuch.elementalsx.ElementalsX;
 import ro.nicuch.elementalsx.User;
 import ro.nicuch.elementalsx.elementals.ElementalsUtil;
-import ro.nicuch.elementalsx.elementals.NanoBlockBreakEvent;
 
 public class FieldListener implements Listener {
 
-    @EventHandler
-    public void event(BlockPistonExtendEvent event) {
+    //Protect players without access in field to not get some types of damage
+    @EventHandler(ignoreCancelled = true)
+    public void fieldProtection(EntityDamageEvent event) {
+        Entity entity = event.getEntity();
+        if (entity.getType() != EntityType.PLAYER)
+            return;
+        Location loc = entity.getLocation();
+        if (!FieldUtil.isFieldAtLocation(loc))
+            return;
+        Field field = FieldUtil.getFieldByLocation(loc);
+        UUID uuid = entity.getUniqueId();
+        if (field.isMember(uuid) || field.isOwner(uuid))
+            return;
+        switch (event.getCause()) {
+            case DROWNING:
+                entity.getLocation().getBlock().getRelative(BlockFace.UP).setType(Material.AIR);
+                break;
+            case FALLING_BLOCK:
+            case FIRE:
+            case FIRE_TICK:
+            case MAGIC:
+                event.setCancelled(true);
+                break;
+            case SUFFOCATION:
+                entity.teleport(
+                        entity.getWorld().getHighestBlockAt(entity.getLocation()).getRelative(BlockFace.UP).getLocation());
+                break;
+        }
+    }
+
+    //Prevents job payments for players without acces in field
+    @EventHandler(ignoreCancelled = true)
+    public void jobPrevent(JobsPrePaymentEvent event) {
+        Block block = event.getBlock();
+        if (block == null)
+            return;
+        UUID uuid = event.getPlayer().getUniqueId();
+        Optional<User> user = Optional.ofNullable(ElementalsX.getUser(uuid));
+        if (!user.isPresent())
+            return;
+        if (!FieldUtil.isFieldAtLocation(block.getLocation()))
+            return;
+        Field field = FieldUtil.getFieldByLocation(block.getLocation());
+        if (field.isMember(uuid) || field.isOwner(uuid) || user.get().hasPermission("elementals.protection.override"))
+            return;
+        event.setCancelled(true);
+    }
+
+    //Prevent pushing of protections
+    @EventHandler(ignoreCancelled = true)
+    public void pushProtection(BlockPistonExtendEvent event) {
+        for (Block block : event.getBlocks()) {
+            if (block.getType() != Material.DIAMOND_BLOCK)
+                continue;
+            if (FieldUtil.isFieldBlock(block)) {
+                event.setCancelled(true);
+                return; //break; breaks the loop
+            }
+        }
+    }
+
+    @EventHandler(ignoreCancelled = true)
+    public void pushProtection(BlockPistonRetractEvent event) {
         for (Block block : event.getBlocks()) {
             if (!block.getType().equals(Material.DIAMOND_BLOCK))
                 continue;
             if (FieldUtil.isFieldBlock(block)) {
                 event.setCancelled(true);
-                return;
+                return; //break; breaks the loop
             }
         }
     }
 
-    @EventHandler
-    public void event(BlockPistonRetractEvent event) {
-        for (Block block : event.getBlocks()) {
-            if (!block.getType().equals(Material.DIAMOND_BLOCK))
-                continue;
-            if (FieldUtil.isFieldBlock(block)) {
-                event.setCancelled(true);
-                return;
-            }
-        }
-    }
-
-    @EventHandler
-    public void event(PlayerFishEvent event) {
-        if (!event.getState().equals(State.CAUGHT_ENTITY))
+    //Prevents entities in a field from beeing cought with a fishing rod
+    @EventHandler(ignoreCancelled = true)
+    public void fishingProtection(PlayerFishEvent event) {
+        if (event.getState() != State.CAUGHT_ENTITY)
             return;
         if (!FieldUtil.isFieldAtLocation(event.getCaught().getLocation()))
             return;
@@ -88,10 +138,10 @@ public class FieldListener implements Listener {
         event.setCancelled(true);
     }
 
-    @EventHandler(priority = EventPriority.HIGHEST)
-    public void event(BlockPlaceEvent event) {
+    @EventHandler(priority = EventPriority.LOW, ignoreCancelled = true)
+    public void protectionPlace(BlockPlaceEvent event) {
         Block block = event.getBlock();
-        if (!block.getType().equals(Material.DIAMOND_BLOCK))
+        if (block.getType() != Material.DIAMOND_BLOCK)
             return;
         String world_name = block.getWorld().getName();
         if (!(world_name.equals("world") || world_name.equals("world_nether") || world_name.equals("world_the_end")))
@@ -99,22 +149,23 @@ public class FieldListener implements Listener {
         User user = ElementalsX.getUser(event.getPlayer());
         if (user.isIgnoringPlacingFields())
             return;
-        if (FieldUtil.isFieldNerby(user, block.getLocation())) {
-            event.getPlayer().sendMessage(ElementalsUtil.color("&3Nu poti pune protectia ta daca se intersecteaza cu protectia altui jucator!"));
-            event.setCancelled(true);
-            return;
-        }
+        if (!user.hasPermission("elementals.protection.override"))
+            if (FieldUtil.isFieldNerby(user, block.getLocation())) {
+                event.getPlayer().sendMessage(ElementalsUtil.color("&3Nu poti pune protectia ta daca se intersecteaza cu protectia altui jucator!"));
+                event.setCancelled(true);
+                return;
+            }
         if (!user.hasPermission("elementals.protection.override"))
             for (Entity entity : event.getPlayer().getNearbyEntities(25, 64, 25))
-                if (entity.getType().equals(EntityType.PLAYER)) {
-                    User entityuser = ElementalsX.getUser((Player) entity);
+                if (entity.getType() == EntityType.PLAYER) {
+                    User entityuser = ElementalsX.getUser(entity.getUniqueId()); //using uuids is better
                     if (!entityuser.hasPermission("elementals.protection.override")) {
                         event.getPlayer().sendMessage(ElementalsUtil.color("&3Nu poti pune protectii cat timp sunt jucatori in zona!"));
                         event.setCancelled(true);
                         return;
                     }
                 }
-        if (FieldUtil.areThereEnoughProtections(block.getChunk()) && (!user.hasPermission("elementals.protection.override"))) {
+        if (FieldUtil.areThereEnoughProtections(block.getChunk()) && !user.hasPermission("elementals.protection.override")) {
             event.getPlayer().sendMessage(ElementalsUtil.color("&3Limita de 4 protectii intr-un chunk a fost atinsa! Nu mai poti pune alte protectii."));
             event.setCancelled(true);
             return;
@@ -146,23 +197,23 @@ public class FieldListener implements Listener {
         });
     }
 
-    @EventHandler(priority = EventPriority.HIGHEST)
-    public void event(BlockBreakEvent event) {
-        if (!event.getBlock().getType().equals(Material.DIAMOND_BLOCK))
+    @EventHandler(priority = EventPriority.LOW, ignoreCancelled = true)
+    public void protectionBreak(BlockBreakEvent event) {
+        Block block = event.getBlock();
+        if (block.getType() != Material.DIAMOND_BLOCK)
             return;
-        String world_name = event.getBlock().getWorld().getName();
+        String world_name = block.getWorld().getName();
         if (!(world_name.equals("world") || world_name.equals("world_nether") || world_name.equals("world_the_end")))
             return;
         User user = ElementalsX.getUser(event.getPlayer());
         if (!FieldUtil.isFieldBlock(event.getBlock()))
             return;
         if (!(FieldUtil.getFieldById(FieldUtil.getFieldIdByBlock(event.getBlock()))
-                .isOwner(user.getBase().getUniqueId()) || event.getPlayer().isOp())) {
+                .isOwner(user.getBase().getUniqueId()) || user.hasPermission("elementals.protection.override"))) {
             event.getPlayer().sendMessage(ElementalsUtil.color("&bNu esti detinatorul protectiei!"));
             event.setCancelled(true);
             return;
         }
-        Block block = event.getBlock();
         Bukkit.getScheduler().runTaskAsynchronously(ElementalsX.get(), () -> {
             try {
                 ElementalsX.getBase()
@@ -181,7 +232,7 @@ public class FieldListener implements Listener {
         });
     }
 
-    @EventHandler
+    @EventHandler(ignoreCancelled = true)
     public void event(BlockBurnEvent event) {
         if (!FieldUtil.isFieldAtLocation(event.getBlock().getLocation()))
             return;
@@ -202,7 +253,7 @@ public class FieldListener implements Listener {
         FieldUtil.unloadFieldsInChunk(event.getChunk());
     }
 
-    @EventHandler
+    @EventHandler(ignoreCancelled = true)
     public void event(BlockFromToEvent event) {
         if (!FieldUtil.isFieldAtLocation(event.getBlock().getLocation())
                 && FieldUtil.isFieldAtLocation(event.getToBlock().getLocation()))
@@ -214,34 +265,34 @@ public class FieldListener implements Listener {
                 event.setCancelled(true);
     }
 
-    @EventHandler
+    @EventHandler(ignoreCancelled = true)
     public void event(BlockSpreadEvent event) {
-        if (!event.getSource().getType().equals(Material.FIRE))
+        if (event.getSource().getType() != Material.FIRE)
             return;
         if (!FieldUtil.isFieldAtLocation(event.getBlock().getLocation()))
             return;
         event.setCancelled(true);
     }
 
-    @EventHandler
+    @EventHandler(ignoreCancelled = true)
     public void event0(EntityChangeBlockEvent event) {
         if (CitizensAPI.getNPCRegistry().isNPC(event.getEntity()))
             return;
-        if (!event.getEntity().getType().equals(EntityType.WITHER))
+        if (event.getEntity().getType() != EntityType.WITHER)
             return;
         if (!FieldUtil.isFieldAtLocation(event.getBlock().getLocation()))
             return;
         event.setCancelled(true);
     }
 
-    @EventHandler
+    @EventHandler(ignoreCancelled = true)
     public void event(EntityChangeBlockEvent event) {
         if (CitizensAPI.getNPCRegistry().isNPC(event.getEntity()))
             return;
-        if (!event.getEntity().getType().equals(EntityType.PLAYER))
+        if (event.getEntity().getType() != EntityType.PLAYER)
             return;
         User user = ElementalsX.getUser((Player) event.getEntity());
-        if (!event.getBlock().getType().equals(Material.FARMLAND))
+        if (event.getBlock().getType() != Material.FARMLAND)
             return;
         Location loc = event.getBlock().getLocation();
         if (!FieldUtil.isFieldAtLocation(loc))
@@ -253,7 +304,7 @@ public class FieldListener implements Listener {
         event.setCancelled(true);
     }
 
-    @EventHandler
+    @EventHandler(ignoreCancelled = true)
     public void event(EntityDamageByEntityEvent event) {
         if (CitizensAPI.getNPCRegistry().isNPC(event.getEntity()))
             return;
@@ -285,7 +336,7 @@ public class FieldListener implements Listener {
             entity.setFireTicks(0);
     }
 
-    @EventHandler
+    @EventHandler(ignoreCancelled = true)
     public void event(EntityExplodeEvent event) {
         if (event.getLocation().getWorld().getName().equals("spawn"))
             return;
@@ -294,7 +345,7 @@ public class FieldListener implements Listener {
         event.setCancelled(true);
     }
 
-    @EventHandler
+    @EventHandler(ignoreCancelled = true)
     public void event(HangingBreakByEntityEvent event) {
         if (CitizensAPI.getNPCRegistry().isNPC(event.getEntity()))
             return;
@@ -322,7 +373,7 @@ public class FieldListener implements Listener {
             event.setCancelled(true);
     }
 
-    @EventHandler
+    @EventHandler(ignoreCancelled = true)
     public void event(PlayerArmorStandManipulateEvent event) {
         User user = ElementalsX.getUser(event.getPlayer());
         if (CitizensAPI.getNPCRegistry().isNPC(event.getRightClicked()))
@@ -337,7 +388,7 @@ public class FieldListener implements Listener {
         event.setCancelled(true);
     }
 
-    @EventHandler
+    @EventHandler(ignoreCancelled = true)
     public void event(HangingPlaceEvent event) {
         if (CitizensAPI.getNPCRegistry().isNPC(event.getEntity()))
             return;
@@ -352,7 +403,7 @@ public class FieldListener implements Listener {
         event.setCancelled(true);
     }
 
-    @EventHandler
+    @EventHandler(ignoreCancelled = true)
     public void event(PlayerBucketEmptyEvent event) {
         if (CitizensAPI.getNPCRegistry().isNPC(event.getPlayer()))
             return;
@@ -368,22 +419,7 @@ public class FieldListener implements Listener {
         event.setCancelled(true);
     }
 
-    @EventHandler
-    public void event(NanoBlockBreakEvent event) {
-        if (CitizensAPI.getNPCRegistry().isNPC(event.getPlayer()))
-            return;
-        Location loc = event.getBlock().getLocation();
-        if (!FieldUtil.isFieldAtLocation(loc))
-            return;
-        User user = ElementalsX.getUser(event.getPlayer());
-        Field field = FieldUtil.getFieldByLocation(loc);
-        UUID uuid = user.getBase().getUniqueId();
-        if (field.isMember(uuid) || field.isOwner(uuid) || user.hasPermission("elementals.protection.override"))
-            return;
-        event.setCancelled(true);
-    }
-
-    @EventHandler
+    @EventHandler(ignoreCancelled = true)
     public void event(PlayerBucketFillEvent event) {
         if (CitizensAPI.getNPCRegistry().isNPC(event.getPlayer()))
             return;
@@ -399,7 +435,7 @@ public class FieldListener implements Listener {
         event.setCancelled(true);
     }
 
-    @EventHandler
+    @EventHandler(ignoreCancelled = true)
     public void event(PlayerInteractEntityEvent event) {
         if (CitizensAPI.getNPCRegistry().isNPC(event.getRightClicked()))
             return;
@@ -412,36 +448,36 @@ public class FieldListener implements Listener {
         if (field.isMember(uuid) || field.isOwner(uuid) || user.hasPermission("elementals.protection.override"))
             return;
         EntityType entityType = event.getRightClicked().getType();
-        if (entityType.equals(EntityType.PARROT)
-                || entityType.equals(EntityType.LLAMA)
-                || entityType.equals(EntityType.TRADER_LLAMA)
-                || entityType.equals(EntityType.ZOMBIE_HORSE)
-                || entityType.equals(EntityType.MULE)
-                || entityType.equals(EntityType.HORSE)
-                || entityType.equals(EntityType.DONKEY)
-                || entityType.equals(EntityType.SKELETON_HORSE)
-                || entityType.equals(EntityType.PIG)
-                || entityType.equals(EntityType.COW)
-                || entityType.equals(EntityType.OCELOT)
-                || entityType.equals(EntityType.MUSHROOM_COW)
-                || entityType.equals(EntityType.BAT)
-                || entityType.equals(EntityType.BOAT)
-                || entityType.equals(EntityType.CHICKEN)
-                || entityType.equals(EntityType.WOLF)
-                || entityType.equals(EntityType.VILLAGER)
-                || entityType.equals(EntityType.IRON_GOLEM)
-                || entityType.equals(EntityType.LEASH_HITCH)
-                || entityType.equals(EntityType.RABBIT)
-                || entityType.equals(EntityType.SHEEP)
-                || entityType.equals(EntityType.SNOWMAN)
-                || entityType.equals(EntityType.SQUID)
-                || entityType.equals(EntityType.ARMOR_STAND)
-                || entityType.equals(EntityType.ITEM_FRAME)) {
-            if (entityType.equals(EntityType.ZOMBIE_HORSE)
-                    || entityType.equals(EntityType.MULE)
-                    || entityType.equals(EntityType.HORSE)
-                    || entityType.equals(EntityType.DONKEY)
-                    || entityType.equals(EntityType.SKELETON_HORSE)) {
+        if (entityType == EntityType.PARROT
+                || entityType == EntityType.LLAMA
+                || entityType == EntityType.TRADER_LLAMA
+                || entityType == EntityType.ZOMBIE_HORSE
+                || entityType == EntityType.MULE
+                || entityType == EntityType.HORSE
+                || entityType == EntityType.DONKEY
+                || entityType == EntityType.SKELETON_HORSE
+                || entityType == EntityType.PIG
+                || entityType == EntityType.COW
+                || entityType == EntityType.OCELOT
+                || entityType == EntityType.MUSHROOM_COW
+                || entityType == EntityType.BAT
+                || entityType == EntityType.BOAT
+                || entityType == EntityType.CHICKEN
+                || entityType == EntityType.WOLF
+                || entityType == EntityType.VILLAGER
+                || entityType == EntityType.IRON_GOLEM
+                || entityType == EntityType.LEASH_HITCH
+                || entityType == EntityType.RABBIT
+                || entityType == EntityType.SHEEP
+                || entityType == EntityType.SNOWMAN
+                || entityType == EntityType.SQUID
+                || entityType == EntityType.ARMOR_STAND
+                || entityType == EntityType.ITEM_FRAME) {
+            if (entityType == EntityType.ZOMBIE_HORSE
+                    || entityType == EntityType.MULE
+                    || entityType == EntityType.HORSE
+                    || entityType == EntityType.DONKEY
+                    || entityType == EntityType.SKELETON_HORSE) {
                 AbstractHorse horse = (AbstractHorse) event.getRightClicked();
                 if (horse.isTamed())
                     if (horse.getOwner() != null && horse.getOwner().getUniqueId().equals(uuid))
@@ -449,46 +485,46 @@ public class FieldListener implements Listener {
             }
             user.getBase().sendMessage(ElementalsUtil.color("&cNu poti interactiona cu aceasta entitate in protectie."));
             event.setCancelled(true);
-        } else if (entityType.equals(EntityType.MINECART_CHEST)
-                || entityType.equals(EntityType.MINECART_FURNACE)
-                || entityType.equals(EntityType.MINECART_HOPPER)
-                || entityType.equals(EntityType.MINECART_TNT)
-                || entityType.equals(EntityType.MINECART_MOB_SPAWNER)
-                || entityType.equals(EntityType.MINECART_COMMAND)) {
+        } else if (entityType == EntityType.MINECART_CHEST
+                || entityType == EntityType.MINECART_FURNACE
+                || entityType == EntityType.MINECART_HOPPER
+                || entityType == EntityType.MINECART_TNT
+                || entityType == EntityType.MINECART_MOB_SPAWNER
+                || entityType == EntityType.MINECART_COMMAND) {
             user.getBase().sendMessage(ElementalsUtil.color("&cNu poti interactiona cu aceast vehicul in protectie."));
             event.setCancelled(true);
         }
     }
 
-    @EventHandler
+    @EventHandler(ignoreCancelled = true)
     public void event(EntityInteractEvent event) {
         Entity entity = event.getEntity();
         EntityType entityType = entity.getType();
         Material blockType = event.getBlock().getType();
-        if (entityType.equals(EntityType.ZOMBIE_HORSE)
-                || entityType.equals(EntityType.MULE)
-                || entityType.equals(EntityType.HORSE)
-                || entityType.equals(EntityType.DONKEY)
-                || entityType.equals(EntityType.SKELETON_HORSE)) {
+        if (entityType == EntityType.ZOMBIE_HORSE
+                || entityType == EntityType.MULE
+                || entityType == EntityType.HORSE
+                || entityType == EntityType.DONKEY
+                || entityType == EntityType.SKELETON_HORSE) {
             Field field = FieldUtil.getFieldByLocation(entity.getLocation());
             if (field.hasFun())
                 return;
-            if (!(Tag.WOODEN_PRESSURE_PLATES.isTagged(blockType)
-                    || Tag.DOORS.isTagged(blockType)
-                    || Tag.TRAPDOORS.isTagged(blockType)
-                    || Tag.BUTTONS.isTagged(blockType)
-                    || blockType.equals(Material.HEAVY_WEIGHTED_PRESSURE_PLATE)
-                    || blockType.equals(Material.LIGHT_WEIGHTED_PRESSURE_PLATE)
-                    || blockType.equals(Material.STONE_PRESSURE_PLATE)
-                    || blockType.equals(Material.NOTE_BLOCK)
-                    || blockType.equals(Material.LEVER)
-                    || blockType.equals(Material.JUKEBOX)
-                    || blockType.equals(Material.ACACIA_FENCE_GATE)
-                    || blockType.equals(Material.BIRCH_FENCE_GATE)
-                    || blockType.equals(Material.DARK_OAK_FENCE_GATE)
-                    || blockType.equals(Material.JUNGLE_FENCE_GATE)
-                    || blockType.equals(Material.OAK_FENCE_GATE)
-                    || blockType.equals(Material.SPRUCE_FENCE_GATE)))
+            if (!Tag.WOODEN_PRESSURE_PLATES.isTagged(blockType)
+                    || !Tag.DOORS.isTagged(blockType)
+                    || !Tag.TRAPDOORS.isTagged(blockType)
+                    || !Tag.BUTTONS.isTagged(blockType)
+                    || blockType != Material.HEAVY_WEIGHTED_PRESSURE_PLATE
+                    || blockType != Material.LIGHT_WEIGHTED_PRESSURE_PLATE
+                    || blockType != Material.STONE_PRESSURE_PLATE
+                    || blockType != Material.NOTE_BLOCK
+                    || blockType != Material.LEVER
+                    || blockType != Material.JUKEBOX
+                    || blockType != Material.ACACIA_FENCE_GATE
+                    || blockType != Material.BIRCH_FENCE_GATE
+                    || blockType != Material.DARK_OAK_FENCE_GATE
+                    || blockType != Material.JUNGLE_FENCE_GATE
+                    || blockType != Material.OAK_FENCE_GATE
+                    || blockType != Material.SPRUCE_FENCE_GATE)
                 return;
             AbstractHorse horse = (AbstractHorse) entity;
             if (!horse.isTamed() && horse.getOwner() == null)
@@ -499,58 +535,58 @@ public class FieldListener implements Listener {
         }
     }
 
-    @EventHandler(priority = EventPriority.HIGHEST)
+    @EventHandler(priority = EventPriority.LOW, ignoreCancelled = true)
     public void event0(PlayerInteractEvent event) {
-        if (event.getAction() != Action.RIGHT_CLICK_BLOCK && event.getAction() != Action.PHYSICAL)
+        if (event.getAction() != Action.RIGHT_CLICK_BLOCK && event.getAction() != Action.LEFT_CLICK_BLOCK && event.getAction() != Action.PHYSICAL)
             return;
         Material clickedBlockType = event.getClickedBlock().getType();
-        if (!(clickedBlockType.equals(Material.CHEST)
-                || clickedBlockType.equals(Material.FLOWER_POT)
-                || clickedBlockType.equals(Material.TRAPPED_CHEST)
-                || clickedBlockType.equals(Material.FURNACE)
-                || clickedBlockType.equals(Material.JUKEBOX)
-                || clickedBlockType.equals(Material.DROPPER)
-                || clickedBlockType.equals(Material.DISPENSER)
-                || clickedBlockType.equals(Material.NOTE_BLOCK)
-                || clickedBlockType.equals(Material.LEVER)
-                || clickedBlockType.equals(Material.STONE_BUTTON)
-                || clickedBlockType.equals(Material.DAYLIGHT_DETECTOR)
-                || clickedBlockType.equals(Material.HOPPER)
-                || clickedBlockType.equals(Material.REPEATER)
-                || clickedBlockType.equals(Material.COMPARATOR)
-                || clickedBlockType.equals(Material.BEACON)
-                || clickedBlockType.equals(Material.BREWING_STAND)
-                || clickedBlockType.equals(Material.ACACIA_FENCE_GATE)
-                || clickedBlockType.equals(Material.BIRCH_FENCE_GATE)
-                || clickedBlockType.equals(Material.DARK_OAK_FENCE_GATE)
-                || clickedBlockType.equals(Material.JUNGLE_FENCE_GATE)
-                || clickedBlockType.equals(Material.OAK_FENCE_GATE)
-                || clickedBlockType.equals(Material.SPRUCE_FENCE_GATE)
-                || clickedBlockType.equals(Material.SHULKER_BOX)
-                || clickedBlockType.equals(Material.BLACK_SHULKER_BOX)
-                || clickedBlockType.equals(Material.BLUE_SHULKER_BOX)
-                || clickedBlockType.equals(Material.BROWN_SHULKER_BOX)
-                || clickedBlockType.equals(Material.CYAN_SHULKER_BOX)
-                || clickedBlockType.equals(Material.GRAY_SHULKER_BOX)
-                || clickedBlockType.equals(Material.GREEN_SHULKER_BOX)
-                || clickedBlockType.equals(Material.LIGHT_BLUE_SHULKER_BOX)
-                || clickedBlockType.equals(Material.LIGHT_GRAY_SHULKER_BOX)
-                || clickedBlockType.equals(Material.LIME_SHULKER_BOX)
-                || clickedBlockType.equals(Material.MAGENTA_SHULKER_BOX)
-                || clickedBlockType.equals(Material.ORANGE_SHULKER_BOX)
-                || clickedBlockType.equals(Material.PINK_SHULKER_BOX)
-                || clickedBlockType.equals(Material.PURPLE_SHULKER_BOX)
-                || clickedBlockType.equals(Material.RED_SHULKER_BOX)
-                || clickedBlockType.equals(Material.WHITE_SHULKER_BOX)
-                || clickedBlockType.equals(Material.YELLOW_SHULKER_BOX)
-                || clickedBlockType.equals(Material.BLAST_FURNACE)
-                || clickedBlockType.equals(Material.SMOKER)
-                || clickedBlockType.equals(Material.BARREL)
-                || clickedBlockType.equals(Material.CAMPFIRE)
-                || clickedBlockType.equals(Material.HEAVY_WEIGHTED_PRESSURE_PLATE)
-                || clickedBlockType.equals(Material.LIGHT_WEIGHTED_PRESSURE_PLATE)
-                || clickedBlockType.equals(Material.STONE_PRESSURE_PLATE)
-                || clickedBlockType.equals(Material.TURTLE_EGG)
+        if (!(clickedBlockType == Material.CHEST
+                || clickedBlockType == Material.FLOWER_POT
+                || clickedBlockType == Material.TRAPPED_CHEST
+                || clickedBlockType == Material.FURNACE
+                || clickedBlockType == Material.JUKEBOX
+                || clickedBlockType == Material.DROPPER
+                || clickedBlockType == Material.DISPENSER
+                || clickedBlockType == Material.NOTE_BLOCK
+                || clickedBlockType == Material.LEVER
+                || clickedBlockType == Material.STONE_BUTTON
+                || clickedBlockType == Material.DAYLIGHT_DETECTOR
+                || clickedBlockType == Material.HOPPER
+                || clickedBlockType == Material.REPEATER
+                || clickedBlockType == Material.COMPARATOR
+                || clickedBlockType == Material.BEACON
+                || clickedBlockType == Material.BREWING_STAND
+                || clickedBlockType == Material.ACACIA_FENCE_GATE
+                || clickedBlockType == Material.BIRCH_FENCE_GATE
+                || clickedBlockType == Material.DARK_OAK_FENCE_GATE
+                || clickedBlockType == Material.JUNGLE_FENCE_GATE
+                || clickedBlockType == Material.OAK_FENCE_GATE
+                || clickedBlockType == Material.SPRUCE_FENCE_GATE
+                || clickedBlockType == Material.SHULKER_BOX
+                || clickedBlockType == Material.BLACK_SHULKER_BOX
+                || clickedBlockType == Material.BLUE_SHULKER_BOX
+                || clickedBlockType == Material.BROWN_SHULKER_BOX
+                || clickedBlockType == Material.CYAN_SHULKER_BOX
+                || clickedBlockType == Material.GRAY_SHULKER_BOX
+                || clickedBlockType == Material.GREEN_SHULKER_BOX
+                || clickedBlockType == Material.LIGHT_BLUE_SHULKER_BOX
+                || clickedBlockType == Material.LIGHT_GRAY_SHULKER_BOX
+                || clickedBlockType == Material.LIME_SHULKER_BOX
+                || clickedBlockType == Material.MAGENTA_SHULKER_BOX
+                || clickedBlockType == Material.ORANGE_SHULKER_BOX
+                || clickedBlockType == Material.PINK_SHULKER_BOX
+                || clickedBlockType == Material.PURPLE_SHULKER_BOX
+                || clickedBlockType == Material.RED_SHULKER_BOX
+                || clickedBlockType == Material.WHITE_SHULKER_BOX
+                || clickedBlockType == Material.YELLOW_SHULKER_BOX
+                || clickedBlockType == Material.BLAST_FURNACE
+                || clickedBlockType == Material.SMOKER
+                || clickedBlockType == Material.BARREL
+                || clickedBlockType == Material.CAMPFIRE
+                || clickedBlockType == Material.HEAVY_WEIGHTED_PRESSURE_PLATE
+                || clickedBlockType == Material.LIGHT_WEIGHTED_PRESSURE_PLATE
+                || clickedBlockType == Material.STONE_PRESSURE_PLATE
+                || clickedBlockType == Material.TURTLE_EGG
                 || Tag.WOODEN_PRESSURE_PLATES.isTagged(clickedBlockType)
                 || Tag.DOORS.isTagged(clickedBlockType)
                 || Tag.ANVIL.isTagged(clickedBlockType)
@@ -569,18 +605,18 @@ public class FieldListener implements Listener {
                     || Tag.DOORS.isTagged(clickedBlockType)
                     || Tag.TRAPDOORS.isTagged(clickedBlockType)
                     || Tag.BUTTONS.isTagged(clickedBlockType)
-                    || clickedBlockType.equals(Material.HEAVY_WEIGHTED_PRESSURE_PLATE)
-                    || clickedBlockType.equals(Material.LIGHT_WEIGHTED_PRESSURE_PLATE)
-                    || clickedBlockType.equals(Material.STONE_PRESSURE_PLATE)
-                    || clickedBlockType.equals(Material.NOTE_BLOCK)
-                    || clickedBlockType.equals(Material.LEVER)
-                    || clickedBlockType.equals(Material.JUKEBOX)
-                    || clickedBlockType.equals(Material.ACACIA_FENCE_GATE)
-                    || clickedBlockType.equals(Material.BIRCH_FENCE_GATE)
-                    || clickedBlockType.equals(Material.DARK_OAK_FENCE_GATE)
-                    || clickedBlockType.equals(Material.JUNGLE_FENCE_GATE)
-                    || clickedBlockType.equals(Material.OAK_FENCE_GATE)
-                    || clickedBlockType.equals(Material.SPRUCE_FENCE_GATE))
+                    || clickedBlockType == Material.HEAVY_WEIGHTED_PRESSURE_PLATE
+                    || clickedBlockType == Material.LIGHT_WEIGHTED_PRESSURE_PLATE
+                    || clickedBlockType == Material.STONE_PRESSURE_PLATE
+                    || clickedBlockType == Material.NOTE_BLOCK
+                    || clickedBlockType == Material.LEVER
+                    || clickedBlockType == Material.JUKEBOX
+                    || clickedBlockType == Material.ACACIA_FENCE_GATE
+                    || clickedBlockType == Material.BIRCH_FENCE_GATE
+                    || clickedBlockType == Material.DARK_OAK_FENCE_GATE
+                    || clickedBlockType == Material.JUNGLE_FENCE_GATE
+                    || clickedBlockType == Material.OAK_FENCE_GATE
+                    || clickedBlockType == Material.SPRUCE_FENCE_GATE)
                 return;
         }
         UUID uuid = user.getBase().getUniqueId();
@@ -591,7 +627,7 @@ public class FieldListener implements Listener {
         event.setCancelled(true);
     }
 
-    @EventHandler
+    @EventHandler(ignoreCancelled = true)
     public void event1(PlayerInteractEvent event) {
         if (!event.getAction().equals(Action.RIGHT_CLICK_BLOCK))
             return;
@@ -599,17 +635,17 @@ public class FieldListener implements Listener {
         if (hand == null)
             return;
         Material handType = hand.getType();
-        if (!(handType.equals(Material.MINECART)
-                || handType.equals(Material.CHEST_MINECART)
-                || handType.equals(Material.FURNACE_MINECART)
-                || handType.equals(Material.HOPPER_MINECART)
-                || handType.equals(Material.TNT_MINECART)
-                || handType.equals(Material.BIRCH_BOAT)
-                || handType.equals(Material.OAK_BOAT)
-                || handType.equals(Material.ACACIA_BOAT)
-                || handType.equals(Material.DARK_OAK_BOAT)
-                || handType.equals(Material.JUNGLE_BOAT)
-                || handType.equals(Material.SPRUCE_BOAT)))
+        if (!(handType == Material.MINECART
+                || handType == Material.CHEST_MINECART
+                || handType == Material.FURNACE_MINECART
+                || handType == Material.HOPPER_MINECART
+                || handType == Material.TNT_MINECART
+                || handType == Material.BIRCH_BOAT
+                || handType == Material.OAK_BOAT
+                || handType == Material.ACACIA_BOAT
+                || handType == Material.DARK_OAK_BOAT
+                || handType == Material.JUNGLE_BOAT
+                || handType == Material.SPRUCE_BOAT))
             return;
         Location loc = event.getClickedBlock().getLocation();
         if (!FieldUtil.isFieldAtLocation(loc))
@@ -623,7 +659,7 @@ public class FieldListener implements Listener {
         event.setCancelled(true);
     }
 
-    @EventHandler
+    @EventHandler(ignoreCancelled = true)
     public void event(PlayerInteractEvent event) {
         if (!event.getAction().equals(Action.RIGHT_CLICK_BLOCK))
             return;
@@ -631,8 +667,8 @@ public class FieldListener implements Listener {
         if (hand == null)
             return;
         Material handType = hand.getType();
-        if (!(hand.getItemMeta() instanceof SpawnEggMeta || handType.equals(Material.FLINT_AND_STEEL)
-                || handType.equals(Material.ARMOR_STAND)))
+        if (!(hand.getItemMeta() instanceof SpawnEggMeta || handType == Material.FLINT_AND_STEEL
+                || handType == Material.ARMOR_STAND))
             return;
         Location loc = event.getClickedBlock().getLocation();
         if (!FieldUtil.isFieldAtLocation(loc))
@@ -665,7 +701,7 @@ public class FieldListener implements Listener {
         FieldUtil.updateUser(ElementalsX.getUser(event.getPlayer()), event.getTo());
     }
 
-    @EventHandler
+    @EventHandler(ignoreCancelled = true)
     public void event0(BlockBreakEvent event) {
         Block block = event.getBlock();
         if (block.getType().equals(Material.DIAMOND_BLOCK)) {
@@ -684,7 +720,7 @@ public class FieldListener implements Listener {
         event.setCancelled(true);
     }
 
-    @EventHandler
+    @EventHandler(ignoreCancelled = true)
     public void event0(BlockPlaceEvent event) {
         Block block = event.getBlock();
         if (block.getType().equals(Material.DIAMOND_BLOCK))
@@ -701,7 +737,7 @@ public class FieldListener implements Listener {
         event.setCancelled(true);
     }
 
-    @EventHandler
+    @EventHandler(ignoreCancelled = true)
     public void event0(EntityDamageByEntityEvent event) {
         if (CitizensAPI.getNPCRegistry().isNPC(event.getEntity()))
             return;
@@ -724,31 +760,31 @@ public class FieldListener implements Listener {
         if (!FieldUtil.isFieldAtLocation(loc))
             return;
         EntityType entityType = entity.getType();
-        if (!(entityType.equals(EntityType.PARROT)
-                || entityType.equals(EntityType.LLAMA)
-                || entityType.equals(EntityType.TRADER_LLAMA)
-                || entityType.equals(EntityType.ZOMBIE_HORSE)
-                || entityType.equals(EntityType.MULE)
-                || entityType.equals(EntityType.HORSE)
-                || entityType.equals(EntityType.DONKEY)
-                || entityType.equals(EntityType.SKELETON_HORSE)
-                || entityType.equals(EntityType.PIG)
-                || entityType.equals(EntityType.COW)
-                || entityType.equals(EntityType.OCELOT)
-                || entityType.equals(EntityType.MUSHROOM_COW)
-                || entityType.equals(EntityType.BAT)
-                || entityType.equals(EntityType.BOAT)
-                || entityType.equals(EntityType.CHICKEN)
-                || entityType.equals(EntityType.WOLF)
-                || entityType.equals(EntityType.VILLAGER)
-                || entityType.equals(EntityType.IRON_GOLEM)
-                || entityType.equals(EntityType.LEASH_HITCH)
-                || entityType.equals(EntityType.RABBIT)
-                || entityType.equals(EntityType.SHEEP)
-                || entityType.equals(EntityType.SNOWMAN)
-                || entityType.equals(EntityType.SQUID)
-                || entityType.equals(EntityType.ARMOR_STAND)
-                || entityType.equals(EntityType.ITEM_FRAME)))
+        if (!(entityType == EntityType.PARROT
+                || entityType == EntityType.LLAMA
+                || entityType == EntityType.TRADER_LLAMA
+                || entityType == EntityType.ZOMBIE_HORSE
+                || entityType == EntityType.MULE
+                || entityType == EntityType.HORSE
+                || entityType == EntityType.DONKEY
+                || entityType == EntityType.SKELETON_HORSE
+                || entityType == EntityType.PIG
+                || entityType == EntityType.COW
+                || entityType == EntityType.OCELOT
+                || entityType == EntityType.MUSHROOM_COW
+                || entityType == EntityType.BAT
+                || entityType == EntityType.BOAT
+                || entityType == EntityType.CHICKEN
+                || entityType == EntityType.WOLF
+                || entityType == EntityType.VILLAGER
+                || entityType == EntityType.IRON_GOLEM
+                || entityType == EntityType.LEASH_HITCH
+                || entityType == EntityType.RABBIT
+                || entityType == EntityType.SHEEP
+                || entityType == EntityType.SNOWMAN
+                || entityType == EntityType.SQUID
+                || entityType == EntityType.ARMOR_STAND
+                || entityType == EntityType.ITEM_FRAME))
             return;
         User user = ElementalsX.getUser((Player) damager);
         Field field = FieldUtil.getFieldByLocation(loc);
@@ -761,7 +797,7 @@ public class FieldListener implements Listener {
             entity.setFireTicks(0);
     }
 
-    @EventHandler
+    @EventHandler(ignoreCancelled = true)
     public void event(VehicleDamageEvent event) {
         if (CitizensAPI.getNPCRegistry().isNPC(event.getVehicle()))
             return;
@@ -784,14 +820,14 @@ public class FieldListener implements Listener {
         if (!FieldUtil.isFieldAtLocation(loc))
             return;
         EntityType entityType = vehicle.getType();
-        if (!(entityType.equals(EntityType.MINECART)
-                || entityType.equals(EntityType.MINECART_CHEST)
-                || entityType.equals(EntityType.MINECART_FURNACE)
-                || entityType.equals(EntityType.MINECART_HOPPER)
-                || entityType.equals(EntityType.MINECART_TNT)
-                || entityType.equals(EntityType.MINECART_MOB_SPAWNER)
-                || entityType.equals(EntityType.MINECART_COMMAND)
-                || entityType.equals(EntityType.BOAT)))
+        if (!(entityType == EntityType.MINECART
+                || entityType == EntityType.MINECART_CHEST
+                || entityType == EntityType.MINECART_FURNACE
+                || entityType == EntityType.MINECART_HOPPER
+                || entityType == EntityType.MINECART_TNT
+                || entityType == EntityType.MINECART_MOB_SPAWNER
+                || entityType == EntityType.MINECART_COMMAND
+                || entityType == EntityType.BOAT))
             return;
         User user = ElementalsX.getUser((Player) damager);
         Field field = FieldUtil.getFieldByLocation(loc);
@@ -804,7 +840,7 @@ public class FieldListener implements Listener {
             vehicle.setFireTicks(0);
     }
 
-    @EventHandler
+    @EventHandler(ignoreCancelled = true)
     public void event(VehicleEnterEvent event) {
         Vehicle vehicle = event.getVehicle();
         User user = ElementalsX.getUser((Player) event.getEntered());
@@ -812,8 +848,8 @@ public class FieldListener implements Listener {
         if (field.hasFun())
             return;
         EntityType entityType = vehicle.getType();
-        if (!(entityType.equals(EntityType.MINECART)
-                || entityType.equals(EntityType.BOAT)))
+        if (!(entityType == EntityType.MINECART
+                || entityType == EntityType.BOAT))
             return;
         if (!(event.getEntered() instanceof Player))
             return;
@@ -832,8 +868,7 @@ public class FieldListener implements Listener {
             return;
         if (!(event.getDamager() instanceof Firework))
             return;
-        Location loc = event.getEntity().getLocation();
-        if (!FieldUtil.isFieldAtLocation(loc))
+        if (!FieldUtil.isFieldAtLocation(event.getEntity().getLocation()))
             return;
         if (!event.getDamager().hasMetadata("firework_ench"))
             return;

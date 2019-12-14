@@ -72,7 +72,7 @@ public class FieldUtil {
                             + "' AND chunkz='" + chunk.getZ() + "' AND world='" + chunk.getWorld().getName() + "';")
                     .executeQuery();
             if (rs.next())
-                return rs.getInt(1) < 4;
+                return rs.getInt(1) >= 4;
         } catch (SQLException ex) {
             ex.printStackTrace();
         }

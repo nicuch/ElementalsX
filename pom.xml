@@ -121,5 +121,12 @@
             <version>2.3.4</version>
             <scope>provided</scope>
         </dependency>
+        <dependency>
+            <groupId>com.github.Zrips</groupId>
+            <artifactId>Jobs</artifactId>
+            <version>4.14.0</version>
+            <scope>system</scope>
+            <systemPath>${basedir}/libs/Jobs4.15.0-devBuild.jar</systemPath>
+        </dependency>
     </dependencies>
 </project>

@@ -84,7 +84,7 @@ public class ProtectionCommand implements TabExecutor {
                     sender.sendMessage(ElementalsUtil.color("&9/ps allow <jucator> &c-- &fAdauga un membru in protectie."));
                     sender.sendMessage(ElementalsUtil.color("&b/ps allowall <jucator> &c-- &fAdauga un membru in toate protectiile."));
                     sender.sendMessage(ElementalsUtil.color("&9/ps remove <jucator> &c-- &fSterge un membru din protectie."));
-                    sender.sendMessage(ElementalsUtil.color("&b/ps removell <jucator> &c-- &fSterge un membru din toate protectiile."));
+                    sender.sendMessage(ElementalsUtil.color("&b/ps removall <jucator> &c-- &fSterge un membru din toate protectiile."));
                     sender.sendMessage(ElementalsUtil.color("&9/ps enable &c-- &fBlocurile de diamant devin protectii."));
                     sender.sendMessage(ElementalsUtil.color("&b/ps disable &c-- &fPune blocuri fara sa se transforme in protectii."));
                     sender.sendMessage(ElementalsUtil.color("&9/ps visualise &c-- &fVizualizeaza protectia."));
@@ -97,7 +97,7 @@ public class ProtectionCommand implements TabExecutor {
             sender.sendMessage(ElementalsUtil.color("&9/ps allow <jucator> -- &fAdauga un membru in protectie."));
             sender.sendMessage(ElementalsUtil.color("&b/ps allowall <jucator> -- &fAdauga un membru in toate protectiile."));
             sender.sendMessage(ElementalsUtil.color("&9/ps remove <jucator> -- &fSterge un membru din protectie."));
-            sender.sendMessage(ElementalsUtil.color("&b/ps removell <jucator> -- &fSterge un membru din toate protectiile."));
+            sender.sendMessage(ElementalsUtil.color("&b/ps removall <jucator> -- &fSterge un membru din toate protectiile."));
             sender.sendMessage(ElementalsUtil.color("&9/ps enable -- &fBlocurile de diamant devin protectii."));
             sender.sendMessage(ElementalsUtil.color("&b/ps disable -- &fPune blocuri fara sa se transforme in protectii."));
             sender.sendMessage(ElementalsUtil.color("&9/ps visualise -- &fVizualizeaza protectia."));
