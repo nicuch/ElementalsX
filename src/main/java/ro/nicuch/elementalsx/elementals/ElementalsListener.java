@@ -3,7 +3,6 @@ package ro.nicuch.elementalsx.elementals;
 import com.vexsoftware.votifier.model.VotifierEvent;
 import net.citizensnpcs.api.CitizensAPI;
 import org.bukkit.*;
-import org.bukkit.BanList.Type;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Parrot;
 import org.bukkit.entity.Player;
@@ -30,7 +29,6 @@ import ro.nicuch.elementalsx.User;
 import ro.nicuch.elementalsx.protection.Field;
 import ro.nicuch.elementalsx.protection.FieldUtil;
 
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -38,6 +36,15 @@ import java.util.UUID;
 
 public class ElementalsListener implements Listener {
     private final static List<UUID> interactList = new ArrayList<>();
+
+    @EventHandler(ignoreCancelled = true)
+    public void event(EntityDamageEvent event) {
+        if (!event.getEntity().getWorld().getName().equals("spawn"))
+            return;
+        if (event.getEntityType() != EntityType.PLAYER)
+            return;
+        event.setCancelled(true);
+    }
 
     @EventHandler(ignoreCancelled = true)
     public void event(CreatureSpawnEvent event) {
@@ -214,8 +221,8 @@ public class ElementalsListener implements Listener {
                 || message.startsWith("+") || message.startsWith("<3")))
             builder.replace(0, 1, message.substring(0, 1).toUpperCase());
 
-        ElementalsX.getOnlineUsers().stream().filter(u -> recipeNames.contains(u.getBase().getName()) && u.hasSounds()).peek(u -> u.getBase().playSound(u.getBase().getLocation(), Sound.ENTITY_PLAYER_LEVELUP, 1f, 1f))
-                .filter(User::hasSounds).forEach(u -> u.getBase().playSound(u.getBase().getLocation(), Sound.ENTITY_ITEM_PICKUP, 1f, 1f));
+        ElementalsX.getOnlineUsers().stream().filter(User::hasSounds).peek(u -> u.getBase().playSound(u.getBase().getLocation(), Sound.ENTITY_ITEM_PICKUP, 1f, 1f))
+                .filter(u -> recipeNames.contains(u.getBase().getName()) && u.hasSounds()).forEach(u -> u.getBase().playSound(u.getBase().getLocation(), Sound.ENTITY_PLAYER_LEVELUP, 1f, 1f));
         event.setMessage(builder.toString());
     }
 
@@ -240,6 +247,16 @@ public class ElementalsListener implements Listener {
     }
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+    public void event0(BlockPlaceEvent event) {
+        if (!event.getBlock().getWorld().getName().equals("spawn"))
+            return;
+        User user = ElementalsX.getUser(event.getPlayer());
+        if (user.hasPermission("elementals.override"))
+            return;
+        event.setCancelled(true);
+    }
+
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void event(BlockPlaceEvent event) {
         if (event.getBlock().getWorld().getName().equals("spawn"))
             return;
@@ -259,11 +276,9 @@ public class ElementalsListener implements Listener {
         ElementalsUtil.setTag(event.getBlock(), "found");
     }
 
-    @EventHandler
+    @EventHandler(ignoreCancelled = true)
     public void event(BlockDamageEvent event) {
         if (event.getBlock().getWorld().getName().equals("spawn"))
-            return;
-        if (event.isCancelled())
             return;
         if (!(event.getBlock().getType() == Material.DIAMOND_ORE
                 || event.getBlock().getType() == Material.EMERALD_ORE
@@ -496,21 +511,7 @@ public class ElementalsListener implements Listener {
 
     @EventHandler(priority = EventPriority.HIGHEST)
     public void event(PlayerLoginEvent event) {
-        if (event.getPlayer().getName().contains("&"))
-            event.setResult(Result.KICK_OTHER);
-        if (event.getResult().equals(Result.KICK_BANNED)) {
-            BanEntry entry = Bukkit.getBanList(Type.NAME).getBanEntry(event.getPlayer().getName());
-            event.setKickMessage(ElementalsUtil.color("\n" + "&a[&6PikaCraft&a]\n" + "&aNu te poti conecta!\n" + "&6Motiv: &c"
-                    + entry.getReason() + " &e@ " + entry.getSource() + "\n"
-                    + ((entry.getExpiration() == null) ? ""
-                    : ("&9Expira pe: &e"
-                    + new SimpleDateFormat("dd.MM.yyyy HH:mm:ss").format(entry.getExpiration()) + "\n"))
-                    + "&ahttps://www.pikacraftmc.ro/"));
-        }
-        if (event.getResult().equals(Result.KICK_WHITELIST))
-            event.setKickMessage(ElementalsUtil.color("\n" + "&a[&6PikaCraft&a]\n" + "&aNu te poti conecta!\n"
-                    + "&aServerul este in mentenanta!\n &cReveniti mai tarziu!"));
-        else if (event.getResult().equals(Result.KICK_FULL))
+        if (event.getResult().equals(Result.KICK_FULL))
             event.setKickMessage(ElementalsUtil.color(
                     "\n" + "&a[&6PikaCraft&a]\n" + "&aNu te poti conecta!\n" + "&eServerul este plin."));
     }

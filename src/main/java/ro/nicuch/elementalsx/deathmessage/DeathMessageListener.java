@@ -42,11 +42,7 @@ public class DeathMessageListener implements Listener {
                 event.setDeathMessage(ElementalsUtil.color(user.getBase().getDisplayName() + " &9a imbratisat un cactus."));
                 break;
             case DROWNING:
-                if (user.isInPvp())
-                    event.setDeathMessage(ElementalsUtil.color(
-                            user.getBase().getDisplayName() + " &9nu a vrut sa fie omorat de alt jucator si s-a inecat."));
-                else
-                    event.setDeathMessage(ElementalsUtil.color(user.getBase().getDisplayName() + " &9s-a inecat."));
+                event.setDeathMessage(ElementalsUtil.color(user.getBase().getDisplayName() + " &9s-a inecat."));
                 break;
             case ENTITY_ATTACK:
                 Entity damager = ((EntityDamageByEntityEvent) event.getEntity().getLastDamageCause()).getDamager();
@@ -244,11 +240,7 @@ public class DeathMessageListener implements Listener {
                 event.setDeathMessage(ElementalsUtil.color(user.getBase().getDisplayName() + " &9a devenit friptura."));
                 break;
             case LAVA:
-                if (user.isInPvp())
-                    event.setDeathMessage(ElementalsUtil.color(user.getBase().getDisplayName()
-                            + " &9nu a vrut sa fie omorat de alt jucator si s-a aruncat in lava."));
-                else
-                    event.setDeathMessage(ElementalsUtil.color(user.getBase().getDisplayName() + " &9a inotat in lava."));
+                event.setDeathMessage(ElementalsUtil.color(user.getBase().getDisplayName() + " &9a inotat in lava."));
                 break;
             case LIGHTNING:
                 event.setDeathMessage(ElementalsUtil.color(user.getBase().getDisplayName() + " &9a fost fulgerat."));

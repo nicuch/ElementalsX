@@ -1,9 +1,7 @@
 package ro.nicuch.elementalsx;
 
-import net.minecraft.server.v1_14_R1.IChatBaseComponent;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
-import org.bukkit.craftbukkit.v1_14_R1.entity.CraftPlayer;
 import org.bukkit.entity.Player;
 import org.bukkit.event.entity.EntityDamageEvent.DamageCause;
 import org.bukkit.inventory.ItemStack;
@@ -150,10 +148,6 @@ public class User {
 
     public boolean isIgnoringPlacingFields() {
         return this.ignorePlaceProtection;
-    }
-
-    public void sendMessage(IChatBaseComponent icbc) {
-        ((CraftPlayer) this.base).getHandle().sendMessage(icbc);
     }
 
     public void setLastDamageCause(DamageCause cause) {

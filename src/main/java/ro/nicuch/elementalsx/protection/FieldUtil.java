@@ -11,6 +11,7 @@ import org.bukkit.Material;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.World;
 import org.bukkit.block.Block;
+import org.bukkit.block.data.BlockData;
 import org.bukkit.event.block.BlockBreakEvent;
 
 import ro.nicuch.elementalsx.ElementalsX;
@@ -287,30 +288,32 @@ public class FieldUtil {
         int minz = field.getMinimLocation().getZ();
         int midx = maxx - ((maxx - minx) / 2);
         int midz = maxz - ((maxz - minz) / 2);
+        BlockData glass = Material.GLASS.createBlockData();
         for (int y = 0; y < 256; y++) {
             Location a = new Location(field.getWorld(), maxx, y, maxz);
-            user.getBase().sendBlockChange(a, Material.GLASS, (byte) 0);
+            user.getBase().sendBlockChange(a, glass);
             Location b = new Location(field.getWorld(), minx, y, minz);
-            user.getBase().sendBlockChange(b, Material.GLASS, (byte) 0);
+            user.getBase().sendBlockChange(b, glass);
             Location c = new Location(field.getWorld(), minx, y, maxz);
-            user.getBase().sendBlockChange(c, Material.GLASS, (byte) 0);
+            user.getBase().sendBlockChange(c, glass);
             Location d = new Location(field.getWorld(), maxx, y, minz);
-            user.getBase().sendBlockChange(d, Material.GLASS, (byte) 0);
+            user.getBase().sendBlockChange(d, glass);
             Location e = new Location(field.getWorld(), maxx, y, midz);
-            user.getBase().sendBlockChange(e, Material.GLASS, (byte) 0);
+            user.getBase().sendBlockChange(e, glass);
             Location f = new Location(field.getWorld(), minx, y, midz);
-            user.getBase().sendBlockChange(f, Material.GLASS, (byte) 0);
+            user.getBase().sendBlockChange(f, glass);
             Location g = new Location(field.getWorld(), midx, y, maxz);
-            user.getBase().sendBlockChange(g, Material.GLASS, (byte) 0);
+            user.getBase().sendBlockChange(g, glass);
             Location h = new Location(field.getWorld(), midx, y, minz);
-            user.getBase().sendBlockChange(h, Material.GLASS, (byte) 0);
+            user.getBase().sendBlockChange(h, glass);
         }
         for (int y = 0; y < 256; y += 16) {
             for (int x = minx; x < maxx; x++) {
                 Location loc0 = new Location(field.getWorld(), x, y, maxz);
-                user.getBase().sendBlockChange(loc0, Material.GLASS, (byte) 0);
+                user.getBase().sendBlockChange(loc0, glass);
+                user.getBase().sendBlockChange(loc0, glass);
                 Location loc1 = new Location(field.getWorld(), x, y, minz);
-                user.getBase().sendBlockChange(loc1, Material.GLASS, (byte) 0);
+                user.getBase().sendBlockChange(loc1, glass);
             }
             for (int z = minz; z < maxz; z++) {
                 Location loc0 = new Location(field.getWorld(), maxx, y, z);
@@ -322,34 +325,34 @@ public class FieldUtil {
         Bukkit.getScheduler().runTaskLater(ElementalsX.get(), () -> {
             for (int y = 0; y < 256; y++) {
                 Location a = new Location(field.getWorld(), maxx, y, maxz);
-                user.getBase().sendBlockChange(a, a.getBlock().getType(), a.getBlock().getData());
+                user.getBase().sendBlockChange(a, a.getBlock().getBlockData());
                 Location b = new Location(field.getWorld(), minx, y, minz);
-                user.getBase().sendBlockChange(b, b.getBlock().getType(), b.getBlock().getData());
+                user.getBase().sendBlockChange(b, b.getBlock().getBlockData());
                 Location c = new Location(field.getWorld(), minx, y, maxz);
-                user.getBase().sendBlockChange(c, c.getBlock().getType(), c.getBlock().getData());
+                user.getBase().sendBlockChange(c, c.getBlock().getBlockData());
                 Location d = new Location(field.getWorld(), maxx, y, minz);
-                user.getBase().sendBlockChange(d, d.getBlock().getType(), d.getBlock().getData());
+                user.getBase().sendBlockChange(d, d.getBlock().getBlockData());
                 Location e = new Location(field.getWorld(), maxx, y, midz);
-                user.getBase().sendBlockChange(e, e.getBlock().getType(), e.getBlock().getData());
+                user.getBase().sendBlockChange(e, e.getBlock().getBlockData());
                 Location f = new Location(field.getWorld(), minx, y, midz);
-                user.getBase().sendBlockChange(f, f.getBlock().getType(), f.getBlock().getData());
+                user.getBase().sendBlockChange(f, f.getBlock().getBlockData());
                 Location g = new Location(field.getWorld(), midx, y, maxz);
-                user.getBase().sendBlockChange(g, g.getBlock().getType(), g.getBlock().getData());
+                user.getBase().sendBlockChange(g, g.getBlock().getBlockData());
                 Location h = new Location(field.getWorld(), midx, y, minz);
-                user.getBase().sendBlockChange(h, h.getBlock().getType(), h.getBlock().getData());
+                user.getBase().sendBlockChange(h, h.getBlock().getBlockData());
             }
             for (int y = 0; y < 256; y += 16) {
                 for (int x = minx; x < maxx; x++) {
                     Location loc0 = new Location(field.getWorld(), x, y, maxz);
-                    user.getBase().sendBlockChange(loc0, loc0.getBlock().getType(), loc0.getBlock().getData());
+                    user.getBase().sendBlockChange(loc0, loc0.getBlock().getBlockData());
                     Location loc1 = new Location(field.getWorld(), x, y, minz);
-                    user.getBase().sendBlockChange(loc1, loc1.getBlock().getType(), loc1.getBlock().getData());
+                    user.getBase().sendBlockChange(loc1, loc1.getBlock().getBlockData());
                 }
                 for (int z = minz; z < maxz; z++) {
                     Location loc0 = new Location(field.getWorld(), maxx, y, z);
-                    user.getBase().sendBlockChange(loc0, loc0.getBlock().getType(), loc0.getBlock().getData());
+                    user.getBase().sendBlockChange(loc0, loc0.getBlock().getBlockData());
                     Location loc1 = new Location(field.getWorld(), minx, y, z);
-                    user.getBase().sendBlockChange(loc1, loc1.getBlock().getType(), loc1.getBlock().getData());
+                    user.getBase().sendBlockChange(loc1, loc1.getBlock().getBlockData());
                 }
             }
         }, 20 * 20);

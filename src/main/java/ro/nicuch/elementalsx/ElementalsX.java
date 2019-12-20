@@ -13,6 +13,7 @@ import java.util.function.Consumer;
 import org.bukkit.*;
 import org.bukkit.World.Environment;
 import org.bukkit.command.TabExecutor;
+import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.PluginManager;
@@ -23,6 +24,7 @@ import net.milkbowl.vault.permission.Permission;
 import ro.nicuch.elementalsx.deathmessage.DeathMessageListener;
 import ro.nicuch.elementalsx.elementals.ElementalsListener;
 import ro.nicuch.elementalsx.elementals.ElementalsUtil;
+import ro.nicuch.elementalsx.elementals.TopKillsTrickEvent;
 import ro.nicuch.elementalsx.elementals.commands.*;
 import ro.nicuch.elementalsx.protection.Field;
 import ro.nicuch.elementalsx.protection.FieldListener;
@@ -53,9 +55,15 @@ public class ElementalsX extends JavaPlugin {
         this.commandsCreator();
         this.eventCreator();
         this.randomMsg();
+        this.timer();
+        this.topKillsTrick();
         Bukkit.getOnlinePlayers().forEach((Consumer<Player>) ElementalsX::createUser);
         sendConsoleMessage("&bPluginul a pornit! (" + (System.currentTimeMillis() - start) + "ms)");
         Bukkit.broadcastMessage(ElementalsUtil.color("&bElementals a pornit! (" + (System.currentTimeMillis() - start) + "ms)"));
+    }
+
+    private void topKillsTrick() {
+        Bukkit.getScheduler().runTaskTimer(this, () -> Bukkit.getOnlinePlayers().forEach(p -> Bukkit.getPluginManager().callEvent(new TopKillsTrickEvent(p))), 20 * 30, 20 * 2 * 60);
     }
 
     @Override
@@ -144,8 +152,6 @@ public class ElementalsX extends JavaPlugin {
         this.getCommand("sound").setTabCompleter(te);
         this.getCommand("giveall").setExecutor(new GiveAllCommand());
         this.getCommand("test").setExecutor(new TestCommand());
-        this.getCommand("points").setExecutor(te);
-        this.getCommand("points").setTabCompleter(te);
         this.getCommand("admin").setExecutor(new AdminCommand());
         te = new SortCommand();
         this.getCommand("sort").setExecutor(te);
@@ -154,8 +160,13 @@ public class ElementalsX extends JavaPlugin {
     }
 
     private void createDataBase() {
-        File file = new File(this.getDataFolder() + File.separator + "database.db");
-        String url = "jdbc:sqlite:" + file.getAbsolutePath();
+        this.saveResource("config.yml", false);
+        FileConfiguration cfg = this.getConfig();
+        String username = cfg.getString("db_user");
+        String password = cfg.getString("db_pass");
+        String ip = cfg.getString("db_ip");
+        String db_name = cfg.getString("db_name");
+        String url = "jdbc:mysql://" + ip + "/" + db_name + "?user=" + username + "&password=" + password + "&useSSL=false&autoReconnect=true";
         try {
             database = DriverManager.getConnection(url);
             database.prepareStatement(
@@ -179,5 +190,9 @@ public class ElementalsX extends JavaPlugin {
         Bukkit.getScheduler().runTaskTimerAsynchronously(this, () ->
                 Bukkit.broadcastMessage(ElementalsUtil.color("&c&l>>&r " + ElementalsUtil.getAutoMessages()
                         .get(ElementalsUtil.nextInt(ElementalsUtil.getAutoMessages().size())))), 1L, 2 * 60 * 20L);
+    }
+
+    private void timer() {
+        Bukkit.getScheduler().runTaskTimerAsynchronously(this, ElementalsUtil::tickMotd, 20L, 20L);
     }
 }

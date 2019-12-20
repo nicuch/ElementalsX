@@ -189,6 +189,7 @@ public class FieldListener implements Listener {
                     FieldUtil.registerField(user, block, id, maxLoc, minLoc);
                     event.getPlayer().sendMessage(ElementalsUtil.color("&aAi pus protectia cu succes!"));
                 });
+                Bukkit.getScheduler().runTaskLater(ElementalsX.get(), () -> ElementalsX.getOnlineUsers().forEach(u -> FieldUtil.updateUser(u, u.getBase().getLocation())), 2L);
             } catch (SQLException exception) {
                 event.getPlayer().sendMessage(ElementalsUtil.color("&cEroare. &aContacteaza un admin!"));
                 event.setCancelled(true);
@@ -224,6 +225,7 @@ public class FieldListener implements Listener {
                     FieldUtil.unregisterField(block);
                     event.getPlayer().sendMessage(ElementalsUtil.color("&aProtectia a fost distrusa!"));
                 });
+                Bukkit.getScheduler().runTaskLater(ElementalsX.get(), () -> ElementalsX.getOnlineUsers().forEach(u -> FieldUtil.updateUser(u, u.getBase().getLocation())), 2L);
             } catch (SQLException exception) {
                 event.getPlayer().sendMessage(ElementalsUtil.color("&cEroare. &aContacteaza un admin!"));
                 event.setCancelled(true);
@@ -844,7 +846,10 @@ public class FieldListener implements Listener {
     public void event(VehicleEnterEvent event) {
         Vehicle vehicle = event.getVehicle();
         User user = ElementalsX.getUser((Player) event.getEntered());
-        Field field = FieldUtil.getFieldByLocation(vehicle.getLocation());
+        Location loc = vehicle.getLocation();
+        if (!FieldUtil.isFieldAtLocation(loc))
+            return;
+        Field field = FieldUtil.getFieldByLocation(loc);
         if (field.hasFun())
             return;
         EntityType entityType = vehicle.getType();
