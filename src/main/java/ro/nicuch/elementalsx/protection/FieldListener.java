@@ -172,8 +172,10 @@ public class FieldListener implements Listener {
         }
         String id = FieldUtil.getFieldIdByBlock(block);
         Location loc = block.getLocation();
-        Block maxLoc = loc.clone().add(25, 0, 25).getBlock();
-        Block minLoc = loc.clone().add(-25, 0, -25).getBlock();
+        Block locMax = loc.clone().add(25, 0, 25).getBlock();
+        Block locMin = loc.clone().add(-25, 0, -25).getBlock();
+        Field3D maxLoc = new Field3D(locMax.getX(), locMax.getY(), locMax.getZ());
+        Field3D minLoc = new Field3D(locMin.getX(), locMin.getY(), locMin.getZ());
         Bukkit.getScheduler().runTaskAsynchronously(ElementalsX.get(), () -> {
             try {
                 ElementalsX.getBase()
@@ -543,6 +545,8 @@ public class FieldListener implements Listener {
             return;
         Material clickedBlockType = event.getClickedBlock().getType();
         if (!(clickedBlockType == Material.CHEST
+                || clickedBlockType == Material.BEE_NEST
+                || clickedBlockType == Material.BEEHIVE
                 || clickedBlockType == Material.FLOWER_POT
                 || clickedBlockType == Material.TRAPPED_CHEST
                 || clickedBlockType == Material.FURNACE
@@ -669,14 +673,14 @@ public class FieldListener implements Listener {
         if (hand == null)
             return;
         Material handType = hand.getType();
-        if (!(hand.getItemMeta() instanceof SpawnEggMeta || handType == Material.FLINT_AND_STEEL
-                || handType == Material.ARMOR_STAND))
-            return;
         Location loc = event.getClickedBlock().getLocation();
         if (!FieldUtil.isFieldAtLocation(loc))
             return;
         User user = ElementalsX.getUser(event.getPlayer());
         Field field = FieldUtil.getFieldByLocation(loc);
+        if (!(hand.getItemMeta() instanceof SpawnEggMeta || handType == Material.FLINT_AND_STEEL
+                || handType == Material.ARMOR_STAND) || (!field.hasFun() && handType == Material.END_CRYSTAL))
+            return;
         UUID uuid = user.getBase().getUniqueId();
         if (field.isMember(uuid) || field.isOwner(uuid) || user.hasPermission("elementals.protection.override"))
             return;
@@ -816,6 +820,8 @@ public class FieldListener implements Listener {
             damager = (Entity) proj.getShooter();
         } else
             damager = event.getAttacker();
+        if (damager == null)
+            return;
         if (damager.getType() != EntityType.PLAYER)
             return;
         Location loc = vehicle.getLocation();

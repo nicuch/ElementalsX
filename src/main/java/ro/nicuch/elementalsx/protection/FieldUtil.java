@@ -21,7 +21,7 @@ import ro.nicuch.elementalsx.elementals.ElementalsUtil;
 public class FieldUtil {
     private final static Map<String, Field> loadedFields = new HashMap<>();
 
-    public static void registerField(User user, Block block, String id, Block maxLoc, Block minLoc) {
+    public static void registerField(User user, Block block, String id, Field3D maxLoc, Field3D minLoc) {
         Field field = new Field(id, user.getBase().getUniqueId(), maxLoc, minLoc, block.getChunk(), block.getWorld());
         loadedFields.putIfAbsent(id, field);
     }
@@ -100,8 +100,8 @@ public class FieldUtil {
                     Bukkit.getScheduler().runTask(ElementalsX.get(), () -> {
                         // Never access BukkitAPI async
                         World world = Bukkit.getWorld(worldName);
-                        Block maxLoc = world.getBlockAt(maxx, y, maxz);
-                        Block minLoc = world.getBlockAt(minx, y, minz);
+                        Field3D maxLoc = new Field3D(maxx, y, maxz);
+                        Field3D minLoc = new Field3D(minx, y, minz);
                         Field field = new Field(id, uuid, maxLoc, minLoc, chunk, world);
                         loadedFields.putIfAbsent(id, field);
                     });

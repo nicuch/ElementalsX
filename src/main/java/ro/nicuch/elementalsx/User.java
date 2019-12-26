@@ -10,7 +10,6 @@ import ro.nicuch.elementalsx.elementals.ElementalsUtil;
 import ro.nicuch.elementalsx.protection.FieldUtil;
 
 import java.sql.ResultSet;
-import java.util.Objects;
 import java.util.UUID;
 
 public class User {
@@ -72,6 +71,11 @@ public class User {
             this.field = false;
             this.base.setCollidable(true);
         }
+        if (!base.hasPlayedBefore())
+            isNewPlayer();
+    }
+
+    public void isNewPlayer() {
         Bukkit.getScheduler().runTaskAsynchronously(ElementalsX.get(), () -> {
             try {
                 ResultSet rs = ElementalsX.getBase()
@@ -183,14 +187,14 @@ public class User {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        User user = (User) o;
-        return Objects.equals(base.getUniqueId(), user.base.getUniqueId());
+        if (!(o instanceof User))
+            return false;
+        User oUser = (User) o;
+        return this.base.getUniqueId().equals(oUser.base.getUniqueId());
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(base.getUniqueId());
+        return this.base.getUniqueId().hashCode() * 757;
     }
 }

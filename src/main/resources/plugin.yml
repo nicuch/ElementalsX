@@ -5,7 +5,7 @@ api-version: 1.13
 authors: [nicuch]
 description: Elementals 2 for Pikacraft server.
 website: pikacraft.ro
-depend: [Jobs, TagRegisterLib, WorldEdit, Vault, Votifier, Citizens, AuthMe]
+depend: [Jobs, TagRegisterLib, WorldEdit, Vault, Citizens, AuthMe]
 commands:
   randomtp:
     aliases: [rdtp, rtp]
@@ -29,5 +29,3 @@ commands:
     description: Comanda pentru achivementuri.
   sort:
     description: Comanda pentru sortare.
-  vote:
-    description: Vote for your server.

@@ -23,7 +23,9 @@ public class SortCommand implements TabExecutor {
             switch (args[0].toLowerCase()) {
                 case "chest":
                 case "trapchest":
-                    ElementalsUtil.sortChest(user);
+                case "barrel":
+                case "shulker":
+                    ElementalsUtil.sortInventoryHolder(user);
                     break;
                 case "inventory":
                 case "inv":
@@ -33,11 +35,9 @@ public class SortCommand implements TabExecutor {
                 case "ec":
                     ElementalsUtil.sortEnderChest(user);
                     break;
-                case "shulker":
-                    ElementalsUtil.sortShulkerBox(user);
-                    break;
                 default:
                     sender.sendMessage(ElementalsUtil.color("&a/sort chest -- &fSorteaza un cufar."));
+                    sender.sendMessage(ElementalsUtil.color("&a/sort barrel -- &fSorteaza un butoi."));
                     sender.sendMessage(ElementalsUtil.color("&6/sort inventory -- &fSorteaza-ti inventarul."));
                     sender.sendMessage(ElementalsUtil.color("&a/sort enderchest -- &fSorteaza-ti ender chest-ul."));
                     sender.sendMessage(ElementalsUtil.color("&6/sort shulker -- &fSorteaza un shulker box."));
@@ -45,6 +45,7 @@ public class SortCommand implements TabExecutor {
             }
         } else {
             sender.sendMessage(ElementalsUtil.color("&a/sort chest -- &fSorteaza un cufar."));
+            sender.sendMessage(ElementalsUtil.color("&a/sort barrel -- &fSorteaza un butoi."));
             sender.sendMessage(ElementalsUtil.color("&6/sort inventory -- &fSorteaza-ti inventarul."));
             sender.sendMessage(ElementalsUtil.color("&a/sort enderchest -- &fSorteaza-ti ender chest-ul."));
             sender.sendMessage(ElementalsUtil.color("&6/sort shulker -- &fSorteaza un shulker box."));

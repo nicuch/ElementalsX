@@ -3,6 +3,7 @@ package ro.nicuch.elementalsx.protection;
 import java.io.File;
 import java.io.IOException;
 import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
 
 import org.bukkit.Chunk;
@@ -17,8 +18,8 @@ import ro.nicuch.elementalsx.ElementalsX;
 public class Field {
     private final String id;
     private final UUID owner;
-    private final Block maxLoc;
-    private final Block minLoc;
+    private final Field3D maxLoc;
+    private final Field3D minLoc;
     private final List<UUID> members = Lists.newArrayList();
     private final int chunkX;
     private final int chunkZ;
@@ -27,7 +28,7 @@ public class Field {
     private final File file;
     private boolean fun;
 
-    public Field(String id, UUID owner, Block maxLoc, Block minLoc, Chunk chunk, World world) {
+    public Field(String id, UUID owner, Field3D maxLoc, Field3D minLoc, Chunk chunk, World world) {
         this.id = id;
         this.owner = owner;
         this.maxLoc = maxLoc;
@@ -57,11 +58,11 @@ public class Field {
         return this.owner.toString().equals(uuid.toString());
     }
 
-    public Block getMaximLocation() {
+    public Field3D getMaximLocation() {
         return this.maxLoc;
     }
 
-    public Block getMinimLocation() {
+    public Field3D getMinimLocation() {
         return this.minLoc;
     }
 
@@ -128,5 +129,17 @@ public class Field {
 
     public void toggleFun() {
         this.fun = !this.fun;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (!(o instanceof Field)) return false;
+        Field field = (Field) o;
+        return this.getId().equals(field.getId());
+    }
+
+    @Override
+    public int hashCode() {
+        return id.hashCode() * 683;
     }
 }

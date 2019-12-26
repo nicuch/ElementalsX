@@ -1,15 +1,11 @@
 package ro.nicuch.elementalsx.elementals;
 
-import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
-import org.bukkit.Material;
-import org.bukkit.OfflinePlayer;
+import org.bukkit.*;
 import org.bukkit.block.Block;
-import org.bukkit.block.Chest;
-import org.bukkit.block.ShulkerBox;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
+import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemStack;
 import ro.nicuch.elementalsx.ElementalsX;
 import ro.nicuch.elementalsx.User;
@@ -42,63 +38,6 @@ public class ElementalsUtil {
 
     public static String color(String arg) {
         return ChatColor.translateAlternateColorCodes('&', arg);
-    }
-
-    public static void sortShulkerBox(User user) {
-        Block block = user.getBase().getTargetBlock(null, 3);
-        Material blockType = block.getType();
-        if (!(blockType.equals(Material.BLACK_SHULKER_BOX) || blockType.equals(Material.BLUE_SHULKER_BOX)
-                || blockType.equals(Material.BROWN_SHULKER_BOX) || blockType.equals(Material.CYAN_SHULKER_BOX)
-                || blockType.equals(Material.GRAY_SHULKER_BOX) || blockType.equals(Material.RED_SHULKER_BOX)
-                || blockType.equals(Material.GREEN_SHULKER_BOX) || blockType.equals(Material.YELLOW_SHULKER_BOX)
-                || blockType.equals(Material.MAGENTA_SHULKER_BOX) || blockType.equals(Material.LIGHT_BLUE_SHULKER_BOX)
-                || blockType.equals(Material.LIME_SHULKER_BOX) || blockType.equals(Material.ORANGE_SHULKER_BOX)
-                || blockType.equals(Material.PINK_SHULKER_BOX) || blockType.equals(Material.LIGHT_GRAY_SHULKER_BOX)
-                || blockType.equals(Material.WHITE_SHULKER_BOX) || blockType.equals(Material.PURPLE_SHULKER_BOX))) {
-            user.getBase().sendMessage(color("&cTrebuie sa te uiti la un shulker box!"));
-            return;
-        }
-        ShulkerBox shulker = (ShulkerBox) block.getState();
-        if (FieldUtil.isFieldAtLocation(shulker.getLocation())) {
-            if (!(FieldUtil.getFieldByLocation(shulker.getLocation()).isMember(user.getBase().getUniqueId())
-                    || FieldUtil.getFieldByLocation(shulker.getLocation()).isOwner(user.getBase().getUniqueId())
-                    || user.hasPermission("elementals.protection.override"))) {
-                user.getBase().sendMessage(color("&cNu poti sorta acest shulker box!"));
-                return;
-            }
-        }
-        Inventory inv = shulker.getInventory();
-        List<ItemStack> sortedList = new ArrayList<>();
-        for (ItemStack item : inv.getContents()) {
-            if (item == null || item.getType() == Material.AIR)
-                continue;
-            sortedList.add(item.clone());
-        }
-        inv.clear();
-        sortedList.sort((o1, o2) -> {
-            if (!o1.hasItemMeta() && o2.hasItemMeta())
-                return -1;
-            else if (!o2.hasItemMeta() && o1.hasItemMeta())
-                return 1;
-            else if (!(o1.hasItemMeta() && o2.hasItemMeta()))
-                return 0;
-            if (!o1.getItemMeta().hasDisplayName() && o2.getItemMeta().hasDisplayName())
-                return -1;
-            else if (!o2.getItemMeta().hasDisplayName() && o1.getItemMeta().hasDisplayName())
-                return 1;
-            else if (!(o1.getItemMeta().hasDisplayName() && o2.getItemMeta().hasDisplayName()))
-                return 0;
-            if (o1.getItemMeta().getDisplayName() == null && o2.getItemMeta().getDisplayName() != null)
-                return -1;
-            else if (o2.getItemMeta().getDisplayName() == null && o1.getItemMeta().getDisplayName() != null)
-                return 1;
-            else if (!(o1.getItemMeta().getDisplayName() == null && o2.getItemMeta().getDisplayName() == null))
-                return 0;
-            return o1.getItemMeta().getDisplayName().compareTo(o2.getItemMeta().getDisplayName());
-        });
-        sortedList.sort(Comparator.comparing(ItemStack::getType));
-        sortedList.forEach(inv::addItem);
-        user.getBase().sendMessage(color("&aShulker Box-ul a fost sortat!"));
     }
 
     public static void sortInventory(User user) {
@@ -206,22 +145,23 @@ public class ElementalsUtil {
         user.getBase().sendMessage(color("&aEnder Chest-ul a fost sortat!"));
     }
 
-    public static void sortChest(User user) {
+    public static void sortInventoryHolder(User user) {
         Block block = user.getBase().getTargetBlock(null, 3);
-        if (!(block.getType().equals(Material.CHEST) || block.getType().equals(Material.TRAPPED_CHEST))) {
-            user.getBase().sendMessage(color("&cTrebuie sa te uiti la un chest!"));
+        if (!(block.getType() == Material.CHEST || block.getType() == Material.TRAPPED_CHEST
+                || block.getType() == Material.BARREL || Tag.SHULKER_BOXES.isTagged(block.getType()))) {
+            user.getBase().sendMessage(color("&cTrebuie sa te uiti la un block cu inventar!"));
             return;
         }
-        Chest chest = (Chest) block.getState();
-        if (FieldUtil.isFieldAtLocation(chest.getLocation())) {
-            if (!(FieldUtil.getFieldByLocation(chest.getLocation()).isMember(user.getBase().getUniqueId())
-                    || FieldUtil.getFieldByLocation(chest.getLocation()).isOwner(user.getBase().getUniqueId())
+        InventoryHolder holder = (InventoryHolder) block.getState();
+        if (FieldUtil.isFieldAtLocation(block.getLocation())) {
+            if (!(FieldUtil.getFieldByLocation(block.getLocation()).isMember(user.getBase().getUniqueId())
+                    || FieldUtil.getFieldByLocation(block.getLocation()).isOwner(user.getBase().getUniqueId())
                     || user.hasPermission("elementals.protection.override"))) {
                 user.getBase().sendMessage(color("&cNu poti sorta acest chest!"));
                 return;
             }
         }
-        Inventory inv = chest.getInventory();
+        Inventory inv = holder.getInventory();
         List<ItemStack> sortedList = new ArrayList<>();
         for (ItemStack item : inv.getContents()) {
             if (item == null || item.getType() == Material.AIR)
@@ -252,7 +192,7 @@ public class ElementalsUtil {
         });
         sortedList.sort(Comparator.comparing(ItemStack::getType));
         sortedList.forEach(inv::addItem);
-        user.getBase().sendMessage(color("&aChest-ul a fost sortat!"));
+        user.getBase().sendMessage(color("&aInventarul blocului a fost sortat!"));
     }
 
     public static void tickMotd() {
@@ -312,7 +252,7 @@ public class ElementalsUtil {
 
     public static List<String> getPlayersNames() {
         List<String> args = new ArrayList<>();
-        Bukkit.getOnlinePlayers().forEach((Player player) -> args.add(player.getName()));
+        Bukkit.getOnlinePlayers().forEach(player -> args.add(player.getName()));
         return args;
     }
 

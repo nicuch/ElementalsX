@@ -22,8 +22,6 @@ import org.bukkit.event.player.*;
 import org.bukkit.event.player.PlayerLoginEvent.Result;
 import org.bukkit.event.player.PlayerTeleportEvent.TeleportCause;
 import org.bukkit.event.server.ServerListPingEvent;
-import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.meta.ItemMeta;
 import ro.nicuch.elementalsx.ElementalsX;
 import ro.nicuch.elementalsx.User;
 import ro.nicuch.elementalsx.protection.Field;
@@ -31,7 +29,6 @@ import ro.nicuch.elementalsx.protection.FieldUtil;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 
 public class ElementalsListener implements Listener {
@@ -177,12 +174,12 @@ public class ElementalsListener implements Listener {
             event.setCancelled(true);
             return;
         }
-        if (ElementalsUtil.hasChatDelay(user) && (!user.hasPermission("elementals.chat.override"))) {
+        if (ElementalsUtil.hasChatDelay(user) && !user.hasPermission("elementals.chat.override")) {
             event.getPlayer().sendMessage(ElementalsUtil.color("&cTrebuie sa astepti o secunda pentru a putea vorbi!"));
             event.setCancelled(true);
             return;
         }
-        if (ElementalsUtil.isChatStopped() && (!user.hasPermission("elementals.chat.bypass"))) {
+        if (ElementalsUtil.isChatStopped() && !user.hasPermission("elementals.chat.bypass")) {
             event.getPlayer().sendMessage(ElementalsUtil.color("&cNu se poate vorbi acum!"));
             event.setCancelled(true);
             return;
@@ -190,36 +187,35 @@ public class ElementalsListener implements Listener {
         ElementalsUtil.delayChatPlayer(user);
         List<String> names = ElementalsUtil.getPlayersNames();
         List<String> recipeNames = new ArrayList<>();
-        String message = event.getMessage();
+        String msg = event.getMessage();
         for (String name : names) {
-            if (message.contains("@" + name))
+            if (msg.contains("@" + name))
                 recipeNames.add(name);
         }
-        StringBuilder builder = new StringBuilder(message);
+        String message = msg.toLowerCase();
+        StringBuilder builder = new StringBuilder(msg);
         if (!(message.endsWith(".") || message.endsWith("?") || message.endsWith("!") || message.endsWith(")")
-                || message.endsWith("]") || message.endsWith(":D") || message.endsWith("xD") || message.endsWith("*")
+                || message.endsWith("]") || message.endsWith(":d") || message.endsWith("xd") || message.endsWith("*")
                 || message.endsWith("-") || message.endsWith("_") || message.endsWith(",") || message.endsWith("'")
                 || message.endsWith("/") || message.endsWith("|") || message.endsWith("(") || message.endsWith("[")
                 || message.endsWith("@") || message.endsWith("#") || message.endsWith("$") || message.endsWith("%")
                 || message.endsWith("^") || message.endsWith("{") || message.endsWith("}") || message.endsWith(";")
                 || message.endsWith(":") || message.endsWith("<") || message.endsWith(">") || message.endsWith("\\")
                 || message.endsWith("~") || message.endsWith("~") || message.endsWith("=") || message.endsWith("+")
-                || message.endsWith(":P") || message.endsWith(":O") || message.endsWith(":S") || message.endsWith(":3")
-                || message.endsWith(":p") || message.endsWith(":o") || message.endsWith(":s") || message.endsWith("<3")
-                || message.endsWith(":c")))
-            builder.insert(message.length(), ".");
+                || message.endsWith(":3") || message.endsWith(":p") || message.endsWith(":o") || message.endsWith(":s")
+                || message.endsWith("<3") || message.endsWith(":c") || message.endsWith("[item]")))
+            builder.insert(msg.length(), ".");
         if (!(message.startsWith(".") || message.startsWith("?") || message.startsWith("!") || message.startsWith(")")
-                || message.startsWith("]") || message.startsWith(":D") || message.startsWith("xD")
-                || message.startsWith("*") || message.startsWith("-") || message.startsWith("_")
-                || message.startsWith(",") || message.startsWith("'") || message.startsWith("/")
-                || message.startsWith("|") || message.startsWith("(") || message.startsWith("[")
-                || message.startsWith("@") || message.startsWith("#") || message.startsWith("$")
-                || message.startsWith("%") || message.startsWith("^") || message.startsWith("{")
-                || message.startsWith("}") || message.startsWith(";") || message.startsWith(":")
-                || message.startsWith("<") || message.startsWith(">") || message.startsWith("\\")
-                || message.startsWith("~") || message.startsWith("~") || message.startsWith("=")
-                || message.startsWith("+") || message.startsWith("<3")))
-            builder.replace(0, 1, message.substring(0, 1).toUpperCase());
+                || message.startsWith("]") || message.startsWith(":d") || message.startsWith("xd") || message.startsWith("*")
+                || message.startsWith("-") || message.startsWith("_") || message.startsWith(",") || message.startsWith("'")
+                || message.startsWith("/") || message.startsWith("|") || message.startsWith("(") || message.startsWith("[")
+                || message.startsWith("@") || message.startsWith("#") || message.startsWith("$") || message.startsWith("%")
+                || message.startsWith("^") || message.startsWith("{") || message.startsWith("}") || message.startsWith(";")
+                || message.startsWith(":") || message.startsWith("<") || message.startsWith(">") || message.startsWith("\\")
+                || message.startsWith("~") || message.startsWith("~") || message.startsWith("=") || message.startsWith("+")
+                || message.startsWith(":3") || message.startsWith(":p") || message.startsWith(":o") || message.startsWith(":s")
+                || message.startsWith("<3") || message.startsWith(":c") || message.startsWith("[item]")))
+            builder.replace(0, 1, msg.substring(0, 1).toUpperCase());
 
         ElementalsX.getOnlineUsers().stream().filter(User::hasSounds).peek(u -> u.getBase().playSound(u.getBase().getLocation(), Sound.ENTITY_ITEM_PICKUP, 1f, 1f))
                 .filter(u -> recipeNames.contains(u.getBase().getName()) && u.hasSounds()).forEach(u -> u.getBase().playSound(u.getBase().getLocation(), Sound.ENTITY_PLAYER_LEVELUP, 1f, 1f));
@@ -505,8 +501,16 @@ public class ElementalsListener implements Listener {
 
     @EventHandler
     public void event(PlayerJoinEvent event) {
-        ElementalsX.createUser(event.getPlayer());
         ElementalsX.getOnlineUsers().stream().filter(User::hasSounds).forEach(u -> u.getBase().playSound(u.getBase().getLocation(), Sound.BLOCK_NOTE_BLOCK_PLING, 1, 1));
+        ElementalsX.createUser(event.getPlayer());
+        event.getPlayer().playSound(event.getPlayer().getLocation(), Sound.BLOCK_NOTE_BLOCK_PLING, 1, 1);
+    }
+
+    @EventHandler
+    public void event(PlayerQuitEvent event) {
+        ElementalsX.removeUser(event.getPlayer());
+        ElementalsX.getOnlineUsers().stream().filter(User::hasSounds).forEach(u ->
+                u.getBase().playSound(u.getBase().getLocation(), Sound.BLOCK_NOTE_BLOCK_BASS, 1, 1));
     }
 
     @EventHandler(priority = EventPriority.HIGHEST)
@@ -521,27 +525,6 @@ public class ElementalsListener implements Listener {
         if (!event.getEntity().getWorld().getName().equals("spawn"))
             return;
         event.setCancelled(true);
-    }
-
-    @EventHandler(priority = EventPriority.NORMAL)
-    public void event(VotifierEvent event) {
-        Optional<Player> player = (Optional<Player>) ElementalsUtil.getPlayer(event.getVote().getUsername());
-        if (player.isPresent()) {
-            player.get().getInventory().addItem(new ItemStack(Material.DIAMOND, 5));
-            ItemStack key = new ItemStack(Material.PRISMARINE_SHARD);
-            ItemMeta meta = key.getItemMeta();
-            meta.setDisplayName(ElementalsUtil.color("&aCrate Key"));
-            key.setItemMeta(meta);
-            player.get().getInventory().addItem(key);
-            ElementalsX.getVault().depositPlayer(player.get(), 500);
-            Bukkit.getPlayer(event.getVote().getUsername()).updateInventory();
-            // TODO effect la warp vote
-            Bukkit.broadcastMessage(ElementalsUtil.color(ChatColor.WHITE + "[" + ChatColor.GOLD + "/warp vote" + ChatColor.WHITE
-                    + "] &aJucatorul &9" + event.getVote().getUsername()
-                    + " &aa votat pentru server si a primit un premiu! Multumim! &e:)"));
-        } else
-            Bukkit.broadcastMessage(ElementalsUtil.color("&aJucatorul " + event.getVote().getUsername()
-                    + " nu este online si nu poate primi premiul. &c:("));
     }
 
     @EventHandler(ignoreCancelled = true)

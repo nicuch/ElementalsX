@@ -5,10 +5,9 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.util.Collection;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-import java.util.function.Consumer;
 
 import org.bukkit.*;
 import org.bukkit.World.Environment;
@@ -33,7 +32,7 @@ import ro.nicuch.elementalsx.protection.FieldUtil;
 public class ElementalsX extends JavaPlugin {
 
     private static Connection database;
-    private final static ConcurrentMap<UUID, User> players = new ConcurrentHashMap<>();
+    private final static Map<UUID, User> players = new HashMap<>();
     private static Economy vault;
     private static Permission perm;
 
@@ -57,7 +56,7 @@ public class ElementalsX extends JavaPlugin {
         this.randomMsg();
         this.timer();
         this.topKillsTrick();
-        Bukkit.getOnlinePlayers().forEach((Consumer<Player>) ElementalsX::createUser);
+        Bukkit.getOnlinePlayers().forEach(ElementalsX::createUser);
         sendConsoleMessage("&bPluginul a pornit! (" + (System.currentTimeMillis() - start) + "ms)");
         Bukkit.broadcastMessage(ElementalsUtil.color("&bElementals a pornit! (" + (System.currentTimeMillis() - start) + "ms)"));
     }
@@ -79,7 +78,7 @@ public class ElementalsX extends JavaPlugin {
     }
 
     public static void createUser(Player player) {
-        players.putIfAbsent(player.getUniqueId(), new User(player));
+        players.put(player.getUniqueId(), new User(player));
     }
 
     public static boolean existUser(UUID uuid) {
@@ -156,7 +155,6 @@ public class ElementalsX extends JavaPlugin {
         te = new SortCommand();
         this.getCommand("sort").setExecutor(te);
         this.getCommand("sort").setTabCompleter(te);
-        this.getCommand("vote").setExecutor(new VoteCommand());
     }
 
     private void createDataBase() {
