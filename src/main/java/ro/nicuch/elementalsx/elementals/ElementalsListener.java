@@ -1,11 +1,10 @@
 package ro.nicuch.elementalsx.elementals;
 
-import com.vexsoftware.votifier.model.VotifierEvent;
+import me.clip.placeholderapi.PlaceholderAPI;
 import net.citizensnpcs.api.CitizensAPI;
 import org.bukkit.*;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Parrot;
-import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
@@ -29,6 +28,7 @@ import ro.nicuch.elementalsx.protection.FieldUtil;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 public class ElementalsListener implements Listener {
@@ -36,6 +36,7 @@ public class ElementalsListener implements Listener {
 
     @EventHandler(ignoreCancelled = true)
     public void event(EntityDamageEvent event) {
+        System.out.println("ElementalsListener - event0 EDE");
         if (!event.getEntity().getWorld().getName().equals("spawn"))
             return;
         if (event.getEntityType() != EntityType.PLAYER)
@@ -62,7 +63,10 @@ public class ElementalsListener implements Listener {
         if (event.getCause() != TeleportCause.CHORUS_FRUIT
                 || event.getCause() != TeleportCause.ENDER_PEARL)
             return;
-        User user = ElementalsX.getUser(event.getPlayer());
+        Optional<User> optionalUser = ElementalsX.getUser(event.getPlayer().getUniqueId());
+        if (!optionalUser.isPresent())
+            return;
+        User user = optionalUser.get();
         if (user.hasPermission("elementals.admin"))
             return;
         event.setCancelled(true);
@@ -74,7 +78,10 @@ public class ElementalsListener implements Listener {
             return;
         if (CitizensAPI.getNPCRegistry().isNPC(event.getPlayer()))
             return;
-        User user = ElementalsX.getUser(event.getPlayer());
+        Optional<User> optionalUser = ElementalsX.getUser(event.getPlayer().getUniqueId());
+        if (!optionalUser.isPresent())
+            return;
+        User user = optionalUser.get();
         if (!user.hasPermission("elementals.gm.toggle"))
             if (user.getBase().getWorld().getName().equals("spawn"))
                 user.getBase().setGameMode(GameMode.ADVENTURE);
@@ -86,7 +93,10 @@ public class ElementalsListener implements Listener {
     public void event(PlayerTeleportEvent event) {
         if (CitizensAPI.getNPCRegistry().isNPC(event.getPlayer()))
             return;
-        User user = ElementalsX.getUser(event.getPlayer());
+        Optional<User> optionalUser = ElementalsX.getUser(event.getPlayer().getUniqueId());
+        if (!optionalUser.isPresent())
+            return;
+        User user = optionalUser.get();
         if (!user.hasPermission("elementals.gm.toggle"))
             if (user.getBase().getWorld().getName().equals("spawn"))
                 user.getBase().setGameMode(GameMode.ADVENTURE);
@@ -160,7 +170,10 @@ public class ElementalsListener implements Listener {
                 || Tag.TRAPDOORS.isTagged(clickedBlockType)
                 || Tag.BUTTONS.isTagged(clickedBlockType)))
             return;
-        User user = ElementalsX.getUser(event.getPlayer());
+        Optional<User> optionalUser = ElementalsX.getUser(event.getPlayer().getUniqueId());
+        if (!optionalUser.isPresent())
+            return;
+        User user = optionalUser.get();
         if (user.hasPermission("elementals.admin"))
             return;
         event.setCancelled(true);
@@ -169,7 +182,10 @@ public class ElementalsListener implements Listener {
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void event0(AsyncPlayerChatEvent event) {
-        User user = ElementalsX.getUser(event.getPlayer());
+        Optional<User> optionalUser = ElementalsX.getUser(event.getPlayer().getUniqueId());
+        if (!optionalUser.isPresent())
+            return;
+        User user = optionalUser.get();
         if (user == null) {
             event.setCancelled(true);
             return;
@@ -219,6 +235,8 @@ public class ElementalsListener implements Listener {
 
         ElementalsX.getOnlineUsers().stream().filter(User::hasSounds).peek(u -> u.getBase().playSound(u.getBase().getLocation(), Sound.ENTITY_ITEM_PICKUP, 1f, 1f))
                 .filter(u -> recipeNames.contains(u.getBase().getName()) && u.hasSounds()).forEach(u -> u.getBase().playSound(u.getBase().getLocation(), Sound.ENTITY_PLAYER_LEVELUP, 1f, 1f));
+        String level = PlaceholderAPI.setPlaceholders(event.getPlayer(), "%math_{mcmmo_power_level}/15[precision:0]%");
+        event.setFormat(event.getFormat().replace("{LEVEL}", level));
         event.setMessage(builder.toString());
     }
 
@@ -226,7 +244,10 @@ public class ElementalsListener implements Listener {
     public void event3(BlockBreakEvent event) {
         if (event.getBlock().getWorld().getName().equals("spawn"))
             return;
-        User user = ElementalsX.getUser(event.getPlayer());
+        Optional<User> optionalUser = ElementalsX.getUser(event.getPlayer().getUniqueId());
+        if (!optionalUser.isPresent())
+            return;
+        User user = optionalUser.get();
         if (FieldUtil.isFieldAtLocation(event.getBlock().getLocation())) {
             Field field = FieldUtil.getFieldByLocation(event.getBlock().getLocation());
             if (!(field.isMember(user.getBase().getUniqueId()) || field.isOwner(user.getBase().getUniqueId())
@@ -246,7 +267,10 @@ public class ElementalsListener implements Listener {
     public void event0(BlockPlaceEvent event) {
         if (!event.getBlock().getWorld().getName().equals("spawn"))
             return;
-        User user = ElementalsX.getUser(event.getPlayer());
+        Optional<User> optionalUser = ElementalsX.getUser(event.getPlayer().getUniqueId());
+        if (!optionalUser.isPresent())
+            return;
+        User user = optionalUser.get();
         if (user.hasPermission("elementals.override"))
             return;
         event.setCancelled(true);
@@ -256,7 +280,10 @@ public class ElementalsListener implements Listener {
     public void event(BlockPlaceEvent event) {
         if (event.getBlock().getWorld().getName().equals("spawn"))
             return;
-        User user = ElementalsX.getUser(event.getPlayer());
+        Optional<User> optionalUser = ElementalsX.getUser(event.getPlayer().getUniqueId());
+        if (!optionalUser.isPresent())
+            return;
+        User user = optionalUser.get();
         if (FieldUtil.isFieldAtLocation(event.getBlock().getLocation())) {
             Field field = FieldUtil.getFieldByLocation(event.getBlock().getLocation());
             if (!(field.isMember(user.getBase().getUniqueId()) || field.isOwner(user.getBase().getUniqueId())
@@ -344,7 +371,10 @@ public class ElementalsListener implements Listener {
         if (!event.getBlock().getWorld().getName().equals("spawn"))
             return;
         if (event.getCause() == IgniteCause.FLINT_AND_STEEL) {
-            User user = ElementalsX.getUser(event.getPlayer());
+            Optional<User> optionalUser = ElementalsX.getUser(event.getPlayer().getUniqueId());
+            if (!optionalUser.isPresent())
+                return;
+            User user = optionalUser.get();
             if (user.hasPermission("elementals.admin"))
                 return;
         }
@@ -365,7 +395,10 @@ public class ElementalsListener implements Listener {
         if (!event.getEntity().getWorld().getName().equals("spawn"))
             return;
         if (event.getRemover().getType() == EntityType.PLAYER) {
-            User user = ElementalsX.getUser((Player) event.getRemover());
+            Optional<User> optionalUser = ElementalsX.getUser(event.getRemover().getUniqueId());
+            if (!optionalUser.isPresent())
+                return;
+            User user = optionalUser.get();
             if (!user.hasPermission("elementals.admin"))
                 event.setCancelled(true);
         } else if (event.getRemover().getType() == EntityType.ARROW
@@ -382,7 +415,10 @@ public class ElementalsListener implements Listener {
             return;
         if (!event.getPlayer().getWorld().getName().equals("spawn"))
             return;
-        User user = ElementalsX.getUser(event.getPlayer());
+        Optional<User> optionalUser = ElementalsX.getUser(event.getPlayer().getUniqueId());
+        if (!optionalUser.isPresent())
+            return;
+        User user = optionalUser.get();
         if (user.hasPermission("elementals.admin"))
             return;
         event.setCancelled(true);
@@ -394,7 +430,10 @@ public class ElementalsListener implements Listener {
             return;
         if (!event.getPlayer().getWorld().getName().equals("spawn"))
             return;
-        User user = ElementalsX.getUser(event.getPlayer());
+        Optional<User> optionalUser = ElementalsX.getUser(event.getPlayer().getUniqueId());
+        if (!optionalUser.isPresent())
+            return;
+        User user = optionalUser.get();
         if (user.hasPermission("elementals.admin"))
             return;
         event.setCancelled(true);
@@ -404,7 +443,10 @@ public class ElementalsListener implements Listener {
     public void event(PlayerBucketEmptyEvent event) {
         if (!event.getPlayer().getWorld().getName().equals("spawn"))
             return;
-        User user = ElementalsX.getUser(event.getPlayer());
+        Optional<User> optionalUser = ElementalsX.getUser(event.getPlayer().getUniqueId());
+        if (!optionalUser.isPresent())
+            return;
+        User user = optionalUser.get();
         if (user.hasPermission("elementals.admin"))
             return;
         event.setCancelled(true);
@@ -414,7 +456,10 @@ public class ElementalsListener implements Listener {
     public void event(PlayerBucketFillEvent event) {
         if (!event.getPlayer().getWorld().getName().equals("spawn"))
             return;
-        User user = ElementalsX.getUser(event.getPlayer());
+        Optional<User> optionalUser = ElementalsX.getUser(event.getPlayer().getUniqueId());
+        if (!optionalUser.isPresent())
+            return;
+        User user = optionalUser.get();
         if (user.hasPermission("elementals.admin"))
             return;
         event.setCancelled(true);
@@ -422,19 +467,11 @@ public class ElementalsListener implements Listener {
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void event(PlayerCommandPreprocessEvent event) {
-        User user = ElementalsX.getUser(event.getPlayer());
-        if (event.getMessage().startsWith("/minecraft") || event.getMessage().startsWith("/?")
-                || event.getMessage().startsWith("/bukkit") || event.getMessage().startsWith("/about")) {
-            if (user.hasPermission("elementals.command.minecraft"))
-                return;
-            event.getPlayer().sendMessage(ElementalsUtil.color("&4Aici nu sunt bug-uri! :)"));
-            event.setCancelled(true);
-        } else if (event.getMessage().startsWith("/version") || event.getMessage().startsWith("/ver")
-                || event.getMessage().startsWith("/icanhasbukkit")) {
-            event.getPlayer().sendMessage(ElementalsUtil.color(
-                    "&aServerul functioneaza cu PaperSpigot versiunea 1.14.4-R0.1-SNAPSHOT!"));
-            event.setCancelled(true);
-        } else if (event.getMessage().startsWith("/spawn")) {
+        Optional<User> optionalUser = ElementalsX.getUser(event.getPlayer().getUniqueId());
+        if (!optionalUser.isPresent())
+            return;
+        User user = optionalUser.get();
+        if (event.getMessage().startsWith("/spawn")) {
             if (!event.getPlayer().isInsideVehicle())
                 return;
             event.getPlayer().sendMessage(ElementalsUtil.color("&cNu poti folosi comanda cat timp esti intr-un vehicul!"));
@@ -463,7 +500,10 @@ public class ElementalsListener implements Listener {
             return;
         if (event.getRightClicked().getType() != EntityType.ITEM_FRAME)
             return;
-        User user = ElementalsX.getUser(event.getPlayer());
+        Optional<User> optionalUser = ElementalsX.getUser(event.getPlayer().getUniqueId());
+        if (!optionalUser.isPresent())
+            return;
+        User user = optionalUser.get();
         if (user.hasPermission("elementals.admin"))
             return;
         event.setCancelled(true);
@@ -493,7 +533,10 @@ public class ElementalsListener implements Listener {
         if (handType != Material.BAT_SPAWN_EGG
                 || handType != Material.ARMOR_STAND)
             return;
-        User user = ElementalsX.getUser(event.getPlayer());
+        Optional<User> optionalUser = ElementalsX.getUser(event.getPlayer().getUniqueId());
+        if (!optionalUser.isPresent())
+            return;
+        User user = optionalUser.get();
         if (user.hasPermission("elementals.admin"))
             return;
         event.setCancelled(true);
@@ -531,7 +574,10 @@ public class ElementalsListener implements Listener {
     public void event0(BlockBreakEvent event) {
         if (!event.getPlayer().getWorld().getName().equals("spawn"))
             return;
-        User user = ElementalsX.getUser(event.getPlayer());
+        Optional<User> optionalUser = ElementalsX.getUser(event.getPlayer().getUniqueId());
+        if (!optionalUser.isPresent())
+            return;
+        User user = optionalUser.get();
         if (user.hasPermission("elementals.admin"))
             return;
         event.setCancelled(true);
@@ -551,9 +597,11 @@ public class ElementalsListener implements Listener {
 
     @EventHandler(ignoreCancelled = true)
     public void event1(EntityDamageEvent event) {
+        if (!event.getEntity().getWorld().getName().equals("spawn"))
+            return;
         if (event.getEntity().getType() != EntityType.ARMOR_STAND)
             return;
-        if (!event.getCause().equals(DamageCause.FIRE_TICK))
+        if (event.getCause() != DamageCause.FIRE_TICK)
             return;
         event.setCancelled(true);
     }

@@ -1,11 +1,6 @@
 package ro.nicuch.elementalsx.elementals.commands;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
@@ -41,7 +36,10 @@ public class RandomTpCommand implements CommandExecutor {
 
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
-        User user = ElementalsX.getUser((Player) sender);
+        Optional<User> optionalUser = ElementalsX.getUser((Player) sender);
+        if (!optionalUser.isPresent())
+            return true;
+        User user = optionalUser.get();
         if (teleportRequest.contains(user.getBase().getUniqueId())) {
             sender.sendMessage(ElementalsUtil.color("&cO cerere de teleportare a fost trimisa deja!"));
             return true;

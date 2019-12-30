@@ -10,12 +10,17 @@ import ro.nicuch.elementalsx.ElementalsX;
 import ro.nicuch.elementalsx.User;
 import ro.nicuch.elementalsx.elementals.ElementalsUtil;
 
+import java.util.Optional;
+
 public class ChatCommand implements CommandExecutor {
 
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
         if (sender instanceof Player) {
-            User user = ElementalsX.getUser((Player) sender);
+            Optional<User> optionalUser = ElementalsX.getUser((Player) sender);
+            if (!optionalUser.isPresent())
+                return true;
+            User user = optionalUser.get();
             if (!user.hasPermission("elementals.clearchat")) {
                 user.getBase().sendMessage(ElementalsUtil.color("&cNu ai permisiunea!"));
                 return true;

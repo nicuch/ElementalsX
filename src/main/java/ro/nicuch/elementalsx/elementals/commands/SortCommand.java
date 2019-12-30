@@ -1,9 +1,6 @@
 package ro.nicuch.elementalsx.elementals.commands;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 
 import org.bukkit.command.*;
 import org.bukkit.entity.Player;
@@ -19,7 +16,10 @@ public class SortCommand implements TabExecutor {
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
         if (args.length != 0) {
-            User user = ElementalsX.getUser((Player) sender);
+            Optional<User> optionalUser = ElementalsX.getUser((Player) sender);
+            if (!optionalUser.isPresent())
+                return true;
+            User user = optionalUser.get();
             switch (args[0].toLowerCase()) {
                 case "chest":
                 case "trapchest":

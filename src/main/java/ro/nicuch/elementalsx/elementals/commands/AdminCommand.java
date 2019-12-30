@@ -18,6 +18,8 @@ import ro.nicuch.elementalsx.ElementalsX;
 import ro.nicuch.elementalsx.User;
 import ro.nicuch.elementalsx.elementals.ElementalsUtil;
 
+import java.util.Optional;
+
 public class AdminCommand implements CommandExecutor {
 
     @Override
@@ -26,7 +28,10 @@ public class AdminCommand implements CommandExecutor {
             sender.sendMessage(ElementalsUtil.color("Poti folosi comanda doar ca jucator!"));
             return true;
         }
-        User user = ElementalsX.getUser((Player) sender);
+        Optional<User> optionalUser = ElementalsX.getUser((Player) sender);
+        if (!optionalUser.isPresent())
+            return true;
+        User user = optionalUser.get();
         if (!user.hasPermission("elementals.admin.command"))
             return false;
         if (args.length > 0) {

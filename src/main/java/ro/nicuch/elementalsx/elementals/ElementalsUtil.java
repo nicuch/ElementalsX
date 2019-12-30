@@ -9,6 +9,7 @@ import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemStack;
 import ro.nicuch.elementalsx.ElementalsX;
 import ro.nicuch.elementalsx.User;
+import ro.nicuch.elementalsx.protection.Field;
 import ro.nicuch.elementalsx.protection.FieldUtil;
 import ro.nicuch.lwjnbtl.CompoundTag;
 import ro.nicuch.tag.TagRegister;
@@ -154,8 +155,9 @@ public class ElementalsUtil {
         }
         InventoryHolder holder = (InventoryHolder) block.getState();
         if (FieldUtil.isFieldAtLocation(block.getLocation())) {
-            if (!(FieldUtil.getFieldByLocation(block.getLocation()).isMember(user.getBase().getUniqueId())
-                    || FieldUtil.getFieldByLocation(block.getLocation()).isOwner(user.getBase().getUniqueId())
+            Field field = FieldUtil.getFieldByLocation(block.getLocation());
+            if (!(field.isMember(user.getBase().getUniqueId())
+                    || field.isOwner(user.getBase().getUniqueId())
                     || user.hasPermission("elementals.protection.override"))) {
                 user.getBase().sendMessage(color("&cNu poti sorta acest chest!"));
                 return;

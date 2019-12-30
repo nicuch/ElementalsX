@@ -1,9 +1,6 @@
 package ro.nicuch.elementalsx.elementals.commands;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 
 import org.bukkit.command.*;
 import org.bukkit.entity.Player;
@@ -20,7 +17,10 @@ public class ProtectionCommand implements TabExecutor {
 
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
-        User user = ElementalsX.getUser((Player) sender);
+        Optional<User> optionalUser = ElementalsX.getUser((Player) sender);
+        if (!optionalUser.isPresent())
+            return true;
+        User user = optionalUser.get();
         if (args.length > 0) {
             switch (args[0]) {
                 case "allow":
@@ -71,7 +71,10 @@ public class ProtectionCommand implements TabExecutor {
                     break;
                 case "loc":
                 case "location":
-                    FieldUtil.locFields(user);
+                    FieldUtil.locateField(user);
+                    break;
+                case "list":
+                    FieldUtil.listFields(user);
                     break;
                 case "take":
                     FieldUtil.takeProtection(user);
@@ -81,15 +84,16 @@ public class ProtectionCommand implements TabExecutor {
                     break;
                 default:
                     sender.sendMessage(ElementalsUtil.color("&b/ps take &c-- &fDistruge protectia fara a folosi Pickaxe."));
-                    sender.sendMessage(ElementalsUtil.color("&9/ps allow <jucator> &c-- &fAdauga un membru in protectie."));
-                    sender.sendMessage(ElementalsUtil.color("&b/ps allowall <jucator> &c-- &fAdauga un membru in toate protectiile."));
-                    sender.sendMessage(ElementalsUtil.color("&9/ps remove <jucator> &c-- &fSterge un membru din protectie."));
-                    sender.sendMessage(ElementalsUtil.color("&b/ps removall <jucator> &c-- &fSterge un membru din toate protectiile."));
-                    sender.sendMessage(ElementalsUtil.color("&9/ps enable &c-- &fBlocurile de diamant devin protectii."));
-                    sender.sendMessage(ElementalsUtil.color("&b/ps disable &c-- &fPune blocuri fara sa se transforme in protectii."));
-                    sender.sendMessage(ElementalsUtil.color("&9/ps visualise &c-- &fVizualizeaza protectia."));
+                    sender.sendMessage(ElementalsUtil.color("&9/ps allow <jucator> -- &fAdauga un membru in protectie."));
+                    sender.sendMessage(ElementalsUtil.color("&b/ps allowall <jucator> -- &fAdauga un membru in toate protectiile."));
+                    sender.sendMessage(ElementalsUtil.color("&9/ps remove <jucator> -- &fSterge un membru din protectie."));
+                    sender.sendMessage(ElementalsUtil.color("&b/ps removall <jucator> -- &fSterge un membru din toate protectiile."));
+                    sender.sendMessage(ElementalsUtil.color("&b/ps list &c-- &fAfiseaza lista tuturor protectiilor tale."));
+                    sender.sendMessage(ElementalsUtil.color("&9/ps enable -- &fBlocurile de diamant devin protectii."));
+                    sender.sendMessage(ElementalsUtil.color("&b/ps disable -- &fPune blocuri fara sa se transforme in protectii."));
+                    sender.sendMessage(ElementalsUtil.color("&9/ps visualise -- &fVizualizeaza protectia."));
                     sender.sendMessage(ElementalsUtil.color("&b/ps info &c-- &fAfiseaza informatii despre protectie."));
-                    sender.sendMessage(ElementalsUtil.color("&b/ps loc &c-- &fAfiseaza locatiile protectiilor tale."));
+                    sender.sendMessage(ElementalsUtil.color("&b/ps loc &c-- &fAfiseaza locatia protectiei tale."));
                     break;
             }
         } else {
@@ -98,11 +102,12 @@ public class ProtectionCommand implements TabExecutor {
             sender.sendMessage(ElementalsUtil.color("&b/ps allowall <jucator> -- &fAdauga un membru in toate protectiile."));
             sender.sendMessage(ElementalsUtil.color("&9/ps remove <jucator> -- &fSterge un membru din protectie."));
             sender.sendMessage(ElementalsUtil.color("&b/ps removall <jucator> -- &fSterge un membru din toate protectiile."));
+            sender.sendMessage(ElementalsUtil.color("&b/ps list &c-- &fAfiseaza lista tuturor protectiilor tale."));
             sender.sendMessage(ElementalsUtil.color("&9/ps enable -- &fBlocurile de diamant devin protectii."));
             sender.sendMessage(ElementalsUtil.color("&b/ps disable -- &fPune blocuri fara sa se transforme in protectii."));
             sender.sendMessage(ElementalsUtil.color("&9/ps visualise -- &fVizualizeaza protectia."));
             sender.sendMessage(ElementalsUtil.color("&b/ps info &c-- &fAfiseaza informatii despre protectie."));
-            sender.sendMessage(ElementalsUtil.color("&b/ps loc &c-- &fAfiseaza locatiile protectiilor tale."));
+            sender.sendMessage(ElementalsUtil.color("&b/ps loc &c-- &fAfiseaza locatia protectiei tale."));
         }
         return true;
     }

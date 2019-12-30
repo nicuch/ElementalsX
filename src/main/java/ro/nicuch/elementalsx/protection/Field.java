@@ -3,7 +3,6 @@ package ro.nicuch.elementalsx.protection;
 import java.io.File;
 import java.io.IOException;
 import java.util.List;
-import java.util.Objects;
 import java.util.UUID;
 
 import org.bukkit.Chunk;
@@ -27,8 +26,11 @@ public class Field {
     private final YamlConfiguration config;
     private final File file;
     private boolean fun;
+    private final int blockX;
+    private final int blockY;
+    private final int blockZ;
 
-    public Field(String id, UUID owner, Field3D maxLoc, Field3D minLoc, Chunk chunk, World world) {
+    public Field(String id, UUID owner, Field3D maxLoc, Field3D minLoc, Chunk chunk, World world, Block block) {
         this.id = id;
         this.owner = owner;
         this.maxLoc = maxLoc;
@@ -43,7 +45,26 @@ public class Field {
             this.members.addAll(FieldUtil.convertStringsToUUIDs(this.config.getStringList("members")));
             this.fun = this.config.getBoolean("fun", false);
         }
+        this.blockX = block.getX();
+        this.blockY = block.getY();
+        this.blockZ = block.getZ();
         this.save();
+    }
+
+    public int getBlockX() {
+        return this.blockX;
+    }
+
+    public int getBlockY() {
+        return this.blockY;
+    }
+
+    public int getBlockZ() {
+        return this.blockZ;
+    }
+
+    public Block getBlock() {
+        return this.world.getBlockAt(this.blockX, this.blockY, this.blockZ);
     }
 
     public String getId() {

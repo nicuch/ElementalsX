@@ -18,22 +18,32 @@ import ro.nicuch.elementalsx.ElementalsX;
 import ro.nicuch.elementalsx.User;
 import ro.nicuch.elementalsx.elementals.ElementalsUtil;
 
+import java.util.Optional;
+
 public class DeathMessageListener implements Listener {
 
+    /*
     @EventHandler
     public void event(EntityDamageEvent event) {
         if (CitizensAPI.getNPCRegistry().isNPC(event.getEntity()))
             return;
-        if (!event.getEntity().getType().equals(EntityType.PLAYER))
+        if (event.getEntity().getType() != EntityType.PLAYER)
             return;
-        ElementalsX.getUser((Player) event.getEntity()).setLastDamageCause(event.getCause());
+        Optional<User> optionalUser = ElementalsX.getUser(event.getEntity().getUniqueId());
+        if (!optionalUser.isPresent())
+            return;
+        optionalUser.get().setLastDamageCause(event.getCause());
     }
+     */
 
     @EventHandler
     public void event(PlayerDeathEvent event) {
         if (CitizensAPI.getNPCRegistry().isNPC(event.getEntity()))
             return;
-        User user = ElementalsX.getUser(event.getEntity());
+        Optional<User> optionalUser = ElementalsX.getUser(event.getEntity());
+        if (!optionalUser.isPresent())
+            return;
+        User user = optionalUser.get();
         switch (user.getLastDamageCause()) {
             case BLOCK_EXPLOSION:
                 event.setDeathMessage(ElementalsUtil.color(user.getBase().getDisplayName() + " &9a facut poc."));

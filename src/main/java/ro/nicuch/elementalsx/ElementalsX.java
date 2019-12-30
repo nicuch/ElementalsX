@@ -1,14 +1,7 @@
 package ro.nicuch.elementalsx;
 
-import java.io.File;
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.SQLException;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.UUID;
-
+import net.milkbowl.vault.economy.Economy;
+import net.milkbowl.vault.permission.Permission;
 import org.bukkit.*;
 import org.bukkit.World.Environment;
 import org.bukkit.command.TabExecutor;
@@ -17,9 +10,6 @@ import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
-
-import net.milkbowl.vault.economy.Economy;
-import net.milkbowl.vault.permission.Permission;
 import ro.nicuch.elementalsx.deathmessage.DeathMessageListener;
 import ro.nicuch.elementalsx.elementals.ElementalsListener;
 import ro.nicuch.elementalsx.elementals.ElementalsUtil;
@@ -28,6 +18,12 @@ import ro.nicuch.elementalsx.elementals.commands.*;
 import ro.nicuch.elementalsx.protection.Field;
 import ro.nicuch.elementalsx.protection.FieldListener;
 import ro.nicuch.elementalsx.protection.FieldUtil;
+
+import java.io.File;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.SQLException;
+import java.util.*;
 
 public class ElementalsX extends JavaPlugin {
 
@@ -44,6 +40,7 @@ public class ElementalsX extends JavaPlugin {
         vault = this.getServer().getServicesManager().getRegistration(Economy.class).getProvider();
         perm = this.getServer().getServicesManager().getRegistration(Permission.class).getProvider();
         new WorldCreator("spawn").environment(Environment.NORMAL).generateStructures(false).createWorld();
+        new WorldCreator("dungeon").environment(Environment.NORMAL).generateStructures(false).createWorld();
         createDataBase();
         Bukkit.getWorlds().forEach((World world) -> {
             world.setDifficulty(Difficulty.HARD);
@@ -101,15 +98,12 @@ public class ElementalsX extends JavaPlugin {
         return players.values();
     }
 
-    public static User getUser(Player player) {
+    public static Optional<User> getUser(Player player) {
         return getUser(player.getUniqueId());
     }
 
-    public static User getUser(UUID uuid) {
-        if (existUser(uuid))
-            return players.get(uuid);
-        else
-            throw new NullPointerException("This user is offline or null.");
+    public static Optional<User> getUser(UUID uuid) {
+        return Optional.ofNullable(players.get(uuid));
     }
 
     public static Economy getVault() {
@@ -125,11 +119,8 @@ public class ElementalsX extends JavaPlugin {
     }
 
     public static void removeUser(UUID uuid) {
-        if (existUser(uuid)) {
-            User user = getUser(uuid);
-            players.remove(uuid);
-            user.save();
-        }
+        if (existUser(uuid))
+            players.remove(uuid).save();
     }
 
     public static void sendConsoleMessage(String arg) {

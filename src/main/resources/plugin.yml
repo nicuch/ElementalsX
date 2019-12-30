@@ -1,11 +1,11 @@
 name: ElementalsX
 version: ${project.version}
 main: ro.nicuch.elementalsx.ElementalsX
-api-version: 1.13
+api-version: 1.14
 authors: [nicuch]
 description: Elementals 2 for Pikacraft server.
 website: pikacraft.ro
-depend: [Jobs, TagRegisterLib, WorldEdit, Vault, Citizens, AuthMe]
+depend: [Jobs, TagRegisterLib, WorldEdit, Vault, Citizens, AuthMe, PlaceholderAPI]
 commands:
   randomtp:
     aliases: [rdtp, rtp]

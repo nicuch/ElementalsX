@@ -1,6 +1,7 @@
 package ro.nicuch.elementalsx.elementals.commands;
 
 import java.util.List;
+import java.util.Optional;
 
 import org.bukkit.ChatColor;
 import org.bukkit.Sound;
@@ -28,7 +29,10 @@ public class AdminChatCommand implements CommandExecutor {
             sender.sendMessage(ElementalsUtil.color("Poti folosi comanda doar ca jucator!"));
             return true;
         }
-        User user = ElementalsX.getUser((Player) sender);
+        Optional<User> optionalUser = ElementalsX.getUser((Player) sender);
+        if (!optionalUser.isPresent())
+            return true;
+        User user = optionalUser.get();
         if (!user.hasPermission("elementals.adminchat")) {
             user.getBase().sendMessage(ElementalsUtil.color("&cNu ai permisiunea!"));
             return true;

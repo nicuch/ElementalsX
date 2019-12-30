@@ -10,19 +10,11 @@ import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.Tag;
 import org.bukkit.block.Block;
-import org.bukkit.block.BlockFace;
 import org.bukkit.entity.*;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
-import org.bukkit.event.block.Action;
-import org.bukkit.event.block.BlockBreakEvent;
-import org.bukkit.event.block.BlockBurnEvent;
-import org.bukkit.event.block.BlockFromToEvent;
-import org.bukkit.event.block.BlockPistonExtendEvent;
-import org.bukkit.event.block.BlockPistonRetractEvent;
-import org.bukkit.event.block.BlockPlaceEvent;
-import org.bukkit.event.block.BlockSpreadEvent;
+import org.bukkit.event.block.*;
 import org.bukkit.event.entity.*;
 import org.bukkit.event.hanging.HangingBreakByEntityEvent;
 import org.bukkit.event.hanging.HangingPlaceEvent;
@@ -50,36 +42,6 @@ import ro.nicuch.elementalsx.elementals.ElementalsUtil;
 
 public class FieldListener implements Listener {
 
-    //Protect players without access in field to not get some types of damage
-    @EventHandler(ignoreCancelled = true)
-    public void fieldProtection(EntityDamageEvent event) {
-        Entity entity = event.getEntity();
-        if (entity.getType() != EntityType.PLAYER)
-            return;
-        Location loc = entity.getLocation();
-        if (!FieldUtil.isFieldAtLocation(loc))
-            return;
-        Field field = FieldUtil.getFieldByLocation(loc);
-        UUID uuid = entity.getUniqueId();
-        if (field.isMember(uuid) || field.isOwner(uuid))
-            return;
-        switch (event.getCause()) {
-            case DROWNING:
-                entity.getLocation().getBlock().getRelative(BlockFace.UP).setType(Material.AIR);
-                break;
-            case FALLING_BLOCK:
-            case FIRE:
-            case FIRE_TICK:
-            case MAGIC:
-                event.setCancelled(true);
-                break;
-            case SUFFOCATION:
-                entity.teleport(
-                        entity.getWorld().getHighestBlockAt(entity.getLocation()).getRelative(BlockFace.UP).getLocation());
-                break;
-        }
-    }
-
     //Prevents job payments for players without acces in field
     @EventHandler(ignoreCancelled = true)
     public void jobPrevent(JobsPrePaymentEvent event) {
@@ -87,13 +49,14 @@ public class FieldListener implements Listener {
         if (block == null)
             return;
         UUID uuid = event.getPlayer().getUniqueId();
-        Optional<User> user = Optional.ofNullable(ElementalsX.getUser(uuid));
-        if (!user.isPresent())
+        Optional<User> optionalUser = ElementalsX.getUser(uuid);
+        if (!optionalUser.isPresent())
             return;
+        User user = optionalUser.get();
         if (!FieldUtil.isFieldAtLocation(block.getLocation()))
             return;
         Field field = FieldUtil.getFieldByLocation(block.getLocation());
-        if (field.isMember(uuid) || field.isOwner(uuid) || user.get().hasPermission("elementals.protection.override"))
+        if (field.isMember(uuid) || field.isOwner(uuid) || user.hasPermission("elementals.protection.override"))
             return;
         event.setCancelled(true);
     }
@@ -130,8 +93,11 @@ public class FieldListener implements Listener {
             return;
         if (!FieldUtil.isFieldAtLocation(event.getCaught().getLocation()))
             return;
-        User user = ElementalsX.getUser(event.getPlayer());
         UUID uuid = event.getPlayer().getUniqueId();
+        Optional<User> optionalUser = ElementalsX.getUser(uuid);
+        if (!optionalUser.isPresent())
+            return;
+        User user = optionalUser.get();
         Field field = FieldUtil.getFieldByLocation(event.getCaught().getLocation());
         if (field.isMember(uuid) || field.isOwner(uuid) || user.hasPermission("elementals.protection.override"))
             return;
@@ -146,7 +112,11 @@ public class FieldListener implements Listener {
         String world_name = block.getWorld().getName();
         if (!(world_name.equals("world") || world_name.equals("world_nether") || world_name.equals("world_the_end")))
             return;
-        User user = ElementalsX.getUser(event.getPlayer());
+        UUID uuid = event.getPlayer().getUniqueId();
+        Optional<User> optionalUser = ElementalsX.getUser(uuid);
+        if (!optionalUser.isPresent())
+            return;
+        User user = optionalUser.get();
         if (user.isIgnoringPlacingFields())
             return;
         if (!user.hasPermission("elementals.protection.override"))
@@ -158,11 +128,13 @@ public class FieldListener implements Listener {
         if (!user.hasPermission("elementals.protection.override"))
             for (Entity entity : event.getPlayer().getNearbyEntities(25, 64, 25))
                 if (entity.getType() == EntityType.PLAYER) {
-                    User entityuser = ElementalsX.getUser(entity.getUniqueId()); //using uuids is better
-                    if (!entityuser.hasPermission("elementals.protection.override")) {
+                    Optional<User> entityuser = ElementalsX.getUser(entity.getUniqueId()); //using uuids is better
+                    if (!entityuser.isPresent())
+                        continue; //Continue
+                    if (!entityuser.get().hasPermission("elementals.protection.override")) {
                         event.getPlayer().sendMessage(ElementalsUtil.color("&3Nu poti pune protectii cat timp sunt jucatori in zona!"));
                         event.setCancelled(true);
-                        return;
+                        return; //One player found, no need to loop more
                     }
                 }
         if (FieldUtil.areThereEnoughProtections(block.getChunk()) && !user.hasPermission("elementals.protection.override")) {
@@ -183,7 +155,7 @@ public class FieldListener implements Listener {
                                 "INSERT INTO protection (id, x, y, z, world, owner, maxx, maxz, minx, minz, chunkx, chunkz) VALUES ('"
                                         + id + "', '" + block.getX() + "', '" + block.getY() + "', '" + block.getZ()
                                         + "', '" + block.getWorld().getName() + "', '"
-                                        + user.getBase().getUniqueId().toString() + "', '" + maxLoc.getX() + "', '"
+                                        + uuid.toString() + "', '" + maxLoc.getX() + "', '"
                                         + maxLoc.getZ() + "', '" + minLoc.getX() + "', '" + minLoc.getZ() + "', '"
                                         + block.getChunk().getX() + "', '" + block.getChunk().getZ() + "');")
                         .executeUpdate();
@@ -208,11 +180,15 @@ public class FieldListener implements Listener {
         String world_name = block.getWorld().getName();
         if (!(world_name.equals("world") || world_name.equals("world_nether") || world_name.equals("world_the_end")))
             return;
-        User user = ElementalsX.getUser(event.getPlayer());
+        UUID uuid = event.getPlayer().getUniqueId();
+        Optional<User> optionalUser = ElementalsX.getUser(uuid);
+        if (!optionalUser.isPresent())
+            return;
+        User user = optionalUser.get();
         if (!FieldUtil.isFieldBlock(event.getBlock()))
             return;
         if (!(FieldUtil.getFieldById(FieldUtil.getFieldIdByBlock(event.getBlock()))
-                .isOwner(user.getBase().getUniqueId()) || user.hasPermission("elementals.protection.override"))) {
+                .isOwner(uuid) || user.hasPermission("elementals.protection.override"))) {
             event.getPlayer().sendMessage(ElementalsUtil.color("&bNu esti detinatorul protectiei!"));
             event.setCancelled(true);
             return;
@@ -295,14 +271,17 @@ public class FieldListener implements Listener {
             return;
         if (event.getEntity().getType() != EntityType.PLAYER)
             return;
-        User user = ElementalsX.getUser((Player) event.getEntity());
+        UUID uuid = event.getEntity().getUniqueId();
+        Optional<User> optionalUser = ElementalsX.getUser(uuid);
+        if (!optionalUser.isPresent())
+            return;
+        User user = optionalUser.get();
         if (event.getBlock().getType() != Material.FARMLAND)
             return;
         Location loc = event.getBlock().getLocation();
         if (!FieldUtil.isFieldAtLocation(loc))
             return;
         Field field = FieldUtil.getFieldByLocation(loc);
-        UUID uuid = event.getEntity().getUniqueId();
         if (field.isMember(uuid) || field.isOwner(uuid) || user.hasPermission("elementals.protection.override"))
             return;
         event.setCancelled(true);
@@ -312,26 +291,30 @@ public class FieldListener implements Listener {
     public void event(EntityDamageByEntityEvent event) {
         if (CitizensAPI.getNPCRegistry().isNPC(event.getEntity()))
             return;
-        if (!FieldUtil.isFieldAtLocation(event.getEntity().getLocation()))
-            return;
         Entity entity = event.getEntity();
-        if (!entity.getType().equals(EntityType.PLAYER))
-            return;
         Entity damager;
         if (event.getDamager() instanceof Projectile) {
             Projectile proj = (Projectile) event.getDamager();
             if (proj.getShooter() == null)
                 return;
             if (proj.getShooter() instanceof BlockProjectileSource) {
-                event.setCancelled(true);
+                if (entity.getType() == EntityType.PLAYER)
+                    event.setCancelled(true);
                 return;
             }
             damager = (Entity) proj.getShooter();
         } else
             damager = event.getDamager();
-        if (!(damager instanceof Player))
+        if (entity.getType() != EntityType.PLAYER)
             return;
-        User user = ElementalsX.getUser((Player) damager);
+        if (damager.getType() != EntityType.PLAYER)
+            return;
+        if (!FieldUtil.isFieldAtLocation(entity.getLocation()))
+            return;
+        Optional<User> optionalUser = ElementalsX.getUser(damager.getUniqueId());
+        if (!optionalUser.isPresent())
+            return;
+        User user = optionalUser.get();
         if (user.hasPermission("elementals.protection.override"))
             return;
         user.getBase().sendMessage(ElementalsUtil.color("&cNu poti face PvP cu un jucator aflat in protectie!"));
@@ -346,7 +329,12 @@ public class FieldListener implements Listener {
             return;
         if (!FieldUtil.isFieldAtLocation(event.getLocation()))
             return;
-        event.setCancelled(true);
+        event.blockList().removeIf(block -> block.getType() != Material.TNT && FieldUtil.isFieldAtLocation(block.getLocation()));
+    }
+
+    @EventHandler
+    public void event(BlockExplodeEvent event) {
+        event.blockList().removeIf(block -> block.getType() != Material.TNT && FieldUtil.isFieldAtLocation(block.getLocation()));
     }
 
     @EventHandler(ignoreCancelled = true)
@@ -361,32 +349,34 @@ public class FieldListener implements Listener {
             Projectile proj = (Projectile) event.getRemover();
             if (proj.getShooter() == null)
                 return;
-            if (proj.getShooter() instanceof BlockProjectileSource) {
-                event.setCancelled(true);
-                return;
-            }
             remover = (Entity) proj.getShooter();
         } else
             remover = event.getRemover();
-        if (!(remover instanceof Player))
+        if (remover.getType() != EntityType.PLAYER)
             return;
-        User user = ElementalsX.getUser((Player) remover);
+        UUID uuid = remover.getUniqueId();
+        Optional<User> optionalUser = ElementalsX.getUser(uuid);
+        if (!optionalUser.isPresent())
+            return;
+        User user = optionalUser.get();
         Field field = FieldUtil.getFieldByLocation(loc);
-        UUID uuid = user.getBase().getUniqueId();
         if (!(field.isMember(uuid) || field.isOwner(uuid) || user.hasPermission("elementals.protection.override")))
             event.setCancelled(true);
     }
 
     @EventHandler(ignoreCancelled = true)
     public void event(PlayerArmorStandManipulateEvent event) {
-        User user = ElementalsX.getUser(event.getPlayer());
+        UUID uuid = event.getPlayer().getUniqueId();
+        Optional<User> optionalUser = ElementalsX.getUser(uuid);
+        if (!optionalUser.isPresent())
+            return;
+        User user = optionalUser.get();
         if (CitizensAPI.getNPCRegistry().isNPC(event.getRightClicked()))
             return;
         Location loc = event.getRightClicked().getLocation();
         if (!FieldUtil.isFieldAtLocation(loc))
             return;
         Field field = FieldUtil.getFieldByLocation(loc);
-        UUID uuid = user.getBase().getUniqueId();
         if (field.isMember(uuid) || field.isOwner(uuid) || user.hasPermission("elementals.protection.override"))
             return;
         event.setCancelled(true);
@@ -399,9 +389,12 @@ public class FieldListener implements Listener {
         Location loc = event.getEntity().getLocation();
         if (!FieldUtil.isFieldAtLocation(loc))
             return;
-        User user = ElementalsX.getUser(event.getPlayer());
+        UUID uuid = event.getPlayer().getUniqueId();
+        Optional<User> optionalUser = ElementalsX.getUser(uuid);
+        if (!optionalUser.isPresent())
+            return;
+        User user = optionalUser.get();
         Field field = FieldUtil.getFieldByLocation(loc);
-        UUID uuid = user.getBase().getUniqueId();
         if (field.isMember(uuid) || field.isOwner(uuid) || user.hasPermission("elementals.protection.override"))
             return;
         event.setCancelled(true);
@@ -414,9 +407,12 @@ public class FieldListener implements Listener {
         Location loc = event.getBlockClicked().getLocation();
         if (!FieldUtil.isFieldAtLocation(loc))
             return;
-        User user = ElementalsX.getUser(event.getPlayer());
+        UUID uuid = event.getPlayer().getUniqueId();
+        Optional<User> optionalUser = ElementalsX.getUser(uuid);
+        if (!optionalUser.isPresent())
+            return;
+        User user = optionalUser.get();
         Field field = FieldUtil.getFieldByLocation(loc);
-        UUID uuid = user.getBase().getUniqueId();
         if (field.isMember(uuid) || field.isOwner(uuid) || user.hasPermission("elementals.protection.override"))
             return;
         event.getPlayer().sendMessage(ElementalsUtil.color("&bNu poti folosi galeata aici!"));
@@ -430,9 +426,12 @@ public class FieldListener implements Listener {
         Location loc = event.getBlockClicked().getLocation();
         if (!FieldUtil.isFieldAtLocation(loc))
             return;
-        User user = ElementalsX.getUser(event.getPlayer());
+        UUID uuid = event.getPlayer().getUniqueId();
+        Optional<User> optionalUser = ElementalsX.getUser(uuid);
+        if (!optionalUser.isPresent())
+            return;
+        User user = optionalUser.get();
         Field field = FieldUtil.getFieldByLocation(loc);
-        UUID uuid = user.getBase().getUniqueId();
         if (field.isMember(uuid) || field.isOwner(uuid) || user.hasPermission("elementals.protection.override"))
             return;
         event.getPlayer().sendMessage(ElementalsUtil.color("&bNu poti folosi galeata aici!"));
@@ -446,8 +445,11 @@ public class FieldListener implements Listener {
         Location loc = event.getRightClicked().getLocation();
         if (!FieldUtil.isFieldAtLocation(loc))
             return;
-        User user = ElementalsX.getUser(event.getPlayer());
-        UUID uuid = user.getBase().getUniqueId();
+        UUID uuid = event.getPlayer().getUniqueId();
+        Optional<User> optionalUser = ElementalsX.getUser(uuid);
+        if (!optionalUser.isPresent())
+            return;
+        User user = optionalUser.get();
         Field field = FieldUtil.getFieldByLocation(loc);
         if (field.isMember(uuid) || field.isOwner(uuid) || user.hasPermission("elementals.protection.override"))
             return;
@@ -604,7 +606,11 @@ public class FieldListener implements Listener {
         Location loc = event.getClickedBlock().getLocation();
         if (!FieldUtil.isFieldAtLocation(loc))
             return;
-        User user = ElementalsX.getUser(event.getPlayer());
+        UUID uuid = event.getPlayer().getUniqueId();
+        Optional<User> optionalUser = ElementalsX.getUser(uuid);
+        if (!optionalUser.isPresent())
+            return;
+        User user = optionalUser.get();
         Field field = FieldUtil.getFieldByLocation(loc);
         if (field.hasFun()) {
             if (Tag.WOODEN_PRESSURE_PLATES.isTagged(clickedBlockType)
@@ -625,7 +631,6 @@ public class FieldListener implements Listener {
                     || clickedBlockType == Material.SPRUCE_FENCE_GATE)
                 return;
         }
-        UUID uuid = user.getBase().getUniqueId();
         if (field.isMember(uuid) || field.isOwner(uuid) || user.hasPermission("elementals.protection.override"))
             return;
         if (event.getAction() != Action.PHYSICAL)
@@ -656,9 +661,12 @@ public class FieldListener implements Listener {
         Location loc = event.getClickedBlock().getLocation();
         if (!FieldUtil.isFieldAtLocation(loc))
             return;
-        User user = ElementalsX.getUser(event.getPlayer());
+        UUID uuid = event.getPlayer().getUniqueId();
+        Optional<User> optionalUser = ElementalsX.getUser(uuid);
+        if (!optionalUser.isPresent())
+            return;
+        User user = optionalUser.get();
         Field field = FieldUtil.getFieldByLocation(loc);
-        UUID uuid = user.getBase().getUniqueId();
         if (field.isMember(uuid) || field.isOwner(uuid) || user.hasPermission("elementals.protection.override"))
             return;
         user.getBase().sendMessage(ElementalsUtil.color("&cNu poti pune vehicule in protectie!"));
@@ -676,12 +684,15 @@ public class FieldListener implements Listener {
         Location loc = event.getClickedBlock().getLocation();
         if (!FieldUtil.isFieldAtLocation(loc))
             return;
-        User user = ElementalsX.getUser(event.getPlayer());
+        UUID uuid = event.getPlayer().getUniqueId();
+        Optional<User> optionalUser = ElementalsX.getUser(uuid);
+        if (!optionalUser.isPresent())
+            return;
+        User user = optionalUser.get();
         Field field = FieldUtil.getFieldByLocation(loc);
         if (!(hand.getItemMeta() instanceof SpawnEggMeta || handType == Material.FLINT_AND_STEEL
                 || handType == Material.ARMOR_STAND) || (!field.hasFun() && handType == Material.END_CRYSTAL))
             return;
-        UUID uuid = user.getBase().getUniqueId();
         if (field.isMember(uuid) || field.isOwner(uuid) || user.hasPermission("elementals.protection.override"))
             return;
         if (event.getClickedBlock().getType().equals(Material.SPAWNER))
@@ -697,14 +708,22 @@ public class FieldListener implements Listener {
             return;
         if (event.getTo().getBlock().equals(event.getFrom().getBlock()))
             return;
-        FieldUtil.updateUser(ElementalsX.getUser(event.getPlayer()), event.getTo());
+        Optional<User> optionalUser = ElementalsX.getUser(event.getPlayer().getUniqueId());
+        if (!optionalUser.isPresent())
+            return;
+        User user = optionalUser.get();
+        FieldUtil.updateUser(user, event.getTo());
     }
 
     @EventHandler
     public void event(PlayerTeleportEvent event) {
         if (CitizensAPI.getNPCRegistry().isNPC(event.getPlayer()))
             return;
-        FieldUtil.updateUser(ElementalsX.getUser(event.getPlayer()), event.getTo());
+        Optional<User> optionalUser = ElementalsX.getUser(event.getPlayer().getUniqueId());
+        if (!optionalUser.isPresent())
+            return;
+        User user = optionalUser.get();
+        FieldUtil.updateUser(user, event.getTo());
     }
 
     @EventHandler(ignoreCancelled = true)
@@ -717,9 +736,12 @@ public class FieldListener implements Listener {
         Location loc = block.getLocation();
         if (!FieldUtil.isFieldAtLocation(loc))
             return;
-        User user = ElementalsX.getUser(event.getPlayer());
+        UUID uuid = event.getPlayer().getUniqueId();
+        Optional<User> optionalUser = ElementalsX.getUser(uuid);
+        if (!optionalUser.isPresent())
+            return;
+        User user = optionalUser.get();
         Field field = FieldUtil.getFieldByLocation(loc);
-        UUID uuid = user.getBase().getUniqueId();
         if (field.isMember(uuid) || field.isOwner(uuid) || user.hasPermission("elementals.protection.override"))
             return;
         event.getPlayer().sendMessage(ElementalsUtil.color("&bNu poti sparge blocuri in protectie!"));
@@ -734,9 +756,12 @@ public class FieldListener implements Listener {
         Location loc = block.getLocation();
         if (!FieldUtil.isFieldAtLocation(loc))
             return;
-        User user = ElementalsX.getUser(event.getPlayer());
+        UUID uuid = event.getPlayer().getUniqueId();
+        Optional<User> optionalUser = ElementalsX.getUser(uuid);
+        if (!optionalUser.isPresent())
+            return;
+        User user = optionalUser.get();
         Field field = FieldUtil.getFieldByLocation(loc);
-        UUID uuid = user.getBase().getUniqueId();
         if (field.isMember(uuid) || field.isOwner(uuid) || user.hasPermission("elementals.protection.override"))
             return;
         event.getPlayer().sendMessage(ElementalsUtil.color("&bNu poti pune blocuri in protectie!"));
@@ -747,15 +772,11 @@ public class FieldListener implements Listener {
     public void event0(EntityDamageByEntityEvent event) {
         if (CitizensAPI.getNPCRegistry().isNPC(event.getEntity()))
             return;
-        if (CitizensAPI.getNPCRegistry().isNPC(event.getDamager()))
-            return;
         Entity entity = event.getEntity();
         Entity damager;
         if (event.getDamager() instanceof Projectile) {
             Projectile proj = (Projectile) event.getDamager();
             if (proj.getShooter() == null)
-                return;
-            if (proj.getShooter() instanceof BlockProjectileSource)
                 return;
             damager = (Entity) proj.getShooter();
         } else
@@ -766,35 +787,38 @@ public class FieldListener implements Listener {
         if (!FieldUtil.isFieldAtLocation(loc))
             return;
         EntityType entityType = entity.getType();
-        if (!(entityType == EntityType.PARROT
-                || entityType == EntityType.LLAMA
-                || entityType == EntityType.TRADER_LLAMA
-                || entityType == EntityType.ZOMBIE_HORSE
-                || entityType == EntityType.MULE
-                || entityType == EntityType.HORSE
-                || entityType == EntityType.DONKEY
-                || entityType == EntityType.SKELETON_HORSE
-                || entityType == EntityType.PIG
-                || entityType == EntityType.COW
-                || entityType == EntityType.OCELOT
-                || entityType == EntityType.MUSHROOM_COW
-                || entityType == EntityType.BAT
-                || entityType == EntityType.BOAT
-                || entityType == EntityType.CHICKEN
-                || entityType == EntityType.WOLF
-                || entityType == EntityType.VILLAGER
-                || entityType == EntityType.IRON_GOLEM
-                || entityType == EntityType.LEASH_HITCH
-                || entityType == EntityType.RABBIT
-                || entityType == EntityType.SHEEP
-                || entityType == EntityType.SNOWMAN
-                || entityType == EntityType.SQUID
-                || entityType == EntityType.ARMOR_STAND
-                || entityType == EntityType.ITEM_FRAME))
+        if (entityType != EntityType.PARROT
+                || entityType != EntityType.LLAMA
+                || entityType != EntityType.TRADER_LLAMA
+                || entityType != EntityType.ZOMBIE_HORSE
+                || entityType != EntityType.MULE
+                || entityType != EntityType.HORSE
+                || entityType != EntityType.DONKEY
+                || entityType != EntityType.SKELETON_HORSE
+                || entityType != EntityType.PIG
+                || entityType != EntityType.COW
+                || entityType != EntityType.OCELOT
+                || entityType != EntityType.MUSHROOM_COW
+                || entityType != EntityType.BAT
+                || entityType != EntityType.BOAT
+                || entityType != EntityType.CHICKEN
+                || entityType != EntityType.WOLF
+                || entityType != EntityType.VILLAGER
+                || entityType != EntityType.IRON_GOLEM
+                || entityType != EntityType.LEASH_HITCH
+                || entityType != EntityType.RABBIT
+                || entityType != EntityType.SHEEP
+                || entityType != EntityType.SNOWMAN
+                || entityType != EntityType.SQUID
+                || entityType != EntityType.ARMOR_STAND
+                || entityType != EntityType.ITEM_FRAME)
             return;
-        User user = ElementalsX.getUser((Player) damager);
+        UUID uuid = damager.getUniqueId();
+        Optional<User> optionalUser = ElementalsX.getUser(uuid);
+        if (!optionalUser.isPresent())
+            return;
+        User user = optionalUser.get();
         Field field = FieldUtil.getFieldByLocation(loc);
-        UUID uuid = user.getBase().getUniqueId();
         if (field.isMember(uuid) || field.isOwner(uuid) || user.hasPermission("elementals.protection.override"))
             return;
         user.getBase().sendMessage(ElementalsUtil.color("&cNu poti omora aceasta entitate in protectie."));
@@ -814,8 +838,6 @@ public class FieldListener implements Listener {
         if (event.getAttacker() instanceof Projectile) {
             Projectile proj = (Projectile) event.getAttacker();
             if (proj.getShooter() == null)
-                return;
-            if (proj.getShooter() instanceof BlockProjectileSource)
                 return;
             damager = (Entity) proj.getShooter();
         } else
@@ -837,9 +859,12 @@ public class FieldListener implements Listener {
                 || entityType == EntityType.MINECART_COMMAND
                 || entityType == EntityType.BOAT))
             return;
-        User user = ElementalsX.getUser((Player) damager);
+        UUID uuid = damager.getUniqueId();
+        Optional<User> optionalUser = ElementalsX.getUser(uuid);
+        if (!optionalUser.isPresent())
+            return;
+        User user = optionalUser.get();
         Field field = FieldUtil.getFieldByLocation(loc);
-        UUID uuid = user.getBase().getUniqueId();
         if (field.isMember(uuid) || field.isOwner(uuid) || user.hasPermission("elementals.protection.override"))
             return;
         user.getBase().sendMessage(ElementalsUtil.color("&cNu poti distruge vehiculul in protectie."));
@@ -851,7 +876,11 @@ public class FieldListener implements Listener {
     @EventHandler(ignoreCancelled = true)
     public void event(VehicleEnterEvent event) {
         Vehicle vehicle = event.getVehicle();
-        User user = ElementalsX.getUser((Player) event.getEntered());
+        UUID uuid = event.getEntered().getUniqueId();
+        Optional<User> optionalUser = ElementalsX.getUser(uuid);
+        if (!optionalUser.isPresent())
+            return;
+        User user = optionalUser.get();
         Location loc = vehicle.getLocation();
         if (!FieldUtil.isFieldAtLocation(loc))
             return;
@@ -864,7 +893,6 @@ public class FieldListener implements Listener {
             return;
         if (!(event.getEntered() instanceof Player))
             return;
-        UUID uuid = user.getBase().getUniqueId();
         if (field.isMember(uuid) || field.isOwner(uuid) || user.hasPermission("elementals.protection.override"))
             return;
         user.getBase().sendMessage(ElementalsUtil.color("&cNu poti intra in vehicul in protectie."));
@@ -877,7 +905,7 @@ public class FieldListener implements Listener {
             return;
         if (CitizensAPI.getNPCRegistry().isNPC(event.getDamager()))
             return;
-        if (!(event.getDamager() instanceof Firework))
+        if (event.getDamager().getType() != EntityType.FIREWORK)
             return;
         if (!FieldUtil.isFieldAtLocation(event.getEntity().getLocation()))
             return;
