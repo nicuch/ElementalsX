@@ -7,7 +7,6 @@ import org.bukkit.event.entity.EntityDamageEvent.DamageCause;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import ro.nicuch.elementalsx.elementals.ElementalsUtil;
-import ro.nicuch.elementalsx.protection.FieldUtil;
 
 import java.sql.ResultSet;
 import java.util.UUID;
@@ -63,14 +62,6 @@ public class User {
             this.lastDamageCause = base.getLastDamageCause().getCause();
         this.sounds = true;
         this.pack = false;
-        if (FieldUtil.isFieldAtLocation(this.base.getLocation())) {
-            this.lastFieldOwner = FieldUtil.getFieldByLocation(this.base.getLocation()).getOwner();
-            this.field = true;
-            this.base.setCollidable(false);
-        } else {
-            this.field = false;
-            this.base.setCollidable(true);
-        }
         if (!base.hasPlayedBefore())
             isNewPlayer();
     }
@@ -174,15 +165,28 @@ public class User {
         this.sounds = b;
     }
 
-    public void save() {
-        try {
-            ElementalsX.getBase().prepareStatement(
-                    "UPDATE pikapoints SET points='" + 0 + "' WHERE uuid='" + base.getUniqueId().toString() + "';")
-                    .executeUpdate();
-        } catch (Exception exception) {
-            //TODO backup
-            exception.printStackTrace();
+    public void save(boolean disable) {
+        if (disable) {
+            try {
+                ElementalsX.getBase().prepareStatement(
+                        "UPDATE pikapoints SET points='" + 0 + "' WHERE uuid='" + base.getUniqueId().toString() + "';")
+                        .executeUpdate();
+            } catch (Exception exception) {
+                //TODO backup
+                exception.printStackTrace();
+            }
+            return;
         }
+        Bukkit.getScheduler().runTaskAsynchronously(ElementalsX.get(), () -> {
+            try {
+                ElementalsX.getBase().prepareStatement(
+                        "UPDATE pikapoints SET points='" + 0 + "' WHERE uuid='" + base.getUniqueId().toString() + "';")
+                        .executeUpdate();
+            } catch (Exception exception) {
+                //TODO backup
+                exception.printStackTrace();
+            }
+        });
     }
 
     @Override

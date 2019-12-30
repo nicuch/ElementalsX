@@ -204,6 +204,7 @@ public class FieldUtil {
                 + block.getZ() + "world" + block.getWorld().getName();
     }
 
+    // DO NEVER PUT COLLIDABLE AGAIN
     public static void updateUser(User user, Location loc) {
         if (isFieldAtLocation(loc)) {
             if (!user.isInField()) {
@@ -215,7 +216,6 @@ public class FieldUtil {
                 user.getBase().sendMessage(ElementalsUtil.color("&bAi intrat in protectia lui "
                         + Bukkit.getOfflinePlayer(getFieldByLocation(loc).getOwner()).getName() + "!"));
             }
-            user.getBase().setCollidable(false);
             user.toggleField(true);
             user.setLastFieldOwner(getFieldByLocation(loc).getOwner());
         } else if (!isFieldAtLocation(loc)) {
@@ -223,7 +223,6 @@ public class FieldUtil {
                 user.getBase().sendMessage(ElementalsUtil.color("&bAi iesit din protectia lui "
                         + Bukkit.getOfflinePlayer(user.getLastFieldOwner()).getName() + "!"));
             user.toggleField(false);
-            user.getBase().setCollidable(true);
         }
     }
 

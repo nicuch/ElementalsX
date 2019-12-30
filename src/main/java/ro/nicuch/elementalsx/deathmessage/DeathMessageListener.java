@@ -22,7 +22,7 @@ import java.util.Optional;
 
 public class DeathMessageListener implements Listener {
 
-    /*
+
     @EventHandler
     public void event(EntityDamageEvent event) {
         if (CitizensAPI.getNPCRegistry().isNPC(event.getEntity()))
@@ -34,7 +34,6 @@ public class DeathMessageListener implements Listener {
             return;
         optionalUser.get().setLastDamageCause(event.getCause());
     }
-     */
 
     @EventHandler
     public void event(PlayerDeathEvent event) {

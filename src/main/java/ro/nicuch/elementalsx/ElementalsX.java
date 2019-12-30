@@ -65,7 +65,7 @@ public class ElementalsX extends JavaPlugin {
     @Override
     public void onDisable() {
         FieldUtil.getLoadedFields().forEach(Field::save);
-        getOnlineUsers().forEach(User::save);
+        getOnlineUsers().forEach(u -> u.save(true));
         try {
             database.close();
         } catch (SQLException e) {
@@ -120,7 +120,7 @@ public class ElementalsX extends JavaPlugin {
 
     public static void removeUser(UUID uuid) {
         if (existUser(uuid))
-            players.remove(uuid).save();
+            players.remove(uuid).save(false);
     }
 
     public static void sendConsoleMessage(String arg) {

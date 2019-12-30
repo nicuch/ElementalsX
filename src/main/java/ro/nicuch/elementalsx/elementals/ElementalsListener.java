@@ -36,7 +36,6 @@ public class ElementalsListener implements Listener {
 
     @EventHandler(ignoreCancelled = true)
     public void event(EntityDamageEvent event) {
-        System.out.println("ElementalsListener - event0 EDE");
         if (!event.getEntity().getWorld().getName().equals("spawn"))
             return;
         if (event.getEntityType() != EntityType.PLAYER)
