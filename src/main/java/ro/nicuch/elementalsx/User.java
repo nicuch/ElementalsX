@@ -8,11 +8,12 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import ro.nicuch.elementalsx.elementals.ElementalsUtil;
 
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.util.UUID;
 
 public class User {
-    private final Player base;
+    private final UUID uuid;
     private boolean ignorePlaceProtection;
     private boolean sounds;
     private DamageCause lastDamageCause;
@@ -21,9 +22,21 @@ public class User {
     private int thirstLevel;
     private boolean pack;
     private boolean messages;
+    private long nextRtpAllowed = 0;
 
     public boolean hasMsgActive() {
         return this.messages;
+    }
+
+    public boolean canRtp() {
+        if (this.nextRtpAllowed == 0)
+            return true;
+        return System.currentTimeMillis() > this.nextRtpAllowed;
+    }
+
+    public void toggleRtp() {
+        long time = System.currentTimeMillis();
+        this.nextRtpAllowed = time + (1000 * 60 * 30);
     }
 
     public void toggleMsgActive(boolean b) {
@@ -55,76 +68,71 @@ public class User {
     }
 
     public User(Player base) {
-        this.base = base;
-        if (this.base.getLastDamageCause() == null)
+        this.uuid = base.getUniqueId();
+        if (base.getLastDamageCause() == null)
             this.lastDamageCause = DamageCause.CUSTOM;
         else
             this.lastDamageCause = base.getLastDamageCause().getCause();
         this.sounds = true;
         this.pack = false;
-        if (!base.hasPlayedBefore())
-            isNewPlayer();
-    }
-
-    public void isNewPlayer() {
+        if (!base.hasPlayedBefore()) {
+            ItemStack i1 = new ItemStack(Material.LEATHER_HELMET);
+            ItemStack i2 = new ItemStack(Material.LEATHER_CHESTPLATE);
+            ItemStack i3 = new ItemStack(Material.LEATHER_LEGGINGS);
+            ItemStack i4 = new ItemStack(Material.LEATHER_BOOTS);
+            ItemStack i5 = new ItemStack(Material.STONE_PICKAXE);
+            ItemStack i6 = new ItemStack(Material.STONE_SWORD);
+            ItemStack i7 = new ItemStack(Material.STONE_SHOVEL);
+            ItemStack i8 = new ItemStack(Material.STONE_AXE);
+            ItemStack i9 = new ItemStack(Material.TORCH, 32);
+            ItemStack i10 = new ItemStack(Material.APPLE, 16);
+            ItemStack i11 = new ItemStack(Material.DIAMOND_BLOCK);
+            ItemStack i12 = new ItemStack(Material.DIAMOND, 2);
+            ItemStack i13 = new ItemStack(Material.OAK_LOG, 16);
+            ItemStack i14 = new ItemStack(Material.COBBLESTONE, 32);
+            ItemStack i15 = new ItemStack(Material.SADDLE);
+            ItemStack i16 = new ItemStack(Material.LEAD, 2);
+            ItemStack i17 = new ItemStack(Material.SHIELD);
+            ItemMeta prot = i11.getItemMeta();
+            prot.setDisplayName(ElementalsUtil.color("&bProtectie de Diamant &8(&a51x256x52&8)"));
+            i11.setItemMeta(prot);
+            base.getInventory().setItem(0, i5);
+            base.getInventory().setItem(1, i6);
+            base.getInventory().setItem(2, i7);
+            base.getInventory().setItem(3, i8);
+            base.getInventory().setItem(4, i9);
+            base.getInventory().setItem(5, i10);
+            base.getInventory().setItem(6, i16);
+            base.getInventory().setItem(9, i14);
+            base.getInventory().setItem(10, i13);
+            base.getInventory().setItem(11, i15);
+            base.getInventory().setItem(27, i11);
+            base.getInventory().setItem(28, i12);
+            base.getInventory().setHelmet(i1);
+            base.getInventory().setChestplate(i2);
+            base.getInventory().setLeggings(i3);
+            base.getInventory().setBoots(i4);
+            base.getInventory().setItemInOffHand(i17);
+        }
         Bukkit.getScheduler().runTaskAsynchronously(ElementalsX.get(), () -> {
             try {
                 ResultSet rs = ElementalsX.getBase()
                         .prepareStatement(
-                                "SELECT points FROM pikapoints WHERE uuid='" + base.getUniqueId().toString() + "';")
+                                "SELECT next FROM randomtp WHERE uuid='" + base.getUniqueId().toString() + "';")
                         .executeQuery();
-                if (!rs.next()) {
-                    ElementalsX.getBase().prepareStatement("INSERT INTO pikapoints(uuid, points) VALUES('"
-                            + base.getUniqueId().toString() + "', '" + 0 + "');").executeUpdate();
-                    Bukkit.getScheduler().runTask(ElementalsX.get(), () -> {
-                        ItemStack i1 = new ItemStack(Material.LEATHER_HELMET);
-                        ItemStack i2 = new ItemStack(Material.LEATHER_CHESTPLATE);
-                        ItemStack i3 = new ItemStack(Material.LEATHER_LEGGINGS);
-                        ItemStack i4 = new ItemStack(Material.LEATHER_BOOTS);
-                        ItemStack i5 = new ItemStack(Material.STONE_PICKAXE);
-                        ItemStack i6 = new ItemStack(Material.STONE_SWORD);
-                        ItemStack i7 = new ItemStack(Material.STONE_SHOVEL);
-                        ItemStack i8 = new ItemStack(Material.STONE_AXE);
-                        ItemStack i9 = new ItemStack(Material.TORCH, 32);
-                        ItemStack i10 = new ItemStack(Material.APPLE, 16);
-                        ItemStack i11 = new ItemStack(Material.DIAMOND_BLOCK);
-                        ItemStack i12 = new ItemStack(Material.DIAMOND, 2);
-                        ItemStack i13 = new ItemStack(Material.OAK_LOG, 16);
-                        ItemStack i14 = new ItemStack(Material.COBBLESTONE, 32);
-                        ItemStack i15 = new ItemStack(Material.SADDLE);
-                        ItemStack i16 = new ItemStack(Material.LEAD, 2);
-                        ItemStack i17 = new ItemStack(Material.SHIELD);
-                        ItemMeta prot = i11.getItemMeta();
-                        prot.setDisplayName(ElementalsUtil.color("&bProtectie de Diamant &8(&a51x256x52&8)"));
-                        i11.setItemMeta(prot);
-                        this.base.getInventory().setItem(0, i5);
-                        this.base.getInventory().setItem(1, i6);
-                        this.base.getInventory().setItem(2, i7);
-                        this.base.getInventory().setItem(3, i8);
-                        this.base.getInventory().setItem(4, i9);
-                        this.base.getInventory().setItem(5, i10);
-                        this.base.getInventory().setItem(6, i16);
-                        this.base.getInventory().setItem(9, i14);
-                        this.base.getInventory().setItem(10, i13);
-                        this.base.getInventory().setItem(11, i15);
-                        this.base.getInventory().setItem(27, i11);
-                        this.base.getInventory().setItem(28, i12);
-                        this.base.getInventory().setHelmet(i1);
-                        this.base.getInventory().setChestplate(i2);
-                        this.base.getInventory().setLeggings(i3);
-                        this.base.getInventory().setBoots(i4);
-                        this.base.getInventory().setItemInOffHand(i17);
-                    });
+                if (rs.next()) {
+                    long time = rs.getLong("next");
+                    Bukkit.getScheduler().runTask(ElementalsX.get(), () -> this.nextRtpAllowed = time);
                 }
             } catch (Exception exception) {
+                //TODO backup
                 exception.printStackTrace();
-                base.sendMessage(ElementalsUtil.color("&a&l[&6PikaCraft&a] &eEroare! Contacteaza un admin!"));
             }
         });
     }
 
     public Player getBase() {
-        return this.base;
+        return Bukkit.getPlayer(this.uuid);
     }
 
     public DamageCause getLastDamageCause() {
@@ -132,9 +140,9 @@ public class User {
     }
 
     public boolean hasPermission(String node) {
-        if (this.base.isOp())
+        if (this.getBase().isOp())
             return true;
-        return ElementalsX.getPermission().has(this.base, node);
+        return ElementalsX.getPermission().has(this.getBase(), node);
     }
 
     public boolean hasSounds() {
@@ -168,9 +176,11 @@ public class User {
     public void save(boolean disable) {
         if (disable) {
             try {
-                ElementalsX.getBase().prepareStatement(
-                        "UPDATE pikapoints SET points='" + 0 + "' WHERE uuid='" + base.getUniqueId().toString() + "';")
-                        .executeUpdate();
+                PreparedStatement ps = ElementalsX.getBase().prepareStatement(
+                        "UPDATE randomtp SET next='" + this.nextRtpAllowed + "' WHERE uuid='" + this.uuid.toString() + "';");
+                ps.executeUpdate();
+                if (ps != null)
+                    ps.close();
             } catch (Exception exception) {
                 //TODO backup
                 exception.printStackTrace();
@@ -179,9 +189,11 @@ public class User {
         }
         Bukkit.getScheduler().runTaskAsynchronously(ElementalsX.get(), () -> {
             try {
-                ElementalsX.getBase().prepareStatement(
-                        "UPDATE pikapoints SET points='" + 0 + "' WHERE uuid='" + base.getUniqueId().toString() + "';")
-                        .executeUpdate();
+                PreparedStatement ps = ElementalsX.getBase().prepareStatement(
+                        "UPDATE randomtp SET next='" + this.nextRtpAllowed + "' WHERE uuid='" + this.uuid.toString() + "';");
+                ps.executeUpdate();
+                if (ps != null)
+                    ps.close();
             } catch (Exception exception) {
                 //TODO backup
                 exception.printStackTrace();
@@ -189,16 +201,20 @@ public class User {
         });
     }
 
+    public UUID getUUID() {
+        return this.uuid;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (!(o instanceof User))
             return false;
         User oUser = (User) o;
-        return this.base.getUniqueId().equals(oUser.base.getUniqueId());
+        return this.uuid.equals(oUser.getUUID());
     }
 
     @Override
     public int hashCode() {
-        return this.base.getUniqueId().hashCode() * 757;
+        return this.uuid.hashCode() * 757;
     }
 }

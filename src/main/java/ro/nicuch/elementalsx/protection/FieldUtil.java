@@ -74,6 +74,8 @@ public class FieldUtil {
                     .executeQuery();
             if (rs.next())
                 return rs.getInt(1) >= 4;
+            if (rs != null)
+                rs.close();
         } catch (SQLException ex) {
             ex.printStackTrace();
         }
@@ -106,9 +108,11 @@ public class FieldUtil {
                         Field3D maxLoc = new Field3D(maxx, y, maxz);
                         Field3D minLoc = new Field3D(minx, y, minz);
                         Field field = new Field(id, uuid, maxLoc, minLoc, chunk, world, world.getBlockAt(blockX, blockY, blockZ));
-                        loadedFields.putIfAbsent(id, field);
+                        loadedFields.put(id, field);
                     });
                 }
+                if (rs != null)
+                    rs.close();
             } catch (SQLException exception) {
                 exception.printStackTrace();
             }
@@ -138,11 +142,11 @@ public class FieldUtil {
                 while (rs.next()) {
                     String id = rs.getString("id");
                     Bukkit.getScheduler().runTask(ElementalsX.get(), () -> {
-                        Field field = loadedFields.get(id);
-                        field.save();
-                        loadedFields.remove(id);
+                        if (loadedFields.containsKey(id)) loadedFields.remove(id).save();
                     });
                 }
+                if (rs != null)
+                    rs.close();
             } catch (SQLException exception) {
                 exception.printStackTrace();
             }
@@ -192,7 +196,10 @@ public class FieldUtil {
                     .prepareStatement("SELECT id FROM protection WHERE x='" + block.getX() + "' AND y='" + block.getY()
                             + "' AND z='" + block.getZ() + "' AND world='" + block.getWorld().getName() + "';")
                     .executeQuery();
-            return rs.next();
+            boolean isIt = rs.next();
+            if (rs != null)
+                rs.close();
+            return isIt;
         } catch (SQLException exception) {
             exception.printStackTrace();
         }
@@ -208,20 +215,20 @@ public class FieldUtil {
     public static void updateUser(User user, Location loc) {
         if (isFieldAtLocation(loc)) {
             if (!user.isInField()) {
-                user.getBase().sendMessage(ElementalsUtil.color("&bAi intrat in protectia lui "
-                        + Bukkit.getOfflinePlayer(getFieldByLocation(loc).getOwner()).getName() + "!"));
+                user.getBase().sendMessage(ElementalsUtil.color("&f[&cProtectie&f] &b&oAi intrat in protectia lui &f&o"
+                        + Bukkit.getOfflinePlayer(getFieldByLocation(loc).getOwner()).getName() + "&b&o!"));
             } else if (user.isInField() && !getFieldByLocation(loc).isOwner(user.getLastFieldOwner())) {
-                user.getBase().sendMessage(ElementalsUtil.color("&bAi iesit din protectia lui "
-                        + Bukkit.getOfflinePlayer(user.getLastFieldOwner()).getName() + "!"));
-                user.getBase().sendMessage(ElementalsUtil.color("&bAi intrat in protectia lui "
-                        + Bukkit.getOfflinePlayer(getFieldByLocation(loc).getOwner()).getName() + "!"));
+                user.getBase().sendMessage(ElementalsUtil.color("&f[&cProtectie&f] &b&oAi iesit din protectia lui &f&o"
+                        + Bukkit.getOfflinePlayer(user.getLastFieldOwner()).getName() + "&b&o!"));
+                user.getBase().sendMessage(ElementalsUtil.color("&f[&cProtectie&f] &b&oAi intrat in protectia lui &f&o"
+                        + Bukkit.getOfflinePlayer(getFieldByLocation(loc).getOwner()).getName() + "&b&o!"));
             }
             user.toggleField(true);
             user.setLastFieldOwner(getFieldByLocation(loc).getOwner());
         } else if (!isFieldAtLocation(loc)) {
             if (user.isInField())
-                user.getBase().sendMessage(ElementalsUtil.color("&bAi iesit din protectia lui "
-                        + Bukkit.getOfflinePlayer(user.getLastFieldOwner()).getName() + "!"));
+                user.getBase().sendMessage(ElementalsUtil.color("&f[&cProtectie&f] &b&oAi iesit din protectia lui &f&o"
+                        + Bukkit.getOfflinePlayer(user.getLastFieldOwner()).getName() + "&b&o!"));
             user.toggleField(false);
         }
     }
@@ -238,19 +245,19 @@ public class FieldUtil {
                 else if (isFieldAtLocation(user.getBase().getLocation()))
                     field = getFieldByLocation(user.getBase().getLocation());
                 else {
-                    user.getBase().sendMessage(ElementalsUtil.color("&cTrebuie sa te afli intr-o protectie!"));
+                    user.getBase().sendMessage(ElementalsUtil.color("&f[&cProtectie&f] &c&oTrebuie sa te afli intr-o protectie!"));
                     return;
                 }
                 if (!(field.isOwner(user.getBase().getUniqueId()) || user.hasPermission("protection.override"))) {
-                    user.getBase().sendMessage(ElementalsUtil.color("&bNu esti detinatorul protectiei!"));
+                    user.getBase().sendMessage(ElementalsUtil.color("&f[&cProtectie&f] &b&oNu esti detinatorul protectiei!"));
                     return;
                 }
                 if (allow) {
                     field.addMember(member.getUniqueId());
-                    user.getBase().sendMessage(ElementalsUtil.color("&aJucatorul &b" + name + " &aa fost adaugat."));
+                    user.getBase().sendMessage(ElementalsUtil.color("&f[&cProtectie&f] &a&oJucatorul &f&o" + name + " &a&oa fost adaugat in protectie."));
                 } else {
                     field.removeMember(member.getUniqueId());
-                    user.getBase().sendMessage(ElementalsUtil.color("&aJucatorul &b" + name + " &aa fost sters."));
+                    user.getBase().sendMessage(ElementalsUtil.color("&f[&cProtectie&f] &a&oJucatorul &f&o" + name + " &a&oa fost sters din protectie."));
                 }
             } else {
                 ResultSet rs = ElementalsX.getBase().prepareStatement(
@@ -265,13 +272,15 @@ public class FieldUtil {
                             getFieldById(rs.getString("id")).removeMember(member.getUniqueId());
                     }
                 }
+                if (rs != null)
+                    rs.close();
                 if (allow)
-                    user.getBase().sendMessage(ElementalsUtil.color("&aJucatorul &b" + name + " &aa fost adaugat in toate protectiile."));
+                    user.getBase().sendMessage(ElementalsUtil.color("&f[&cProtectie&f] &a&oJucatorul &f&o" + name + " &a&oa fost adaugat in toate protectiile tale."));
                 else
-                    user.getBase().sendMessage(ElementalsUtil.color("&aJucatorul &c" + name + " &aa fost sters din toate protectiile."));
+                    user.getBase().sendMessage(ElementalsUtil.color("&f[&cProtectie&f] &a&oJucatorul &f&o" + name + " &a&oa fost sters din toate protectiile tale."));
             }
         } catch (Exception exception) {
-            user.getBase().sendMessage(ElementalsUtil.color("&cEroare. &aContacteaza un admin!"));
+            user.getBase().sendMessage(ElementalsUtil.color("&f[&cProtectie&f] &c&l&oEroare. &a&l&oContacteaza un admin!"));
             exception.printStackTrace();
         }
     }
@@ -285,12 +294,12 @@ public class FieldUtil {
         else if (isFieldAtLocation(user.getBase().getLocation()))
             field = getFieldByLocation(user.getBase().getLocation());
         else {
-            user.getBase().sendMessage(ElementalsUtil.color("&cTrebuie sa te afli intr-o protectie!"));
+            user.getBase().sendMessage(ElementalsUtil.color("&f[&cProtectie&f] &c&oTrebuie sa te afli intr-o protectie!"));
             return;
         }
         if (!(field.isMember(user.getBase().getUniqueId()) || field.isOwner(user.getBase().getUniqueId())
                 || user.hasPermission("protection.override"))) {
-            user.getBase().sendMessage(ElementalsUtil.color("&cTrebuie sa fii membru al protectiei ca sa poti vizualiza!"));
+            user.getBase().sendMessage(ElementalsUtil.color("&f[&cProtectie&f] &c&oTrebuie sa fii detinatorul sau membru al protectiei ca sa poti vizualiza!"));
             return;
         }
         int maxx = field.getMaximLocation().getX();
@@ -377,16 +386,16 @@ public class FieldUtil {
         else if (isFieldAtLocation(user.getBase().getLocation()))
             field = getFieldByLocation(user.getBase().getLocation());
         else {
-            user.getBase().sendMessage(ElementalsUtil.color("&cTrebuie sa te afli intr-o protectie!"));
+            user.getBase().sendMessage(ElementalsUtil.color("&f[&cProtectie&f] &c&oTrebuie sa te afli intr-o protectie!"));
             return;
         }
         if (!(field.isOwner(user.getBase().getUniqueId()) || field.isMember(user.getBase().getUniqueId())
                 || user.hasPermission("protection.override"))) {
-            user.getBase().sendMessage(ElementalsUtil.color("&bNu poti seta modul &dfun &bin aceasta protectie!"));
+            user.getBase().sendMessage(ElementalsUtil.color("&f[&cProtectie&f] &b&oNu poti seta modul &d&l&ofun &b&oin aceasta protectie!"));
             return;
         }
         field.toggleFun();
-        user.getBase().sendMessage(ElementalsUtil.color("&bAi " + (field.hasFun() ? "&aactivat" : "&cdezactivat") + " &bmodul &dfun&b!"));
+        user.getBase().sendMessage(ElementalsUtil.color("&f[&cProtectie&f] &b&oAi " + (field.hasFun() ? "&a&o&lactivat" : "&c&o&ldezactivat") + " &b&omodul &d&l&ofun&b&o!"));
     }
 
     public static void infoField(User user) {
@@ -397,12 +406,12 @@ public class FieldUtil {
         else if (isFieldAtLocation(user.getBase().getLocation()))
             field = getFieldByLocation(user.getBase().getLocation());
         else {
-            user.getBase().sendMessage(ElementalsUtil.color("&cTrebuie sa te afli intr-o protectie!"));
+            user.getBase().sendMessage(ElementalsUtil.color("&f[&cProtectie&f] &c&oTrebuie sa te afli intr-o protectie!"));
             return;
         }
         if (!(field.isOwner(user.getBase().getUniqueId()) || field.isMember(user.getBase().getUniqueId())
                 || user.hasPermission("protection.override"))) {
-            user.getBase().sendMessage(ElementalsUtil.color("&bNu poti vedea informatii despre protectie!"));
+            user.getBase().sendMessage(ElementalsUtil.color("&f[&cProtectie&f] &b&oNu poti vedea informatii despre protectie!"));
             return;
         }
         user.getBase().sendMessage(ElementalsUtil.color("&a&lInformatii despre protectie:"));
@@ -432,7 +441,7 @@ public class FieldUtil {
         else if (isFieldAtLocation(user.getBase().getLocation()))
             field = getFieldByLocation(user.getBase().getLocation());
         else {
-            user.getBase().sendMessage(ElementalsUtil.color("&cTrebuie sa te afli intr-o protectie!"));
+            user.getBase().sendMessage(ElementalsUtil.color("&f[&cProtectie&f] &c&oTrebuie sa te afli intr-o protectie!"));
             return;
         }
         if (field.isOwner(user.getBase().getUniqueId()) || user.hasPermission("protection.override")) {
@@ -473,7 +482,7 @@ public class FieldUtil {
                 }
             }, 20 * 20);
         } else
-            user.getBase().sendMessage(ElementalsUtil.color("&cNu esti detinatorul protectiei!"));
+            user.getBase().sendMessage(ElementalsUtil.color("&f[&cProtectie&f] &c&oNu esti detinatorul protectiei!"));
     }
 
     public static void listFields(User user) {
@@ -483,15 +492,17 @@ public class FieldUtil {
                             + user.getBase().getUniqueId().toString() + "';")
                     .executeQuery();
             if (rs.wasNull()) {
-                user.getBase().sendMessage(ElementalsUtil.color("&cNu ai nici-o protectie!"));
+                user.getBase().sendMessage(ElementalsUtil.color("&f[&cProtectie&f] &c&oNu ai nici-o protectie!"));
                 return;
             }
             user.getBase().sendMessage(ElementalsUtil.color("&bProtectiile tale:"));
             while (rs.next())
                 user.getBase().sendMessage(ElementalsUtil.color("&5&l> &b" + rs.getString("world") + "&c, &b" + rs.getString("x")
                         + "&c, &b" + rs.getString("y") + "&c, &b" + rs.getString("z")));
+            if (rs != null)
+                rs.close();
         } catch (SQLException ex) {
-            user.getBase().sendMessage(ElementalsUtil.color("&cEroare. &aContacteaza un admin!"));
+            user.getBase().sendMessage(ElementalsUtil.color("&f[&cProtectie&f] &c&l&oEroare. &a&l&oContacteaza un admin!"));
             ex.printStackTrace();
         }
     }

@@ -154,7 +154,7 @@ public class FieldListener implements Listener {
             return;
         if (!user.hasPermission("elementals.protection.override"))
             if (FieldUtil.isFieldNerby(user, block.getLocation())) {
-                event.getPlayer().sendMessage(ElementalsUtil.color("&3Nu poti pune protectia ta daca se intersecteaza cu protectia altui jucator!"));
+                event.getPlayer().sendMessage(ElementalsUtil.color("&f[&cProtectie&f] &c&oProtectia ta se intersecteaza cu protectia altui jucator!"));
                 event.setCancelled(true);
                 return;
             }
@@ -165,13 +165,13 @@ public class FieldListener implements Listener {
                     if (!entityuser.isPresent())
                         continue; //Continue
                     if (!entityuser.get().hasPermission("elementals.protection.override")) {
-                        event.getPlayer().sendMessage(ElementalsUtil.color("&3Nu poti pune protectii cat timp sunt jucatori in zona!"));
+                        event.getPlayer().sendMessage(ElementalsUtil.color("&f[&cProtectie&f] &c&oNu poti pune protectia cat timp sunt jucatori in zona!"));
                         event.setCancelled(true);
                         return; //One player found, no need to loop more
                     }
                 }
         if (FieldUtil.areThereEnoughProtections(block.getChunk()) && !user.hasPermission("elementals.protection.override")) {
-            event.getPlayer().sendMessage(ElementalsUtil.color("&3Limita de 4 protectii intr-un chunk a fost atinsa! Nu mai poti pune alte protectii."));
+            event.getPlayer().sendMessage(ElementalsUtil.color("&f[&cProtectie&f] &c&oLimita de 4 protectii intr-un chunk a fost atinsa! Nu mai poti pune alte protectii."));
             event.setCancelled(true);
             return;
         }
@@ -194,11 +194,11 @@ public class FieldListener implements Listener {
                         .executeUpdate();
                 Bukkit.getScheduler().runTask(ElementalsX.get(), () -> {
                     FieldUtil.registerField(user, block, id, maxLoc, minLoc);
-                    event.getPlayer().sendMessage(ElementalsUtil.color("&aAi pus protectia cu succes!"));
+                    event.getPlayer().sendMessage(ElementalsUtil.color("&f[&cProtectie&f] &a&oProtectia ta a fost creata!"));
                 });
                 Bukkit.getScheduler().runTaskLater(ElementalsX.get(), () -> ElementalsX.getOnlineUsers().forEach(u -> FieldUtil.updateUser(u, u.getBase().getLocation())), 2L);
             } catch (SQLException exception) {
-                event.getPlayer().sendMessage(ElementalsUtil.color("&cEroare. &aContacteaza un admin!"));
+                event.getPlayer().sendMessage(ElementalsUtil.color("&f[&cProtectie&f] &c&l&oEroare. &a&l&oContacteaza un admin!"));
                 event.setCancelled(true);
                 exception.printStackTrace();
             }
@@ -222,7 +222,7 @@ public class FieldListener implements Listener {
             return;
         if (!(FieldUtil.getFieldById(FieldUtil.getFieldIdByBlock(event.getBlock()))
                 .isOwner(uuid) || user.hasPermission("elementals.protection.override"))) {
-            event.getPlayer().sendMessage(ElementalsUtil.color("&bNu esti detinatorul protectiei!"));
+            event.getPlayer().sendMessage(ElementalsUtil.color("&f[&cProtectie&f] &c&oNu esti detinatorul protectiei pentru a o distruge!"));
             event.setCancelled(true);
             return;
         }
@@ -234,11 +234,11 @@ public class FieldListener implements Listener {
                         .executeUpdate();
                 Bukkit.getScheduler().runTask(ElementalsX.get(), () -> {
                     FieldUtil.unregisterField(block);
-                    event.getPlayer().sendMessage(ElementalsUtil.color("&aProtectia a fost distrusa!"));
+                    event.getPlayer().sendMessage(ElementalsUtil.color("&f[&cProtectie&f] &a&oProtectia ta a fost distrusa!"));
                 });
                 Bukkit.getScheduler().runTaskLater(ElementalsX.get(), () -> ElementalsX.getOnlineUsers().forEach(u -> FieldUtil.updateUser(u, u.getBase().getLocation())), 2L);
             } catch (SQLException exception) {
-                event.getPlayer().sendMessage(ElementalsUtil.color("&cEroare. &aContacteaza un admin!"));
+                event.getPlayer().sendMessage(ElementalsUtil.color("&f[&cProtectie&f] &c&l&oEroare. &a&l&oContacteaza un admin!"));
                 event.setCancelled(true);
                 exception.printStackTrace();
             }
@@ -350,7 +350,7 @@ public class FieldListener implements Listener {
         User user = optionalUser.get();
         if (user.hasPermission("elementals.protection.override"))
             return;
-        user.getBase().sendMessage(ElementalsUtil.color("&cNu poti face PvP cu un jucator aflat in protectie!"));
+        user.getBase().sendMessage(ElementalsUtil.color("&f[&cProtectie&f] &c&oNu poti face PvP cu un jucator aflat in protectie!"));
         event.setCancelled(true);
         if (event.getDamager().hasMetadata("flame_ench"))
             entity.setFireTicks(0);
@@ -367,8 +367,8 @@ public class FieldListener implements Listener {
             if (proj.getShooter() == null)
                 return;
             if (proj.getShooter() instanceof BlockProjectileSource) {
-                if (entity.getType() == EntityType.PLAYER)
-                    event.setCancelled(true);
+                //TODO proj block event
+                event.setCancelled(true);
                 return;
             }
             damager = (Entity) proj.getShooter();
@@ -386,7 +386,7 @@ public class FieldListener implements Listener {
         User user = optionalUser.get();
         if (user.hasPermission("elementals.protection.override"))
             return;
-        user.getBase().sendMessage(ElementalsUtil.color("&cNu poti face PvP cu un jucator aflat in protectie!"));
+        user.getBase().sendMessage(ElementalsUtil.color("&f[&cProtectie&f] &c&oNu poti face PvP cu un jucator aflat in protectie!"));
         event.setCancelled(true);
         if (event.getDamager().hasMetadata("flame_ench"))
             entity.setFireTicks(0);
@@ -484,7 +484,7 @@ public class FieldListener implements Listener {
         Field field = FieldUtil.getFieldByLocation(loc);
         if (field.isMember(uuid) || field.isOwner(uuid) || user.hasPermission("elementals.protection.override"))
             return;
-        event.getPlayer().sendMessage(ElementalsUtil.color("&bNu poti folosi galeata aici!"));
+        event.getPlayer().sendMessage(ElementalsUtil.color("&f[&cProtectie&f] &c&oNu poti folosi galeata aici!"));
         event.setCancelled(true);
     }
 
@@ -503,7 +503,7 @@ public class FieldListener implements Listener {
         Field field = FieldUtil.getFieldByLocation(loc);
         if (field.isMember(uuid) || field.isOwner(uuid) || user.hasPermission("elementals.protection.override"))
             return;
-        event.getPlayer().sendMessage(ElementalsUtil.color("&bNu poti folosi galeata aici!"));
+        event.getPlayer().sendMessage(ElementalsUtil.color("&f[&cProtectie&f] &c&oNu poti folosi galeata aici!"));
         event.setCancelled(true);
     }
 
@@ -558,7 +558,7 @@ public class FieldListener implements Listener {
                     if (horse.getOwner() != null && horse.getOwner().getUniqueId().equals(uuid))
                         return;
             }
-            user.getBase().sendMessage(ElementalsUtil.color("&cNu poti interactiona cu aceasta entitate in protectie."));
+            user.getBase().sendMessage(ElementalsUtil.color("&f[&cProtectie&f] &c&oNu poti interactiona cu aceasta entitate aflata in protectie."));
             event.setCancelled(true);
         } else if (entityType == EntityType.MINECART_CHEST
                 || entityType == EntityType.MINECART_FURNACE
@@ -566,7 +566,7 @@ public class FieldListener implements Listener {
                 || entityType == EntityType.MINECART_TNT
                 || entityType == EntityType.MINECART_MOB_SPAWNER
                 || entityType == EntityType.MINECART_COMMAND) {
-            user.getBase().sendMessage(ElementalsUtil.color("&cNu poti interactiona cu aceast vehicul in protectie."));
+            user.getBase().sendMessage(ElementalsUtil.color("&f[&cProtectie&f] &c&oNu poti interactiona cu aceast vehicul aflat in protectie."));
             event.setCancelled(true);
         }
     }
@@ -703,7 +703,7 @@ public class FieldListener implements Listener {
         if (field.isMember(uuid) || field.isOwner(uuid) || user.hasPermission("elementals.protection.override"))
             return;
         if (event.getAction() != Action.PHYSICAL)
-            event.getPlayer().sendMessage(ElementalsUtil.color("&cNu poti interactiona cu acest bloc in protectie!"));
+            event.getPlayer().sendMessage(ElementalsUtil.color("&f[&cProtectie&f] &c&oNu poti interactiona cu acest bloc aflat in protectie!"));
         event.setCancelled(true);
     }
 
@@ -738,7 +738,7 @@ public class FieldListener implements Listener {
         Field field = FieldUtil.getFieldByLocation(loc);
         if (field.isMember(uuid) || field.isOwner(uuid) || user.hasPermission("elementals.protection.override"))
             return;
-        user.getBase().sendMessage(ElementalsUtil.color("&cNu poti pune vehicule in protectie!"));
+        user.getBase().sendMessage(ElementalsUtil.color("&f[&cProtectie&f] &c&oNu poti pune vehicule in protectie!"));
         event.setCancelled(true);
     }
 
@@ -765,12 +765,11 @@ public class FieldListener implements Listener {
         if (field.isMember(uuid) || field.isOwner(uuid) || user.hasPermission("elementals.protection.override"))
             return;
         if (event.getClickedBlock().getType().equals(Material.SPAWNER))
-            event.getPlayer().sendMessage(ElementalsUtil.color("&cNu poti schimba acest spawner!"));
+            event.getPlayer().sendMessage(ElementalsUtil.color("&f[&cProtectie&f] &c&oNu poti schimba acest spawner aflat in protectie!"));
         else
-            event.getPlayer().sendMessage(ElementalsUtil.color("&cNu poti folosi acest obiect aici!"));
+            event.getPlayer().sendMessage(ElementalsUtil.color("&f[&cProtectie&f] &c&oNu poti folosi acest obiect in aceasta protectie!"));
         event.setCancelled(true);
     }
-
 
 
     @EventHandler
@@ -802,7 +801,7 @@ public class FieldListener implements Listener {
         Field field = FieldUtil.getFieldByLocation(loc);
         if (field.isMember(uuid) || field.isOwner(uuid) || user.hasPermission("elementals.protection.override"))
             return;
-        event.getPlayer().sendMessage(ElementalsUtil.color("&bNu poti sparge blocuri in protectie!"));
+        event.getPlayer().sendMessage(ElementalsUtil.color("&f[&cProtectie&f] &c&oNu poti sparge blocuri in aceasta protectie!"));
         event.setCancelled(true);
     }
 
@@ -822,7 +821,7 @@ public class FieldListener implements Listener {
         Field field = FieldUtil.getFieldByLocation(loc);
         if (field.isMember(uuid) || field.isOwner(uuid) || user.hasPermission("elementals.protection.override"))
             return;
-        event.getPlayer().sendMessage(ElementalsUtil.color("&bNu poti pune blocuri in protectie!"));
+        event.getPlayer().sendMessage(ElementalsUtil.color("&f[&cProtectie&f] &c&oNu poti pune blocuri in aceasta protectie!"));
         event.setCancelled(true);
     }
 
@@ -880,7 +879,7 @@ public class FieldListener implements Listener {
             Field field = FieldUtil.getFieldByLocation(loc);
             if (field.isMember(uuid) || field.isOwner(uuid) || user.hasPermission("elementals.protection.override"))
                 return;
-            user.getBase().sendMessage(ElementalsUtil.color("&cNu poti omora aceasta entitate in protectie."));
+            user.getBase().sendMessage(ElementalsUtil.color("&f[&cProtectie&f] &c&oNu poti lovi aceasta entitate aflata in protectie."));
             event.setCancelled(true);
             if (event.getDamager().hasMetadata("flame_ench"))
                 entity.setFireTicks(0);
@@ -940,7 +939,7 @@ public class FieldListener implements Listener {
         Field field = FieldUtil.getFieldByLocation(loc);
         if (field.isMember(uuid) || field.isOwner(uuid) || user.hasPermission("elementals.protection.override"))
             return;
-        user.getBase().sendMessage(ElementalsUtil.color("&cNu poti omora aceasta entitate in protectie."));
+        user.getBase().sendMessage(ElementalsUtil.color("&f[&cProtectie&f] &c&oNu poti lovi aceasta entitate aflata in protectie."));
         event.setCancelled(true);
         if (event.getDamager().hasMetadata("flame_ench"))
             entity.setFireTicks(0);
@@ -986,7 +985,7 @@ public class FieldListener implements Listener {
         Field field = FieldUtil.getFieldByLocation(loc);
         if (field.isMember(uuid) || field.isOwner(uuid) || user.hasPermission("elementals.protection.override"))
             return;
-        user.getBase().sendMessage(ElementalsUtil.color("&cNu poti distruge vehiculul in protectie."));
+        user.getBase().sendMessage(ElementalsUtil.color("&f[&cProtectie&f] &c&oNu poti distruge acest vehiculul aflat in protectie."));
         event.setCancelled(true);
         if (event.getAttacker().hasMetadata("flame_ench"))
             vehicle.setFireTicks(0);
@@ -1014,7 +1013,7 @@ public class FieldListener implements Listener {
             return;
         if (field.isMember(uuid) || field.isOwner(uuid) || user.hasPermission("elementals.protection.override"))
             return;
-        user.getBase().sendMessage(ElementalsUtil.color("&cNu poti intra in vehicul in protectie."));
+        user.getBase().sendMessage(ElementalsUtil.color("&f[&cProtectie&f] &c&oNu poti intra in acest vehicul aflat in protectie."));
         event.setCancelled(true);
     }
 

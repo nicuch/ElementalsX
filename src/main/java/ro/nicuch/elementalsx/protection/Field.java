@@ -2,6 +2,7 @@ package ro.nicuch.elementalsx.protection;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -10,8 +11,6 @@ import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.configuration.file.YamlConfiguration;
 
-import com.google.common.collect.Lists;
-
 import ro.nicuch.elementalsx.ElementalsX;
 
 public class Field {
@@ -19,7 +18,7 @@ public class Field {
     private final UUID owner;
     private final Field3D maxLoc;
     private final Field3D minLoc;
-    private final List<UUID> members = Lists.newArrayList();
+    private final List<UUID> members = new ArrayList<>();
     private final int chunkX;
     private final int chunkZ;
     private final World world;

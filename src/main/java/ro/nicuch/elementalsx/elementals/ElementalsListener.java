@@ -34,6 +34,26 @@ import java.util.UUID;
 public class ElementalsListener implements Listener {
     private final static List<UUID> interactList = new ArrayList<>();
 
+    @EventHandler
+    public void event(PlayerItemConsumeEvent event) {
+        if (event.getPlayer().getName().equals("Adichuu")) {
+            int random = ElementalsUtil.nextInt(5);
+            if (random == 0)
+                event.getPlayer().getWorld().playSound(event.getPlayer().getLocation(), Sound.ENTITY_CAT_HURT, 2f, 1f);
+            if (random == 1)
+                event.getPlayer().getWorld().playSound(event.getPlayer().getLocation(), Sound.ENTITY_CAT_BEG_FOR_FOOD, 2f, 1f);
+            if (random == 2)
+                event.getPlayer().getWorld().playSound(event.getPlayer().getLocation(), Sound.ENTITY_CAT_DEATH, 2f, 1f);
+            if (random == 3)
+                event.getPlayer().getWorld().playSound(event.getPlayer().getLocation(), Sound.ENTITY_CAT_DEATH, 2f, 1f);
+            if (random == 4)
+                event.getPlayer().getWorld().playSound(event.getPlayer().getLocation(), Sound.ENTITY_CAT_PURREOW, 2f, 1f);
+            if (random == 5)
+                event.getPlayer().getWorld().playSound(event.getPlayer().getLocation(), Sound.ENTITY_CAT_HURT, 2f, 1f);
+
+        }
+    }
+
     @EventHandler(ignoreCancelled = true)
     public void event(EntityDamageEvent event) {
         if (!event.getEntity().getWorld().getName().equals("spawn"))
@@ -315,42 +335,42 @@ public class ElementalsListener implements Listener {
         switch (event.getBlock().getType()) {
             case DIAMOND_ORE:
                 if (n == 1) {
-                    Bukkit.broadcastMessage(ElementalsUtil.color(event.getPlayer().getDisplayName() + " &ba descoperit o bucata de Diamant."));
+                    Bukkit.broadcastMessage(ElementalsUtil.color("&8[&7Info&8] &f&o" + event.getPlayer().getName() + " &b&oa descoperit o bucata de Diamant."));
                 } else {
-                    Bukkit.broadcastMessage(ElementalsUtil.color(
-                            event.getPlayer().getDisplayName() + " &ba descoperit " + n + " bucati de Diamant."));
+                    Bukkit.broadcastMessage(ElementalsUtil.color("&8[&7Info&8] &f&o" +
+                            event.getPlayer().getName() + " &b&oa descoperit " + n + " bucati de Diamant."));
                 }
                 break;
             case GOLD_ORE:
                 if (n == 1) {
-                    Bukkit.broadcastMessage(ElementalsUtil.color(event.getPlayer().getDisplayName() + " &ea descoperit o bucata de Aur."));
+                    Bukkit.broadcastMessage(ElementalsUtil.color("&8[&7Info&8] &f&o" + event.getPlayer().getName() + " &e&oa descoperit o bucata de Aur."));
                 } else {
-                    Bukkit.broadcastMessage(ElementalsUtil.color(
-                            event.getPlayer().getDisplayName() + " &ea descoperit " + n + " bucati de Aur."));
+                    Bukkit.broadcastMessage(ElementalsUtil.color("&8[&7Info&8] &f&o" +
+                            event.getPlayer().getName() + " &e&oa descoperit " + n + " bucati de Aur."));
                 }
                 break;
             case IRON_ORE:
                 if (n == 1) {
-                    Bukkit.broadcastMessage(ElementalsUtil.color(event.getPlayer().getDisplayName() + " &7a descoperit o bucata de Fier."));
+                    Bukkit.broadcastMessage(ElementalsUtil.color("&8[&7Info&8] &f&o" + event.getPlayer().getName() + " &7&oa descoperit o bucata de Fier."));
                 } else {
-                    Bukkit.broadcastMessage(ElementalsUtil.color(
-                            event.getPlayer().getDisplayName() + " &7a descoperit " + n + " bucati de Fier."));
+                    Bukkit.broadcastMessage(ElementalsUtil.color("&8[&7Info&8] &f&o" +
+                            event.getPlayer().getName() + " &7&oa descoperit " + n + " bucati de Fier."));
                 }
                 break;
             case LAPIS_ORE:
                 if (n == 1) {
-                    Bukkit.broadcastMessage(ElementalsUtil.color(event.getPlayer().getDisplayName() + " &9a descoperit o bucata de Lapis."));
+                    Bukkit.broadcastMessage(ElementalsUtil.color("&8[&7Info&8] &f&o" + event.getPlayer().getName() + " &9&oa descoperit o bucata de Lapis."));
                 } else {
-                    Bukkit.broadcastMessage(ElementalsUtil.color(
-                            event.getPlayer().getDisplayName() + " &9a descoperit " + n + " bucati de Lapis."));
+                    Bukkit.broadcastMessage(ElementalsUtil.color("&8[&7Info&8] &f&o" +
+                            event.getPlayer().getName() + " &9&oa descoperit " + n + " bucati de Lapis."));
                 }
                 break;
             case EMERALD_ORE:
                 if (n == 1) {
-                    Bukkit.broadcastMessage(ElementalsUtil.color(event.getPlayer().getDisplayName() + " &aa descoperit o bucata de Emerald."));
+                    Bukkit.broadcastMessage(ElementalsUtil.color("&8[&7Info&8] &f&o" + event.getPlayer().getName() + " &a&oa descoperit o bucata de Emerald."));
                 } else {
-                    Bukkit.broadcastMessage(ElementalsUtil.color(
-                            event.getPlayer().getDisplayName() + " &aa descoperit " + n + " bucati de Emerald."));
+                    Bukkit.broadcastMessage(ElementalsUtil.color("&8[&7Info&8] &f&o" +
+                            event.getPlayer().getName() + " &a&oa descoperit " + n + " bucati de Emerald."));
                 }
                 break;
             default:

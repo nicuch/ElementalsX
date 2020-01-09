@@ -2,10 +2,7 @@ package ro.nicuch.elementalsx.elementals.commands;
 
 import java.util.*;
 
-import org.bukkit.Bukkit;
-import org.bukkit.Location;
-import org.bukkit.Material;
-import org.bukkit.World;
+import org.bukkit.*;
 import org.bukkit.block.Biome;
 import org.bukkit.block.BlockFace;
 import org.bukkit.command.Command;
@@ -44,19 +41,19 @@ public class RandomTpCommand implements CommandExecutor {
             sender.sendMessage(ElementalsUtil.color("&cO cerere de teleportare a fost trimisa deja!"));
             return true;
         }
-        if (ElementalsUtil.hasRandomTpDelay(user) && !user.getBase().isOp()) {
+        if (!user.canRtp()) {
             sender.sendMessage(ElementalsUtil.color("&cPoti folosi din nou comanda peste 30 minute!"));
-            return true;
-        }
+             return true;
+         }
         World world = Bukkit.getWorld("world");
         int x = 0;
         int y = 64;
         int z = 0;
         Location loc = new Location(world, x, y, z);
+        ChunkSnapshot snapshot;
         do {
             x = -10000 + ElementalsUtil.nextInt(20000);
             z = -10000 + ElementalsUtil.nextInt(20000);
-            world.loadChunk(x, z);
             if (world.getHighestBlockAt(x, z).getType().isSolid())
                 y = world.getHighestBlockYAt(x, z) + 1;
             else
@@ -81,13 +78,13 @@ public class RandomTpCommand implements CommandExecutor {
         loc.getBlock().setType(Material.AIR);
         loc.getBlock().getRelative(BlockFace.UP).setType(Material.AIR);
         user.getBase().sendMessage(ElementalsUtil.color("&6Nu te misca pana vei fi teleportat!"));
+        user.toggleRtp();
         if (!user.getBase().isOp()) {
             teleportRequest.add(user.getBase().getUniqueId());
             int taskID = Bukkit.getScheduler().runTaskLater(ElementalsX.get(), () -> {
                 user.getBase().teleport(loc);
                 user.getBase().sendMessage(ElementalsUtil.color("&bAi fost teleportat la x:" + loc.getBlockX() + " y:" + loc.getBlockY()
                         + " z:" + loc.getBlockZ() + "!"));
-                ElementalsUtil.delayRandomTPPlayer(user);
                 teleportRequest.remove(user.getBase().getUniqueId());
             }, 20L).getTaskId();
         } else {

@@ -3,24 +3,26 @@ package ro.nicuch.elementalsx.elementals;
 import org.bukkit.*;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Entity;
+import org.bukkit.entity.Firework;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.FireworkMeta;
 import ro.nicuch.elementalsx.ElementalsX;
 import ro.nicuch.elementalsx.User;
 import ro.nicuch.elementalsx.protection.Field;
 import ro.nicuch.elementalsx.protection.FieldUtil;
 import ro.nicuch.lwjnbtl.CompoundTag;
 import ro.nicuch.tag.TagRegister;
+import org.bukkit.FireworkEffect.Type;
 
 import java.util.*;
 
 public class ElementalsUtil {
-    private static final Set<UUID> delayRandomTP = new HashSet<>();
     private static final Set<UUID> delayChat = new HashSet<>();
     private static boolean stopChat = false;
-    private static String motd = "&6PikaCraft &b- &cMinecraft la un alt nivel!";
+    private static String motd = "&6&oPikaCraft &b&o- &c&oServerul se incarca...";
     private static final List<String> autoMsg = Arrays.asList(
             "&aUtilizarea hack-urilor este pedepsita cu &4&lBAN&a!",
             "&bNu uita sa votezi in fiecare zi folosind comanda &f[&6/vote&f]&b! &aVei primi un premiu de fiecare data cand votezi. &6:)",
@@ -30,8 +32,7 @@ public class ElementalsUtil {
             "&aStaff-ul nu raspunde de obiectele pierdute!",
             "&cDaca descoperiti un bug, va rugam sa-l raportati! &6Ve-ti primi un bonus daca bug-ul nu a fost raportat deja!",
             "&cPoti raporta &eJucatorii&c/&5Donatorii&c/&4Staff-ul &cserverului in cazul in care acestia &bincalca regulamentul&c!",
-            "&6Asteptam sugestiile si ideile voastre!",
-            "&ePikaaa-pii! Pikaaa-chu! &a:)");
+            "&6Asteptam sugestiile si ideile voastre!");
 
     public static List<String> getAutoMessages() {
         return autoMsg;
@@ -197,17 +198,38 @@ public class ElementalsUtil {
         user.getBase().sendMessage(color("&aInventarul blocului a fost sortat!"));
     }
 
+    public static Firework randomFirework(Location loc) {
+        Firework fw = loc.getWorld().spawn(loc, Firework.class);
+        FireworkMeta fm = fw.getFireworkMeta();
+        fm.addEffect(FireworkEffect.builder()
+                .withColor(Color.fromBGR(ElementalsUtil.nextInt(255), ElementalsUtil.nextInt(255),
+                        ElementalsUtil.nextInt(255)), Color.fromBGR(ElementalsUtil.nextInt(255), ElementalsUtil.nextInt(255),
+                        ElementalsUtil.nextInt(255)), Color.fromBGR(ElementalsUtil.nextInt(255), ElementalsUtil.nextInt(255),
+                        ElementalsUtil.nextInt(255)), Color.fromBGR(ElementalsUtil.nextInt(255), ElementalsUtil.nextInt(255),
+                        ElementalsUtil.nextInt(255)))
+                .with(Type.values()[ElementalsUtil.nextInt(Type.values().length)]).flicker(ElementalsUtil.nextBoolean())
+                .trail(ElementalsUtil.nextBoolean()).withColor(Color.fromBGR(ElementalsUtil.nextInt(255),
+                        ElementalsUtil.nextInt(255), ElementalsUtil.nextInt(255)))
+                .build());
+        fm.setPower(1);
+        fw.setFireworkMeta(fm);
+        return fw;
+    }
+
     public static void tickMotd() {
-        int random = nextInt(2);
+        int random = nextInt(4);
         switch (random) {
             case 0:
-                motd = "&6PikaCraft &b- &aMinecraft la un alt nivel!\n&bUpdate: &aNEW SERVER!";
+                motd = "&6&oPikaCraft &b&o- &a&oMinecraft la un alt nivel!";
                 break;
             case 1:
-                motd = "&6PikaCraft &b- &5Minecraft la un alt nivel!\n&bUpdate: &aNEW SERVER!";
+                motd = "&6&oPikaCraft &b&o- &b&oMinecraft la un alt nivel!";
                 break;
-            default:
-                motd = "&6PikaCraft &b- &cMinecraft la un alt nivel!\n&bUpdate: &aNEW SERVER!";
+            case 2:
+                motd = "&6&oPikaCraft &b&o- &c&oMinecraft la un alt nivel!";
+                break;
+            case 3:
+                motd = "&6&oPikaCraft &b&o- &e&oMinecraft la un alt nivel!";
                 break;
         }
     }
@@ -246,12 +268,6 @@ public class ElementalsUtil {
         Bukkit.getScheduler().runTaskLater(ElementalsX.get(), () -> delayChat.remove(uuid), 20L);
     }
 
-    public static void delayRandomTPPlayer(User user) {
-        UUID uuid = user.getBase().getUniqueId();
-        delayRandomTP.add(uuid);
-        Bukkit.getScheduler().runTaskLater(ElementalsX.get(), () -> delayRandomTP.remove(uuid), 30 * 60 * 20L);
-    }
-
     public static List<String> getPlayersNames() {
         List<String> args = new ArrayList<>();
         Bukkit.getOnlinePlayers().forEach(player -> args.add(player.getName()));
@@ -260,10 +276,6 @@ public class ElementalsUtil {
 
     public static boolean hasChatDelay(User user) {
         return delayChat.contains(user.getBase().getUniqueId());
-    }
-
-    public static boolean hasRandomTpDelay(User user) {
-        return delayRandomTP.contains(user.getBase().getUniqueId());
     }
 
     public static int foundBlocks(Block block) {

@@ -4,6 +4,8 @@ import net.milkbowl.vault.economy.Economy;
 import net.milkbowl.vault.permission.Permission;
 import org.bukkit.*;
 import org.bukkit.World.Environment;
+import org.bukkit.block.Block;
+import org.bukkit.block.BlockFace;
 import org.bukkit.command.TabExecutor;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.entity.Player;
@@ -22,6 +24,7 @@ import ro.nicuch.elementalsx.protection.FieldUtil;
 import java.io.File;
 import java.sql.Connection;
 import java.sql.DriverManager;
+import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.util.*;
 
@@ -41,6 +44,7 @@ public class ElementalsX extends JavaPlugin {
         perm = this.getServer().getServicesManager().getRegistration(Permission.class).getProvider();
         new WorldCreator("spawn").environment(Environment.NORMAL).generateStructures(false).createWorld();
         new WorldCreator("dungeon").environment(Environment.NORMAL).generateStructures(false).createWorld();
+        new WorldCreator("ice_dungeon").environment(Environment.NORMAL).generateStructures(false).createWorld();
         createDataBase();
         Bukkit.getWorlds().forEach((World world) -> {
             world.setDifficulty(Difficulty.HARD);
@@ -56,6 +60,22 @@ public class ElementalsX extends JavaPlugin {
         Bukkit.getOnlinePlayers().forEach(ElementalsX::createUser);
         sendConsoleMessage("&bPluginul a pornit! (" + (System.currentTimeMillis() - start) + "ms)");
         Bukkit.broadcastMessage(ElementalsUtil.color("&bElementals a pornit! (" + (System.currentTimeMillis() - start) + "ms)"));
+    }
+
+    private void randomFireWork() {
+        Bukkit.getScheduler().runTaskTimer(this, () -> {
+            for (Player player : Bukkit.getOnlinePlayers()) {
+                Block block;
+                boolean l = true;
+                for (int i = 0; i < 15; i++) {
+                    block = player.getLocation().getBlock().getRelative(BlockFace.UP, 1).getRelative(BlockFace.UP, i);
+                    if (block.getType() != Material.AIR)
+                        l = false;
+                }
+                if (l)
+                    ElementalsUtil.randomFirework(player.getLocation().getBlock().getLocation().add(.5, .5, .5));
+            }
+        }, 20 * 5L, 20 * 5L);
     }
 
     private void topKillsTrick() {
@@ -158,11 +178,16 @@ public class ElementalsX extends JavaPlugin {
         String url = "jdbc:mysql://" + ip + "/" + db_name + "?user=" + username + "&password=" + password + "&useSSL=false&autoReconnect=true";
         try {
             database = DriverManager.getConnection(url);
-            database.prepareStatement(
-                    "CREATE TABLE IF NOT EXISTS protection(id VARCHAR(50) PRIMARY KEY, x INT, y INT, z INT, world VARCHAR(50), owner VARCHAR(50), maxx INT, maxz INT, minx INT, minz INT, chunkx INT, chunkz INT);")
-                    .executeUpdate();
-            database.prepareStatement(
-                    "CREATE TABLE IF NOT EXISTS pikapoints(uuid VARCHAR(50) PRIMARY KEY, points INT);").executeUpdate();
+            PreparedStatement ps = database.prepareStatement(
+                    "CREATE TABLE IF NOT EXISTS protection(id VARCHAR(50) PRIMARY KEY, x INT, y INT, z INT, world VARCHAR(50), owner VARCHAR(50), maxx INT, maxz INT, minx INT, minz INT, chunkx INT, chunkz INT);");
+            ps.executeUpdate();
+            if (ps != null)
+                ps.close();
+            ps = database.prepareStatement(
+                    "CREATE TABLE IF NOT EXISTS randomtp(uuid VARCHAR(50) PRIMARY KEY, next BIGINT);");
+            ps.executeUpdate();
+            if (ps != null)
+                ps.close();
         } catch (SQLException exception) {
             exception.printStackTrace();
         }
