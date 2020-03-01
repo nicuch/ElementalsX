@@ -11,6 +11,8 @@ import ro.nicuch.elementalsx.elementals.ElementalsUtil;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 
 public class User {
     private final UUID uuid;
@@ -22,21 +24,18 @@ public class User {
     private int thirstLevel;
     private boolean pack;
     private boolean messages;
-    private long nextRtpAllowed = 0;
+    private final AtomicLong lastRandomTeleport = new AtomicLong(0);
 
     public boolean hasMsgActive() {
         return this.messages;
     }
 
-    public boolean canRtp() {
-        if (this.nextRtpAllowed == 0)
-            return true;
-        return System.currentTimeMillis() > this.nextRtpAllowed;
+    public boolean canRandomTeleport() {
+        return (this.lastRandomTeleport.get() + TimeUnit.MILLISECONDS.convert(30, TimeUnit.MINUTES) < System.currentTimeMillis());
     }
 
-    public void toggleRtp() {
-        long time = System.currentTimeMillis();
-        this.nextRtpAllowed = time + (1000 * 60 * 30);
+    public void toggleRandomTeleport() {
+        this.lastRandomTeleport.set(System.currentTimeMillis());
     }
 
     public void toggleMsgActive(boolean b) {
@@ -116,14 +115,22 @@ public class User {
         }
         Bukkit.getScheduler().runTaskAsynchronously(ElementalsX.get(), () -> {
             try {
-                ResultSet rs = ElementalsX.getBase()
+                PreparedStatement ps = ElementalsX.getBase()
                         .prepareStatement(
-                                "SELECT next FROM randomtp WHERE uuid='" + base.getUniqueId().toString() + "';")
-                        .executeQuery();
-                if (rs.next()) {
-                    long time = rs.getLong("next");
-                    Bukkit.getScheduler().runTask(ElementalsX.get(), () -> this.nextRtpAllowed = time);
+                                "SELECT next FROM randomtp WHERE uuid='" + base.getUniqueId().toString() + "';");
+                ResultSet rs = ps.executeQuery();
+                if (rs.next())
+                    this.lastRandomTeleport.set(rs.getLong("next"));
+                else {
+                    PreparedStatement ps2 = ElementalsX.getBase().prepareStatement("INSERT INTO randomtp (uuid, next) VALUES ('" + this.uuid.toString() + "', '" + this.lastRandomTeleport.get() + "');");
+                    ps2.executeUpdate();
+                    if (ps2 != null)
+                        ps2.close();
                 }
+                if (ps != null)
+                    ps.close();
+                if (rs != null)
+                    rs.close();
             } catch (Exception exception) {
                 //TODO backup
                 exception.printStackTrace();
@@ -177,7 +184,7 @@ public class User {
         if (disable) {
             try {
                 PreparedStatement ps = ElementalsX.getBase().prepareStatement(
-                        "UPDATE randomtp SET next='" + this.nextRtpAllowed + "' WHERE uuid='" + this.uuid.toString() + "';");
+                        "UPDATE randomtp SET next='" + this.lastRandomTeleport + "' WHERE uuid='" + this.uuid.toString() + "';");
                 ps.executeUpdate();
                 if (ps != null)
                     ps.close();
@@ -190,7 +197,7 @@ public class User {
         Bukkit.getScheduler().runTaskAsynchronously(ElementalsX.get(), () -> {
             try {
                 PreparedStatement ps = ElementalsX.getBase().prepareStatement(
-                        "UPDATE randomtp SET next='" + this.nextRtpAllowed + "' WHERE uuid='" + this.uuid.toString() + "';");
+                        "UPDATE randomtp SET next='" + this.lastRandomTeleport + "' WHERE uuid='" + this.uuid.toString() + "';");
                 ps.executeUpdate();
                 if (ps != null)
                     ps.close();

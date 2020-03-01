@@ -1,5 +1,6 @@
 package ro.nicuch.elementalsx.protection;
 
+import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.util.Optional;
 import java.util.UUID;
@@ -175,25 +176,26 @@ public class FieldListener implements Listener {
             event.setCancelled(true);
             return;
         }
-        String id = FieldUtil.getFieldIdByBlock(block);
+        FieldId id = FieldId.fromBlock(block);
         Location loc = block.getLocation();
         Block locMax = loc.clone().add(25, 0, 25).getBlock();
         Block locMin = loc.clone().add(-25, 0, -25).getBlock();
-        Field3D maxLoc = new Field3D(locMax.getX(), locMax.getY(), locMax.getZ());
-        Field3D minLoc = new Field3D(locMin.getX(), locMin.getY(), locMin.getZ());
+        Field2D field2D = new Field2D(locMax.getX(), locMax.getZ(), locMin.getX(), locMin.getZ());
         Bukkit.getScheduler().runTaskAsynchronously(ElementalsX.get(), () -> {
             try {
-                ElementalsX.getBase()
+                PreparedStatement ps = ElementalsX.getBase()
                         .prepareStatement(
                                 "INSERT INTO protection (id, x, y, z, world, owner, maxx, maxz, minx, minz, chunkx, chunkz) VALUES ('"
-                                        + id + "', '" + block.getX() + "', '" + block.getY() + "', '" + block.getZ()
+                                        + id.getOldId() + "', '" + block.getX() + "', '" + block.getY() + "', '" + block.getZ()
                                         + "', '" + block.getWorld().getName() + "', '"
-                                        + uuid.toString() + "', '" + maxLoc.getX() + "', '"
-                                        + maxLoc.getZ() + "', '" + minLoc.getX() + "', '" + minLoc.getZ() + "', '"
-                                        + block.getChunk().getX() + "', '" + block.getChunk().getZ() + "');")
-                        .executeUpdate();
+                                        + uuid.toString() + "', '" + field2D.getMaxX() + "', '"
+                                        + field2D.getMaxZ() + "', '" + field2D.getMinX() + "', '" + field2D.getMinZ() + "', '"
+                                        + block.getChunk().getX() + "', '" + block.getChunk().getZ() + "');");
+                ps.executeUpdate();
+                if (ps != null)
+                    ps.close();
                 Bukkit.getScheduler().runTask(ElementalsX.get(), () -> {
-                    FieldUtil.registerField(user, block, id, maxLoc, minLoc);
+                    FieldUtil.registerField(user, block, id, field2D);
                     event.getPlayer().sendMessage(ElementalsUtil.color("&f[&cProtectie&f] &a&oProtectia ta a fost creata!"));
                 });
                 Bukkit.getScheduler().runTaskLater(ElementalsX.get(), () -> ElementalsX.getOnlineUsers().forEach(u -> FieldUtil.updateUser(u, u.getBase().getLocation())), 2L);
@@ -220,7 +222,7 @@ public class FieldListener implements Listener {
         User user = optionalUser.get();
         if (!FieldUtil.isFieldBlock(event.getBlock()))
             return;
-        if (!(FieldUtil.getFieldById(FieldUtil.getFieldIdByBlock(event.getBlock()))
+        if (!(FieldUtil.getFieldById(FieldId.fromBlock(event.getBlock()))
                 .isOwner(uuid) || user.hasPermission("elementals.protection.override"))) {
             event.getPlayer().sendMessage(ElementalsUtil.color("&f[&cProtectie&f] &c&oNu esti detinatorul protectiei pentru a o distruge!"));
             event.setCancelled(true);
@@ -228,10 +230,12 @@ public class FieldListener implements Listener {
         }
         Bukkit.getScheduler().runTaskAsynchronously(ElementalsX.get(), () -> {
             try {
-                ElementalsX.getBase()
+                PreparedStatement ps = ElementalsX.getBase()
                         .prepareStatement("DELETE FROM protection WHERE x='" + block.getX() + "' AND y='" + block.getY()
-                                + "' AND z='" + block.getZ() + "' AND world='" + block.getWorld().getName() + "';")
-                        .executeUpdate();
+                                + "' AND z='" + block.getZ() + "' AND world='" + block.getWorld().getName() + "';");
+                ps.executeUpdate();
+                if (ps != null)
+                    ps.close();
                 Bukkit.getScheduler().runTask(ElementalsX.get(), () -> {
                     FieldUtil.unregisterField(block);
                     event.getPlayer().sendMessage(ElementalsUtil.color("&f[&cProtectie&f] &a&oProtectia ta a fost distrusa!"));
@@ -254,14 +258,16 @@ public class FieldListener implements Listener {
 
     @EventHandler
     public void event(ChunkLoadEvent event) {
-        if (event.getWorld().getName().equals("spawn"))
+        String worldName = event.getWorld().getName();
+        if (worldName.equals("spawn") || worldName.equals("dungeon"))
             return;
         FieldUtil.loadFieldsInChunk(event.getChunk());
     }
 
     @EventHandler
     public void event(ChunkUnloadEvent event) {
-        if (event.getWorld().getName().equals("spawn"))
+        String worldName = event.getWorld().getName();
+        if (worldName.equals("spawn") || worldName.equals("dungeon"))
             return;
         FieldUtil.unloadFieldsInChunk(event.getChunk());
     }
@@ -394,7 +400,8 @@ public class FieldListener implements Listener {
 
     @EventHandler(ignoreCancelled = true)
     public void event(EntityExplodeEvent event) {
-        if (event.getLocation().getWorld().getName().equals("spawn"))
+        String worldName = event.getLocation().getWorld().getName();
+        if (worldName.equals("spawn") || worldName.equals("dungeon"))
             return;
         if (!FieldUtil.isFieldAtLocation(event.getLocation()))
             return;

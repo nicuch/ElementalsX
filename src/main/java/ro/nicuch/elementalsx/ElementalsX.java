@@ -27,11 +27,13 @@ import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
 public class ElementalsX extends JavaPlugin {
 
     private static Connection database;
-    private final static Map<UUID, User> players = new HashMap<>();
+    private final static ConcurrentMap<UUID, User> players = new ConcurrentHashMap<>();
     private static Economy vault;
     private static Permission perm;
 
@@ -44,7 +46,6 @@ public class ElementalsX extends JavaPlugin {
         perm = this.getServer().getServicesManager().getRegistration(Permission.class).getProvider();
         new WorldCreator("spawn").environment(Environment.NORMAL).generateStructures(false).createWorld();
         new WorldCreator("dungeon").environment(Environment.NORMAL).generateStructures(false).createWorld();
-        new WorldCreator("ice_dungeon").environment(Environment.NORMAL).generateStructures(false).createWorld();
         createDataBase();
         Bukkit.getWorlds().forEach((World world) -> {
             world.setDifficulty(Difficulty.HARD);
@@ -95,7 +96,7 @@ public class ElementalsX extends JavaPlugin {
     }
 
     public static void createUser(Player player) {
-        players.put(player.getUniqueId(), new User(player));
+        players.putIfAbsent(player.getUniqueId(), new User(player));
     }
 
     public static boolean existUser(UUID uuid) {
@@ -139,8 +140,10 @@ public class ElementalsX extends JavaPlugin {
     }
 
     public static void removeUser(UUID uuid) {
-        if (existUser(uuid))
-            players.remove(uuid).save(false);
+        if (players.containsKey(uuid)) {
+            players.get(uuid).save(false);
+            players.remove(uuid);
+        }
     }
 
     public static void sendConsoleMessage(String arg) {

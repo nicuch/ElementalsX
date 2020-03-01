@@ -1,5 +1,6 @@
 package ro.nicuch.elementalsx.protection;
 
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.*;
@@ -9,9 +10,7 @@ import org.bukkit.Chunk;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.OfflinePlayer;
-import org.bukkit.World;
 import org.bukkit.block.Block;
-import org.bukkit.block.data.BlockData;
 import org.bukkit.event.block.BlockBreakEvent;
 
 import ro.nicuch.elementalsx.ElementalsX;
@@ -19,15 +18,15 @@ import ro.nicuch.elementalsx.User;
 import ro.nicuch.elementalsx.elementals.ElementalsUtil;
 
 public class FieldUtil {
-    private final static Map<String, Field> loadedFields = new HashMap<>();
+    private final static Map<FieldId, Field> loadedFields = new HashMap<>();
 
-    public static void registerField(User user, Block block, String id, Field3D maxLoc, Field3D minLoc) {
-        Field field = new Field(id, user.getBase().getUniqueId(), maxLoc, minLoc, block.getChunk(), block.getWorld(), block);
+    public static void registerField(User user, Block block, FieldId id, Field2D field2D) {
+        Field field = new Field(id, user.getBase().getUniqueId(), field2D, block);
         loadedFields.putIfAbsent(id, field);
     }
 
     public static void unregisterField(Block block) {
-        String id = getFieldIdByBlock(block);
+        FieldId id = FieldId.fromBlock(block);
         if (isFieldLoaded(id)) {
             Field field = getFieldById(id);
             field.delete();
@@ -35,33 +34,33 @@ public class FieldUtil {
         }
     }
 
-    public static boolean isFieldNerby(User user, Location loc) {
-        Location l1 = loc.clone().add(-25, 0, -25);
+    public static boolean isFieldNerby(User user, Location location) {
+        Location l1 = location.clone().add(-25, 0, -25);
         if (isFieldAtLocation(l1))
             if (!getFieldByLocation(l1).isOwner(user.getBase().getUniqueId()))
                 return true;
-        Location l2 = loc.clone().add(25, 0, 25);
+        Location l2 = location.clone().add(25, 0, 25);
         if (isFieldAtLocation(l2))
             if (!getFieldByLocation(l2).isOwner(user.getBase().getUniqueId()))
                 return true;
-        Location l3 = loc.clone().add(-25, 0, 25);
+        Location l3 = location.clone().add(-25, 0, 25);
         if (isFieldAtLocation(l3))
             if (!getFieldByLocation(l3).isOwner(user.getBase().getUniqueId()))
                 return true;
-        Location l4 = loc.clone().add(25, 0, -25);
+        Location l4 = location.clone().add(25, 0, -25);
         if (isFieldAtLocation(l4))
             return !getFieldByLocation(l4).isOwner(user.getBase().getUniqueId());
         return false;
     }
 
-    public static List<UUID> convertStringsToUUIDs(List<String> strings) {
-        List<UUID> list = new ArrayList<>();
+    public static Set<UUID> convertStringsToUUIDs(List<String> strings) {
+        Set<UUID> list = new HashSet<>();
         strings.forEach((String arg) -> list.add(UUID.fromString(arg)));
         return list;
     }
 
-    public static List<String> convertUUIDsToStrings(List<UUID> uuids) {
-        List<String> list = new ArrayList<>();
+    public static Set<String> convertUUIDsToStrings(Set<UUID> uuids) {
+        Set<String> list = new HashSet<>();
         uuids.forEach((UUID uuid) -> list.add(uuid.toString()));
         return list;
     }
@@ -69,7 +68,7 @@ public class FieldUtil {
     public static boolean areThereEnoughProtections(Chunk chunk) {
         try {
             ResultSet rs = ElementalsX
-                    .getBase().prepareStatement("SELECT COUNT(*) FROM protection WHERE chunkx='" + chunk.getX()
+                    .getBase().prepareStatement("SELECT COUNT(id) FROM protection WHERE chunkx='" + chunk.getX()
                             + "' AND chunkz='" + chunk.getZ() + "' AND world='" + chunk.getWorld().getName() + "';")
                     .executeQuery();
             if (rs.next())
@@ -84,15 +83,14 @@ public class FieldUtil {
 
     public static void loadFieldsInChunk(Chunk chunk) {
         Bukkit.getScheduler().runTaskAsynchronously(ElementalsX.get(), () -> {
+            String world = chunk.getWorld().getName();
             try {
                 ResultSet rs = ElementalsX
-                        .getBase().prepareStatement("SELECT * FROM protection WHERE chunkx='" + chunk.getX()
-                                + "' AND chunkz='" + chunk.getZ() + "' AND world='" + chunk.getWorld().getName() + "';")
+                        .getBase().prepareStatement("SELECT maxx, maxz, minx, minz, x, y, z, owner FROM protection WHERE chunkx='" + chunk.getX()
+                                + "' AND chunkz='" + chunk.getZ() + "' AND world='" + world + "';")
                         .executeQuery();
                 while (rs.next()) {
                     // Get Strings and Ints to not catch SQLException in Async
-                    String worldName = rs.getString("world");
-                    int y = rs.getInt("y");
                     int maxx = rs.getInt("maxx");
                     int maxz = rs.getInt("maxz");
                     int minx = rs.getInt("minx");
@@ -100,14 +98,12 @@ public class FieldUtil {
                     int blockX = rs.getInt("x");
                     int blockY = rs.getInt("y");
                     int blockZ = rs.getInt("z");
-                    String id = rs.getString("id");
                     UUID uuid = UUID.fromString(rs.getString("owner"));
                     Bukkit.getScheduler().runTask(ElementalsX.get(), () -> {
-                        // Never access BukkitAPI async
-                        World world = Bukkit.getWorld(worldName);
-                        Field3D maxLoc = new Field3D(maxx, y, maxz);
-                        Field3D minLoc = new Field3D(minx, y, minz);
-                        Field field = new Field(id, uuid, maxLoc, minLoc, chunk, world, world.getBlockAt(blockX, blockY, blockZ));
+                        // Never access modifiers from BukkitAPI async
+                        Field2D field2D = new Field2D(maxx, maxz, minx, minz);
+                        FieldId id = FieldId.fromLocation(blockX, blockY, blockZ, world);
+                        Field field = new Field(id, uuid, field2D, chunk, blockX, blockY, blockZ);
                         loadedFields.put(id, field);
                     });
                 }
@@ -136,11 +132,15 @@ public class FieldUtil {
         Bukkit.getScheduler().runTaskAsynchronously(ElementalsX.get(), () -> {
             try {
                 ResultSet rs = ElementalsX
-                        .getBase().prepareStatement("SELECT id FROM protection WHERE chunkx='" + chunk.getX()
+                        .getBase().prepareStatement("SELECT x, y, z, world FROM protection WHERE chunkx='" + chunk.getX()
                                 + "' AND chunkz='" + chunk.getZ() + "' AND world='" + chunk.getWorld().getName() + "';")
                         .executeQuery();
                 while (rs.next()) {
-                    String id = rs.getString("id");
+                    int x = rs.getInt("x");
+                    int y = rs.getInt("y");
+                    int z = rs.getInt("z");
+                    String world = rs.getString("world");
+                    FieldId id = FieldId.fromLocation(x, y, z, world);
                     Bukkit.getScheduler().runTask(ElementalsX.get(), () -> {
                         if (loadedFields.containsKey(id)) loadedFields.remove(id).save();
                     });
@@ -155,34 +155,28 @@ public class FieldUtil {
 
     public static boolean isFieldAtLocation(Location location) {
         for (Field field : loadedFields.values())
-            if (field.getMaximLocation().getX() >= location.getBlockX()
-                    && field.getMaximLocation().getZ() >= location.getBlockZ()
-                    && field.getMinimLocation().getX() <= location.getBlockX()
-                    && field.getMinimLocation().getZ() <= location.getBlockZ()
-                    && field.getWorld().getName().equals(location.getWorld().getName()))
+            if (field.getWorld().getName().equals(location.getWorld().getName())
+                    && field.getField2D().isInLocation(location))
                 return true;
         return false;
     }
 
     public static Field getFieldByLocation(Location location) {
         for (Field field : loadedFields.values())
-            if (field.getMaximLocation().getX() >= location.getBlockX()
-                    && field.getMaximLocation().getZ() >= location.getBlockZ()
-                    && field.getMinimLocation().getX() <= location.getBlockX()
-                    && field.getMinimLocation().getZ() <= location.getBlockZ()
-                    && field.getWorld().getName().equals(location.getWorld().getName()))
+            if (field.getWorld().getName().equals(location.getWorld().getName())
+                    && field.getField2D().isInLocation(location))
                 return field;
         throw new NullPointerException("Nici o protectie gasita la locatia data.");
     }
 
-    public static Field getFieldById(String id) {
+    public static Field getFieldById(FieldId id) {
         if (loadedFields.containsKey(id))
             return loadedFields.get(id);
         else
-            throw new NullPointerException("Nici o protectie gasita dupa id-ul dat.");
+            throw new NullPointerException("Nici o protectie gasita dupa id-ul " + id.toString() + "!");
     }
 
-    public static boolean isFieldLoaded(String id) {
+    public static boolean isFieldLoaded(FieldId id) {
         return loadedFields.containsKey(id);
     }
 
@@ -192,11 +186,13 @@ public class FieldUtil {
 
     public static boolean isFieldBlock(Block block) {
         try {
-            ResultSet rs = ElementalsX.getBase()
+            PreparedStatement ps = ElementalsX.getBase()
                     .prepareStatement("SELECT id FROM protection WHERE x='" + block.getX() + "' AND y='" + block.getY()
-                            + "' AND z='" + block.getZ() + "' AND world='" + block.getWorld().getName() + "';")
-                    .executeQuery();
-            boolean isIt = rs.next();
+                            + "' AND z='" + block.getZ() + "' AND world='" + block.getWorld().getName() + "';");
+            ResultSet rs = ps.executeQuery();
+            boolean isIt = !rs.wasNull();
+            if (ps != null)
+                ps.close();
             if (rs != null)
                 rs.close();
             return isIt;
@@ -204,11 +200,6 @@ public class FieldUtil {
             exception.printStackTrace();
         }
         return false;
-    }
-
-    public static String getFieldIdByBlock(Block block) {
-        return "x" + block.getX() + "y" + block.getY() + "z"
-                + block.getZ() + "world" + block.getWorld().getName();
     }
 
     // DO NEVER PUT COLLIDABLE AGAIN
@@ -241,7 +232,7 @@ public class FieldUtil {
                 Field field;
                 Block block = user.getBase().getTargetBlock(null, 3);
                 if (block.getType().equals(Material.DIAMOND_BLOCK) && isFieldBlock(block))
-                    field = getFieldById(getFieldIdByBlock(block));
+                    field = getFieldById(FieldId.fromBlock(block));
                 else if (isFieldAtLocation(user.getBase().getLocation()))
                     field = getFieldByLocation(user.getBase().getLocation());
                 else {
@@ -260,18 +251,26 @@ public class FieldUtil {
                     user.getBase().sendMessage(ElementalsUtil.color("&f[&cProtectie&f] &a&oJucatorul &f&o" + name + " &a&oa fost sters din protectie."));
                 }
             } else {
-                ResultSet rs = ElementalsX.getBase().prepareStatement(
-                        "SELECT id FROM protection WHERE owner='" + user.getBase().getUniqueId().toString() + "';")
-                        .executeQuery();
+                //TODO add to all
+                PreparedStatement ps = ElementalsX.getBase().prepareStatement(
+                        "SELECT x, y, z, world FROM protection WHERE owner='" + user.getBase().getUniqueId().toString() + "';");
+                ResultSet rs = ps.executeQuery();
                 while (rs.next()) {
+                    int x = rs.getInt("x");
+                    int y = rs.getInt("y");
+                    int z = rs.getInt("z");
+                    String world = rs.getString("world");
+                    FieldId id = FieldId.fromLocation(x, y, z, world);
                     if (allow) {
-                        if (isFieldLoaded(rs.getString("id")))
-                            getFieldById(rs.getString("id")).addMember(member.getUniqueId());
+                        if (isFieldLoaded(id))
+                            getFieldById(id).addMember(member.getUniqueId());
                     } else {
-                        if (isFieldLoaded(rs.getString("id")))
-                            getFieldById(rs.getString("id")).removeMember(member.getUniqueId());
+                        if (isFieldLoaded(id))
+                            getFieldById(id).removeMember(member.getUniqueId());
                     }
                 }
+                if (ps != null)
+                    ps.close();
                 if (rs != null)
                     rs.close();
                 if (allow)
@@ -285,12 +284,11 @@ public class FieldUtil {
         }
     }
 
-    @SuppressWarnings("deprecation")
     public static void visualiseField(User user) {
         Field field;
         Block block = user.getBase().getTargetBlock(null, 3);
         if (block.getType().equals(Material.DIAMOND_BLOCK) && isFieldBlock(block))
-            field = getFieldById(getFieldIdByBlock(block));
+            field = getFieldById(FieldId.fromBlock(block));
         else if (isFieldAtLocation(user.getBase().getLocation()))
             field = getFieldByLocation(user.getBase().getLocation());
         else {
@@ -302,87 +300,14 @@ public class FieldUtil {
             user.getBase().sendMessage(ElementalsUtil.color("&f[&cProtectie&f] &c&oTrebuie sa fii detinatorul sau membru al protectiei ca sa poti vizualiza!"));
             return;
         }
-        int maxx = field.getMaximLocation().getX();
-        int maxz = field.getMaximLocation().getZ();
-        int minx = field.getMinimLocation().getX();
-        int minz = field.getMinimLocation().getZ();
-        int midx = maxx - ((maxx - minx) / 2);
-        int midz = maxz - ((maxz - minz) / 2);
-        BlockData glass = Material.GLASS.createBlockData();
-        for (int y = 0; y < 256; y++) {
-            Location a = new Location(field.getWorld(), maxx, y, maxz);
-            user.getBase().sendBlockChange(a, glass);
-            Location b = new Location(field.getWorld(), minx, y, minz);
-            user.getBase().sendBlockChange(b, glass);
-            Location c = new Location(field.getWorld(), minx, y, maxz);
-            user.getBase().sendBlockChange(c, glass);
-            Location d = new Location(field.getWorld(), maxx, y, minz);
-            user.getBase().sendBlockChange(d, glass);
-            Location e = new Location(field.getWorld(), maxx, y, midz);
-            user.getBase().sendBlockChange(e, glass);
-            Location f = new Location(field.getWorld(), minx, y, midz);
-            user.getBase().sendBlockChange(f, glass);
-            Location g = new Location(field.getWorld(), midx, y, maxz);
-            user.getBase().sendBlockChange(g, glass);
-            Location h = new Location(field.getWorld(), midx, y, minz);
-            user.getBase().sendBlockChange(h, glass);
-        }
-        for (int y = 0; y < 256; y += 16) {
-            for (int x = minx; x < maxx; x++) {
-                Location loc0 = new Location(field.getWorld(), x, y, maxz);
-                user.getBase().sendBlockChange(loc0, glass);
-                user.getBase().sendBlockChange(loc0, glass);
-                Location loc1 = new Location(field.getWorld(), x, y, minz);
-                user.getBase().sendBlockChange(loc1, glass);
-            }
-            for (int z = minz; z < maxz; z++) {
-                Location loc0 = new Location(field.getWorld(), maxx, y, z);
-                user.getBase().sendBlockChange(loc0, Material.GLASS, (byte) 0);
-                Location loc1 = new Location(field.getWorld(), minx, y, z);
-                user.getBase().sendBlockChange(loc1, Material.GLASS, (byte) 0);
-            }
-        }
-        Bukkit.getScheduler().runTaskLater(ElementalsX.get(), () -> {
-            for (int y = 0; y < 256; y++) {
-                Location a = new Location(field.getWorld(), maxx, y, maxz);
-                user.getBase().sendBlockChange(a, a.getBlock().getBlockData());
-                Location b = new Location(field.getWorld(), minx, y, minz);
-                user.getBase().sendBlockChange(b, b.getBlock().getBlockData());
-                Location c = new Location(field.getWorld(), minx, y, maxz);
-                user.getBase().sendBlockChange(c, c.getBlock().getBlockData());
-                Location d = new Location(field.getWorld(), maxx, y, minz);
-                user.getBase().sendBlockChange(d, d.getBlock().getBlockData());
-                Location e = new Location(field.getWorld(), maxx, y, midz);
-                user.getBase().sendBlockChange(e, e.getBlock().getBlockData());
-                Location f = new Location(field.getWorld(), minx, y, midz);
-                user.getBase().sendBlockChange(f, f.getBlock().getBlockData());
-                Location g = new Location(field.getWorld(), midx, y, maxz);
-                user.getBase().sendBlockChange(g, g.getBlock().getBlockData());
-                Location h = new Location(field.getWorld(), midx, y, minz);
-                user.getBase().sendBlockChange(h, h.getBlock().getBlockData());
-            }
-            for (int y = 0; y < 256; y += 16) {
-                for (int x = minx; x < maxx; x++) {
-                    Location loc0 = new Location(field.getWorld(), x, y, maxz);
-                    user.getBase().sendBlockChange(loc0, loc0.getBlock().getBlockData());
-                    Location loc1 = new Location(field.getWorld(), x, y, minz);
-                    user.getBase().sendBlockChange(loc1, loc1.getBlock().getBlockData());
-                }
-                for (int z = minz; z < maxz; z++) {
-                    Location loc0 = new Location(field.getWorld(), maxx, y, z);
-                    user.getBase().sendBlockChange(loc0, loc0.getBlock().getBlockData());
-                    Location loc1 = new Location(field.getWorld(), minx, y, z);
-                    user.getBase().sendBlockChange(loc1, loc1.getBlock().getBlockData());
-                }
-            }
-        }, 20 * 20);
+        field.getField2D().sendFieldVisualize(user.getBase(), field.getWorld());
     }
 
     public static void toggleFun(User user) {
         Field field;
         Block block = user.getBase().getTargetBlock(null, 3);
         if (block.getType().equals(Material.DIAMOND_BLOCK) && isFieldBlock(block))
-            field = getFieldById(getFieldIdByBlock(block));
+            field = getFieldById(FieldId.fromBlock(block));
         else if (isFieldAtLocation(user.getBase().getLocation()))
             field = getFieldByLocation(user.getBase().getLocation());
         else {
@@ -402,7 +327,7 @@ public class FieldUtil {
         Field field;
         Block block = user.getBase().getTargetBlock(null, 3);
         if (block.getType().equals(Material.DIAMOND_BLOCK) && isFieldBlock(block))
-            field = getFieldById(getFieldIdByBlock(block));
+            field = getFieldById(FieldId.fromBlock(block));
         else if (isFieldAtLocation(user.getBase().getLocation()))
             field = getFieldByLocation(user.getBase().getLocation());
         else {
@@ -420,9 +345,9 @@ public class FieldUtil {
                 + "(x) &c/ &6" + block.getY() + "(y) &c/ &6" + block.getZ() + "(z)"));
         user.getBase().sendMessage(ElementalsUtil.color("&9Marime: &a51(x) &c/ &a256(y) &c/ &a51(x)"));
         user.getBase().sendMessage(ElementalsUtil.color("&4Locatie maxima: &a" + field.getWorld().getName() + " &c/ &a"
-                + field.getMaximLocation().getX() + "(x) &c/ &a" + field.getMaximLocation().getZ() + "(z)"));
+                + field.getField2D().getMaxX() + "(x) &c/ &a" + field.getField2D().getMaxZ() + "(z)"));
         user.getBase().sendMessage(ElementalsUtil.color("&cLocatie minima: &a" + field.getWorld().getName() + " &c/ &a"
-                + field.getMinimLocation().getX() + "(x) &c/ &a" + field.getMinimLocation().getZ() + "(z)"));
+                + field.getField2D().getMinX() + "(x) &c/ &a" + field.getField2D().getMinZ() + "(z)"));
         user.getBase().sendMessage(ElementalsUtil.color("&bDetinator: &6" + Bukkit.getOfflinePlayer(field.getOwner()).getName() + " &f-> &d"
                 + field.getOwner().toString()));
         if (!field.getMembers().isEmpty())
@@ -437,60 +362,26 @@ public class FieldUtil {
         Field field;
         Block block = user.getBase().getTargetBlock(null, 3);
         if (block.getType().equals(Material.DIAMOND_BLOCK) && isFieldBlock(block))
-            field = getFieldById(getFieldIdByBlock(block));
+            field = getFieldById(FieldId.fromBlock(block));
         else if (isFieldAtLocation(user.getBase().getLocation()))
             field = getFieldByLocation(user.getBase().getLocation());
         else {
             user.getBase().sendMessage(ElementalsUtil.color("&f[&cProtectie&f] &c&oTrebuie sa te afli intr-o protectie!"));
             return;
         }
-        if (field.isOwner(user.getBase().getUniqueId()) || user.hasPermission("protection.override")) {
-            BlockData glass = Material.GLASS.createBlockData();
-            Location loc;
-            for (int x = field.getMinimLocation().getX(); x < field.getMaximLocation().getX(); x++) {
-                loc = new Location(field.getWorld(), x, field.getMaximLocation().getY(),
-                        field.getMaximLocation().getZ() - 25);
-                user.getBase().sendBlockChange(loc, glass);
-            }
-            for (int z = field.getMinimLocation().getZ(); z < field.getMaximLocation().getZ(); z++) {
-                loc = new Location(field.getWorld(), field.getMaximLocation().getX() - 25,
-                        field.getMaximLocation().getY(), z);
-                user.getBase().sendBlockChange(loc, glass);
-            }
-            for (int y = 0; y < 256; y++) {
-                loc = new Location(field.getWorld(), field.getMaximLocation().getX() - 25, y,
-                        field.getMaximLocation().getZ() - 25);
-                user.getBase().sendBlockChange(loc, glass);
-            }
-            user.getBase().sendBlockChange(field.getBlock().getLocation(), field.getBlock().getBlockData());
-            Bukkit.getScheduler().runTaskLater(ElementalsX.get(), () -> {
-                Location loc2;
-                for (int x = field.getMinimLocation().getX(); x < field.getMaximLocation().getX(); x++) {
-                    loc2 = new Location(field.getWorld(), x, field.getMaximLocation().getY(),
-                            field.getMaximLocation().getZ() - 25);
-                    user.getBase().sendBlockChange(loc2, loc2.getBlock().getBlockData());
-                }
-                for (int z = field.getMinimLocation().getZ(); z < field.getMaximLocation().getZ(); z++) {
-                    loc2 = new Location(field.getWorld(), field.getMaximLocation().getX() - 25,
-                            field.getMaximLocation().getY(), z);
-                    user.getBase().sendBlockChange(loc2, loc2.getBlock().getBlockData());
-                }
-                for (int y = 0; y < 256; y++) {
-                    loc2 = new Location(field.getWorld(), field.getMaximLocation().getX() - 25, y,
-                            field.getMaximLocation().getZ() - 25);
-                    user.getBase().sendBlockChange(loc2, loc2.getBlock().getBlockData());
-                }
-            }, 20 * 20);
-        } else
+        if (!(field.isOwner(user.getBase().getUniqueId()) || user.hasPermission("protection.override"))) {
             user.getBase().sendMessage(ElementalsUtil.color("&f[&cProtectie&f] &c&oNu esti detinatorul protectiei!"));
+            return;
+        }
+        field.getField2D().sendFieldLocate(user.getBase(), field.getWorld(), field.getBlockY());
     }
 
     public static void listFields(User user) {
         try {
-            ResultSet rs = ElementalsX.getBase()
+            PreparedStatement ps = ElementalsX.getBase()
                     .prepareStatement("SELECT x, y, z, world FROM protection WHERE owner='"
-                            + user.getBase().getUniqueId().toString() + "';")
-                    .executeQuery();
+                            + user.getBase().getUniqueId().toString() + "';");
+            ResultSet rs = ps.executeQuery();
             if (rs.wasNull()) {
                 user.getBase().sendMessage(ElementalsUtil.color("&f[&cProtectie&f] &c&oNu ai nici-o protectie!"));
                 return;
@@ -499,6 +390,8 @@ public class FieldUtil {
             while (rs.next())
                 user.getBase().sendMessage(ElementalsUtil.color("&5&l> &b" + rs.getString("world") + "&c, &b" + rs.getString("x")
                         + "&c, &b" + rs.getString("y") + "&c, &b" + rs.getString("z")));
+            if (ps != null)
+                ps.close();
             if (rs != null)
                 rs.close();
         } catch (SQLException ex) {

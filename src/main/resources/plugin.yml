@@ -5,7 +5,8 @@ api-version: 1.14
 authors: [nicuch]
 description: Elementals 2 for Pikacraft server.
 website: pikacraft.ro
-depend: [Jobs, TagRegisterLib, WorldEdit, Vault, Citizens, AuthMe, PlaceholderAPI, mcMMO]
+depend: [Jobs, TagRegisterLib, WorldEdit, Vault, Citizens, AuthMe, PlaceholderAPI, mcMMO, MythicMobs]
+loadbefore: [FugusCore, AncientGates]
 commands:
   randomtp:
     aliases: [rdtp, rtp]

@@ -1,5 +1,6 @@
 package ro.nicuch.elementalsx.elementals.commands;
 
+import com.google.common.base.Preconditions;
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.Sound;
@@ -7,7 +8,6 @@ import org.bukkit.Statistic;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
-import org.bukkit.craftbukkit.libs.jline.internal.Preconditions;
 import org.bukkit.entity.Player;
 
 import net.citizensnpcs.api.CitizensAPI;

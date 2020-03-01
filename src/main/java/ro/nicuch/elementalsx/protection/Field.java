@@ -2,9 +2,7 @@ package ro.nicuch.elementalsx.protection;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 
 import org.bukkit.Chunk;
 import org.bukkit.World;
@@ -14,11 +12,10 @@ import org.bukkit.configuration.file.YamlConfiguration;
 import ro.nicuch.elementalsx.ElementalsX;
 
 public class Field {
-    private final String id;
+    private final FieldId id;
     private final UUID owner;
-    private final Field3D maxLoc;
-    private final Field3D minLoc;
-    private final List<UUID> members = new ArrayList<>();
+    private final Field2D field2D;
+    private final Set<UUID> members = new HashSet<>();
     private final int chunkX;
     private final int chunkZ;
     private final World world;
@@ -29,24 +26,27 @@ public class Field {
     private final int blockY;
     private final int blockZ;
 
-    public Field(String id, UUID owner, Field3D maxLoc, Field3D minLoc, Chunk chunk, World world, Block block) {
+    public Field(FieldId id, UUID owner, Field2D field2D, Block block) {
+        this(id, owner, field2D, block.getChunk(), block.getX(), block.getY(), block.getZ());
+    }
+
+    public Field(FieldId id, UUID owner, Field2D field2D, Chunk chunk, int x, int y, int z) {
         this.id = id;
         this.owner = owner;
-        this.maxLoc = maxLoc;
-        this.minLoc = minLoc;
+        this.field2D = field2D;
         this.chunkX = chunk.getX();
         this.chunkZ = chunk.getZ();
-        this.world = world;
+        this.world = chunk.getWorld();
         this.file = new File(
-                ElementalsX.get().getDataFolder() + File.separator + "regiuni" + File.separator + this.id + ".yml");
+                ElementalsX.get().getDataFolder() + File.separator + "regiuni" + File.separator + this.id.getOldId() + ".yml");
         this.config = YamlConfiguration.loadConfiguration(this.file);
         if (this.file.exists()) {
             this.members.addAll(FieldUtil.convertStringsToUUIDs(this.config.getStringList("members")));
             this.fun = this.config.getBoolean("fun", false);
         }
-        this.blockX = block.getX();
-        this.blockY = block.getY();
-        this.blockZ = block.getZ();
+        this.blockX = x;
+        this.blockY = y;
+        this.blockZ = z;
         this.save();
     }
 
@@ -66,7 +66,7 @@ public class Field {
         return this.world.getBlockAt(this.blockX, this.blockY, this.blockZ);
     }
 
-    public String getId() {
+    public FieldId getId() {
         return this.id;
     }
 
@@ -75,15 +75,11 @@ public class Field {
     }
 
     public boolean isOwner(UUID uuid) {
-        return this.owner.toString().equals(uuid.toString());
+        return this.owner.equals(uuid);
     }
 
-    public Field3D getMaximLocation() {
-        return this.maxLoc;
-    }
-
-    public Field3D getMinimLocation() {
-        return this.minLoc;
+    public Field2D getField2D() {
+        return this.field2D;
     }
 
     public Field addMember(UUID uuid) {
@@ -118,7 +114,7 @@ public class Field {
         return this.world;
     }
 
-    public List<UUID> getMembers() {
+    public Set<UUID> getMembers() {
         return this.members;
     }
 
@@ -160,6 +156,6 @@ public class Field {
 
     @Override
     public int hashCode() {
-        return id.hashCode() * 683;
+        return Objects.hashCode(this.id);
     }
 }
