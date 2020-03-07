@@ -8,8 +8,9 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import ro.nicuch.elementalsx.elementals.ElementalsUtil;
 
-import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
@@ -113,29 +114,22 @@ public class User {
             base.getInventory().setBoots(i4);
             base.getInventory().setItemInOffHand(i17);
         }
-        Bukkit.getScheduler().runTaskAsynchronously(ElementalsX.get(), () -> {
-            try {
-                PreparedStatement ps = ElementalsX.getBase()
-                        .prepareStatement(
-                                "SELECT next FROM randomtp WHERE uuid='" + base.getUniqueId().toString() + "';");
-                ResultSet rs = ps.executeQuery();
-                if (rs.next())
-                    this.lastRandomTeleport.set(rs.getLong("next"));
-                else {
-                    PreparedStatement ps2 = ElementalsX.getBase().prepareStatement("INSERT INTO randomtp (uuid, next) VALUES ('" + this.uuid.toString() + "', '" + this.lastRandomTeleport.get() + "');");
-                    ps2.executeUpdate();
-                    if (ps2 != null)
-                        ps2.close();
+
+        ElementalsX.newChain().async(() -> {
+            try (Statement statement = ElementalsX.getDatabase().createStatement()) {
+                try (ResultSet resultSet = statement.executeQuery("SELECT next FROM randomtp WHERE uuid='" + base.getUniqueId().toString() + "';")) {
+                    if (resultSet.next()) {
+                        this.lastRandomTeleport.set(resultSet.getLong("next"));
+                    } else {
+                        try (Statement statement1 = ElementalsX.getDatabase().createStatement()) {
+                            statement1.executeUpdate("INSERT INTO randomtp (uuid, next) VALUES ('" + this.uuid.toString() + "', '" + this.lastRandomTeleport.get() + "');");
+                        }
+                    }
                 }
-                if (ps != null)
-                    ps.close();
-                if (rs != null)
-                    rs.close();
-            } catch (Exception exception) {
-                //TODO backup
-                exception.printStackTrace();
+            } catch (SQLException ex) {
+                ex.printStackTrace();
             }
-        });
+        }).execute();
     }
 
     public Player getBase() {
@@ -182,30 +176,22 @@ public class User {
 
     public void save(boolean disable) {
         if (disable) {
-            try {
-                PreparedStatement ps = ElementalsX.getBase().prepareStatement(
+            try (Statement statement = ElementalsX.getDatabase().createStatement()) {
+                statement.executeUpdate(
                         "UPDATE randomtp SET next='" + this.lastRandomTeleport + "' WHERE uuid='" + this.uuid.toString() + "';");
-                ps.executeUpdate();
-                if (ps != null)
-                    ps.close();
-            } catch (Exception exception) {
-                //TODO backup
-                exception.printStackTrace();
+            } catch (SQLException ex) {
+                ex.printStackTrace();
             }
-            return;
+        } else {
+            ElementalsX.newChain().async(() -> {
+                try (Statement statement = ElementalsX.getDatabase().createStatement()) {
+                    statement.executeUpdate(
+                            "UPDATE randomtp SET next='" + this.lastRandomTeleport + "' WHERE uuid='" + this.uuid.toString() + "';");
+                } catch (SQLException ex) {
+                    ex.printStackTrace();
+                }
+            }).execute();
         }
-        Bukkit.getScheduler().runTaskAsynchronously(ElementalsX.get(), () -> {
-            try {
-                PreparedStatement ps = ElementalsX.getBase().prepareStatement(
-                        "UPDATE randomtp SET next='" + this.lastRandomTeleport + "' WHERE uuid='" + this.uuid.toString() + "';");
-                ps.executeUpdate();
-                if (ps != null)
-                    ps.close();
-            } catch (Exception exception) {
-                //TODO backup
-                exception.printStackTrace();
-            }
-        });
     }
 
     public UUID getUUID() {

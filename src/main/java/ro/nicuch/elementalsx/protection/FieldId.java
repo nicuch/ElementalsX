@@ -1,7 +1,7 @@
 package ro.nicuch.elementalsx.protection;
 
+import org.bukkit.Location;
 import org.bukkit.block.Block;
-import ro.nicuch.tag.wrapper.BlockUUID;
 
 import java.util.Objects;
 import java.util.regex.Matcher;
@@ -18,12 +18,6 @@ public class FieldId {
         this.y = y;
         this.z = z;
         this.world = world;
-    }
-
-    //TODO remove when server wipe
-    public String getOldId() {
-        return "x" + this.x + "y" + this.y + "z"
-                + this.z + "world" + this.world;
     }
 
     @Override
@@ -44,17 +38,21 @@ public class FieldId {
 
     @Override
     public int hashCode() {
-        return Objects.hash(x, y, z, world);
+        return Objects.hash(x, y, z, world, this.toString());
     }
 
     private final static Pattern pattern = Pattern.compile("<x[-]?([0-9]+),y[-]?([0-9]+),z[-]?([0-9]+),world[-]?([a-zA-Z0-9_-]+)>");
 
-    public static FieldId fromLocation(int x, int y, int z, String world) {
+    public static FieldId fromLocation(Location location) {
+        return fromCoords(location.getBlockX(), location.getBlockY(), location.getBlockZ(), location.getWorld().getName());
+    }
+
+    public static FieldId fromCoords(int x, int y, int z, String world) {
         return new FieldId(x, y, z, world);
     }
 
     public static FieldId fromBlock(Block block) {
-        return fromLocation(block.getX(), block.getY(), block.getZ(), block.getWorld().getName());
+        return fromCoords(block.getX(), block.getY(), block.getZ(), block.getWorld().getName());
     }
 
     public static FieldId fromString(String str) {
