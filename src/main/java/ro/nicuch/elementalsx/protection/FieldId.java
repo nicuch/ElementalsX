@@ -41,7 +41,7 @@ public class FieldId {
         return Objects.hash(x, y, z, world, this.toString());
     }
 
-    private final static Pattern pattern = Pattern.compile("<x[-]?([0-9]+),y[-]?([0-9]+),z[-]?([0-9]+),world[-]?([a-zA-Z0-9_-]+)>");
+    private final static Pattern pattern = Pattern.compile("<x([-]?[0-9]+),y([-]?[0-9]+),z([-]?[0-9]+),world([a-zA-Z0-9_-]+)>");
 
     public static FieldId fromLocation(Location location) {
         return fromCoords(location.getBlockX(), location.getBlockY(), location.getBlockZ(), location.getWorld().getName());

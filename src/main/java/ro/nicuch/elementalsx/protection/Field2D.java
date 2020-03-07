@@ -42,14 +42,17 @@ public class Field2D {
                 && this.minZ <= location.getBlockZ();
     }
 
-    public void sendFieldLocate(Player player, World world, int yLoc) {
+    public void sendFieldLocate(Block b, Player player, World world, int yLoc) {
         BlockData glass = Material.GLASS.createBlockData();
         for (int x = this.minX; x <= this.maxX; x++)
-            player.sendBlockChange(world.getBlockAt(x, yLoc, (this.maxZ - 25)).getLocation(), glass);
+            if (b.getX() != x)
+                player.sendBlockChange(world.getBlockAt(x, yLoc, (this.maxZ - 25)).getLocation(), glass);
         for (int z = this.minZ; z <= this.maxZ; z++)
-            player.sendBlockChange(world.getBlockAt((this.maxX - 25), yLoc, z).getLocation(), glass);
+            if (b.getZ() != z)
+                player.sendBlockChange(world.getBlockAt((this.maxX - 25), yLoc, z).getLocation(), glass);
         for (int y = 0; y < 256; y++)
-            player.sendBlockChange(world.getBlockAt((this.maxX - 25), y, (this.maxZ - 25)).getLocation(), glass);
+            if (b.getY() != y)
+                player.sendBlockChange(world.getBlockAt((this.maxX - 25), y, (this.maxZ - 25)).getLocation(), glass);
         Bukkit.getScheduler().runTaskLater(ElementalsX.get(), () -> {
             if (player != null && player.isOnline()) {
                 Block block;

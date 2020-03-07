@@ -1,5 +1,6 @@
 package ro.nicuch.elementalsx.protection;
 
+import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
 import org.bukkit.World;
 import org.bukkit.block.Block;
@@ -77,14 +78,14 @@ public class Field {
         if (this.isMember(uuid))
             return this;
         this.members.add(uuid);
-        ElementalsX.newChain().async(() -> {
+        Bukkit.getScheduler().runTaskAsynchronously(ElementalsX.get(), () -> {
             try (Statement statement = ElementalsX.getDatabase().createStatement()) {
-                statement.executeUpdate("INSERT INTO protmembers (id, uuid) VALUES ('" + this.id.toString() + "', '" + uuid.toString() + "')" +
-                        " ON DUPLICATE KEY UPDATE id='" + this.id.toString() + "', uuid='" + uuid.toString() + "';");
+                statement.executeUpdate("INSERT INTO protmembers (protid, uuid) VALUES ('" + this.id.toString() + "', '" + uuid.toString() + "')" +
+                        " ON DUPLICATE KEY UPDATE protid='" + this.id.toString() + "', uuid='" + uuid.toString() + "';");
             } catch (SQLException ex) {
                 ex.printStackTrace();
             }
-        }).execute();
+        });
         return this;
     }
 
@@ -92,13 +93,13 @@ public class Field {
         if (!this.isMember(uuid))
             return this;
         this.members.remove(uuid);
-        ElementalsX.newChain().async(() -> {
+        Bukkit.getScheduler().runTaskAsynchronously(ElementalsX.get(), () -> {
             try (Statement statement = ElementalsX.getDatabase().createStatement()) {
-                statement.executeUpdate("DELETE IGNORE FROM protmembers WHERE id='" + this.id.toString() + "' AND uuid='" + uuid.toString() + "';");
+                statement.executeUpdate("DELETE IGNORE FROM protmembers WHERE protid='" + this.id.toString() + "' AND uuid='" + uuid.toString() + "';");
             } catch (SQLException ex) {
                 ex.printStackTrace();
             }
-        }).execute();
+        });
         return this;
     }
 

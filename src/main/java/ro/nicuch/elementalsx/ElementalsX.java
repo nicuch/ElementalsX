@@ -1,10 +1,5 @@
 package ro.nicuch.elementalsx;
 
-import co.aikar.taskchain.BukkitTaskChainFactory;
-import co.aikar.taskchain.TaskChain;
-import co.aikar.taskchain.TaskChainFactory;
-import com.zaxxer.hikari.HikariConfig;
-import com.zaxxer.hikari.HikariDataSource;
 import net.milkbowl.vault.economy.Economy;
 import net.milkbowl.vault.permission.Permission;
 import org.bukkit.*;
@@ -26,7 +21,10 @@ import ro.nicuch.elementalsx.protection.FieldListener;
 import ro.nicuch.elementalsx.protection.FieldUtil;
 
 import java.io.File;
-import java.sql.*;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.Collection;
 import java.util.Optional;
 import java.util.UUID;
@@ -35,15 +33,13 @@ import java.util.concurrent.ConcurrentMap;
 
 public class ElementalsX extends JavaPlugin {
 
-    private static HikariDataSource hikariDataSource;
+    private static Connection connection;
     private final static ConcurrentMap<UUID, User> players = new ConcurrentHashMap<>();
     private static Economy vault;
     private static Permission perm;
-    private static TaskChainFactory taskChainFactory;
 
     @Override
     public void onEnable() {
-        taskChainFactory = BukkitTaskChainFactory.create(this);
         long start = System.currentTimeMillis();
         getServer().setSpawnRadius(1);
         new File(this.getDataFolder() + File.separator + "regiuni").mkdirs();
@@ -66,10 +62,6 @@ public class ElementalsX extends JavaPlugin {
         Bukkit.getOnlinePlayers().forEach(ElementalsX::createUser);
         sendConsoleMessage("&bPluginul a pornit! (" + (System.currentTimeMillis() - start) + "ms)");
         Bukkit.broadcastMessage(ElementalsUtil.color("&bElementals a pornit! (" + (System.currentTimeMillis() - start) + "ms)"));
-    }
-
-    public static <T> TaskChain<T> newChain() {
-        return taskChainFactory.newChain();
     }
 
     private void randomFireWork() {
@@ -95,7 +87,11 @@ public class ElementalsX extends JavaPlugin {
     @Override
     public void onDisable() {
         getOnlineUsers().forEach(u -> u.save(true));
-        hikariDataSource.close();
+        try {
+            connection.close();
+        } catch (SQLException ex) {
+            ex.printStackTrace();
+        }
         sendConsoleMessage("&bPluginul s-a oprit!");
     }
 
@@ -115,8 +111,8 @@ public class ElementalsX extends JavaPlugin {
         return Bukkit.getPluginManager().getPlugin("ElementalsX");
     }
 
-    public static Connection getDatabase() throws SQLException {
-        return hikariDataSource.getConnection();
+    public static Connection getDatabase() {
+        return connection;
     }
 
     public static Collection<User> getOnlineUsers() {
@@ -182,20 +178,13 @@ public class ElementalsX extends JavaPlugin {
         String password = cfg.getString("db_pass");
         String ip = cfg.getString("db_ip");
         String db_name = cfg.getString("db_name");
-        String jdbcUrl = "jdbc:mysql://" + ip + ":3306" + "/" + db_name;
+        String url = "jdbc:mysql://" + ip + "/" + db_name + "?user=" + username + "&password=" + password + "&useSSL=false&autoReconnect=true";
 
-        HikariConfig hikariConfig = new HikariConfig();
-        hikariConfig.setJdbcUrl(jdbcUrl);
-        hikariConfig.setUsername(username);
-        hikariConfig.setPassword(password);
-        hikariConfig.setDriverClassName("com.mysql.jdbc.Driver");
-        hikariConfig.addDataSourceProperty("maximumPoolSize", 30);
-        hikariConfig.addDataSourceProperty("connectionTimeout", 30000);
-        hikariConfig.addDataSourceProperty("cachePrepStmts", "true");
-        hikariConfig.addDataSourceProperty("prepStmtCacheSize", "250");
-        hikariConfig.addDataSourceProperty("prepStmtCacheSqlLimit", "2048");
-
-        hikariDataSource = new HikariDataSource(hikariDataSource);
+        try {
+            connection = DriverManager.getConnection(url);
+        } catch (SQLException ex) {
+            ex.printStackTrace();
+        }
 
         try (Statement statement = getDatabase().createStatement()) {
             statement.executeUpdate(
@@ -205,7 +194,7 @@ public class ElementalsX extends JavaPlugin {
         }
 
         try (Statement statement = getDatabase().createStatement()) {
-            statement.executeUpdate("CREATE TABLE IF NOT EXISTS protmembers(on INT NOT NULL AUTO_INCREMENT PRIMARY KEY, id VARCHAR(200), uuid VARCHAR(36));");
+            statement.executeUpdate("CREATE TABLE IF NOT EXISTS protmembers(id INT PRIMARY KEY AUTO_INCREMENT, protid VARCHAR(200), uuid VARCHAR(36));");
         } catch (SQLException ex) {
             ex.printStackTrace();
         }

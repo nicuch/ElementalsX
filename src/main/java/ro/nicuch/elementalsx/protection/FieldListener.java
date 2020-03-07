@@ -3,6 +3,7 @@ package ro.nicuch.elementalsx.protection;
 import com.gamingmesh.jobs.api.JobsPrePaymentEvent;
 import com.gmail.nossr50.events.fake.FakeEntityDamageByEntityEvent;
 import net.citizensnpcs.api.CitizensAPI;
+import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.Tag;
@@ -172,25 +173,24 @@ public class FieldListener implements Listener {
         Block locMax = loc.clone().add(25, 0, 25).getBlock();
         Block locMin = loc.clone().add(-25, 0, -25).getBlock();
         Field2D field2D = new Field2D(locMax.getX(), locMax.getZ(), locMin.getX(), locMin.getZ());
-        ElementalsX.newChain()
-                .async(() -> {
-                    try (Statement statement = ElementalsX.getDatabase().createStatement()) {
-                        statement.executeUpdate("INSERT INTO protection (id, x, y, z, world, owner, maxx, maxz, minx, minz, chunkx, chunkz) VALUES ('"
-                                + id.toString() + "', '" + block.getX() + "', '" + block.getY() + "', '" + block.getZ()
-                                + "', '" + block.getWorld().getName() + "', '"
-                                + uuid.toString() + "', '" + field2D.getMaxX() + "', '"
-                                + field2D.getMaxZ() + "', '" + field2D.getMinX() + "', '" + field2D.getMinZ() + "', '"
-                                + block.getChunk().getX() + "', '" + block.getChunk().getZ() + "');");
-                    } catch (SQLException ex) {
-                        event.getPlayer().sendMessage(ElementalsUtil.color("&f[&cProtectie&f] &c&l&oEroare. &a&l&oContacteaza un admin!"));
-                        event.setCancelled(true);
-                        ex.printStackTrace();
-                    }
-                })
-                .sync(() -> {
+        Bukkit.getScheduler().runTaskAsynchronously(ElementalsX.get(), () -> {
+            try (Statement statement = ElementalsX.getDatabase().createStatement()) {
+                statement.executeUpdate("INSERT INTO protection (id, x, y, z, world, owner, maxx, maxz, minx, minz, chunkx, chunkz) VALUES ('"
+                        + id.toString() + "', '" + block.getX() + "', '" + block.getY() + "', '" + block.getZ()
+                        + "', '" + block.getWorld().getName() + "', '"
+                        + uuid.toString() + "', '" + field2D.getMaxX() + "', '"
+                        + field2D.getMaxZ() + "', '" + field2D.getMinX() + "', '" + field2D.getMinZ() + "', '"
+                        + block.getChunk().getX() + "', '" + block.getChunk().getZ() + "');");
+                Bukkit.getScheduler().runTask(ElementalsX.get(), () -> {
                     FieldUtil.registerField(user, block, id, field2D);
                     event.getPlayer().sendMessage(ElementalsUtil.color("&f[&cProtectie&f] &a&oProtectia ta a fost creata!"));
-                }).execute();
+                });
+            } catch (SQLException ex) {
+                event.getPlayer().sendMessage(ElementalsUtil.color("&f[&cProtectie&f] &c&l&oEroare. &a&l&oContacteaza un admin!"));
+                event.setCancelled(true);
+                ex.printStackTrace();
+            }
+        });
     }
 
     @EventHandler(priority = EventPriority.LOW, ignoreCancelled = true)
@@ -214,21 +214,32 @@ public class FieldListener implements Listener {
             event.setCancelled(true);
             return;
         }
-
-        ElementalsX.newChain().async(() -> {
+        if (!user.hasPermission("elementals.protection.override"))
+            for (Entity entity : event.getPlayer().getNearbyEntities(25, 64, 25))
+                if (entity.getType() == EntityType.PLAYER) {
+                    Optional<User> entityuser = ElementalsX.getUser(entity.getUniqueId()); //using uuids is better
+                    if (!entityuser.isPresent())
+                        continue; //Continue
+                    if (!entityuser.get().hasPermission("elementals.protection.override")) {
+                        event.getPlayer().sendMessage(ElementalsUtil.color("&f[&cProtectie&f] &c&oNu poti distruge protectia cat timp sunt jucatori in zona!"));
+                        event.setCancelled(true);
+                        return; //One player found, no need to loop more
+                    }
+                }
+        Bukkit.getScheduler().runTaskAsynchronously(ElementalsX.get(), () -> {
             try (Statement statement = ElementalsX.getDatabase().createStatement()) {
                 statement.executeUpdate("DELETE FROM protection WHERE x='" + block.getX() + "' AND y='" + block.getY()
                         + "' AND z='" + block.getZ() + "' AND world='" + block.getWorld().getName() + "';");
+                Bukkit.getScheduler().runTask(ElementalsX.get(), () -> {
+                    FieldUtil.unregisterField(block);
+                    event.getPlayer().sendMessage(ElementalsUtil.color("&f[&cProtectie&f] &a&oProtectia ta a fost distrusa!"));
+                });
             } catch (SQLException ex) {
                 event.getPlayer().sendMessage(ElementalsUtil.color("&f[&cProtectie&f] &c&l&oEroare. &a&l&oContacteaza un admin!"));
                 event.setCancelled(true);
                 ex.printStackTrace();
             }
-        }).sync(() -> {
-            FieldUtil.unregisterField(block);
-            event.getPlayer().sendMessage(ElementalsUtil.color("&f[&cProtectie&f] &a&oProtectia ta a fost distrusa!"));
-        }).execute();
-
+        });
     }
 
     @EventHandler(ignoreCancelled = true)

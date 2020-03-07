@@ -115,7 +115,7 @@ public class User {
             base.getInventory().setItemInOffHand(i17);
         }
 
-        ElementalsX.newChain().async(() -> {
+        Bukkit.getScheduler().runTaskAsynchronously(ElementalsX.get(), () -> {
             try (Statement statement = ElementalsX.getDatabase().createStatement()) {
                 try (ResultSet resultSet = statement.executeQuery("SELECT next FROM randomtp WHERE uuid='" + base.getUniqueId().toString() + "';")) {
                     if (resultSet.next()) {
@@ -129,7 +129,7 @@ public class User {
             } catch (SQLException ex) {
                 ex.printStackTrace();
             }
-        }).execute();
+        });
     }
 
     public Player getBase() {
@@ -183,14 +183,14 @@ public class User {
                 ex.printStackTrace();
             }
         } else {
-            ElementalsX.newChain().async(() -> {
+            Bukkit.getScheduler().runTaskAsynchronously(ElementalsX.get(), () -> {
                 try (Statement statement = ElementalsX.getDatabase().createStatement()) {
                     statement.executeUpdate(
                             "UPDATE randomtp SET next='" + this.lastRandomTeleport + "' WHERE uuid='" + this.uuid.toString() + "';");
                 } catch (SQLException ex) {
                     ex.printStackTrace();
                 }
-            }).execute();
+            });
         }
     }
 

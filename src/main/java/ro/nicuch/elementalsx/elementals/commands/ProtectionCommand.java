@@ -13,7 +13,7 @@ import ro.nicuch.elementalsx.protection.FieldUtil;
 
 public class ProtectionCommand implements TabExecutor {
     private static final String[] COMMANDS = {"info", "allow", "allowall", "remove", "removeall", "disable", "enable",
-            "visualise", "loc", "fun"};
+            "visualise", "loc", "fun", "list", "help"};
 
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {

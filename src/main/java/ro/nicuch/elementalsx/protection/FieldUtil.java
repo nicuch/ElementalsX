@@ -1,9 +1,7 @@
 package ro.nicuch.elementalsx.protection;
 
-import co.aikar.taskchain.TaskChain;
 import org.bukkit.*;
 import org.bukkit.block.Block;
-import org.bukkit.entity.Player;
 import org.bukkit.event.block.BlockBreakEvent;
 import ro.nicuch.elementalsx.ElementalsX;
 import ro.nicuch.elementalsx.User;
@@ -24,7 +22,7 @@ public class FieldUtil {
 
     public static Set<UUID> getFieldMembers(FieldId fieldId) {
         try (Statement statement = ElementalsX.getDatabase().createStatement()) {
-            try (ResultSet resultSet = statement.executeQuery("SELECT uuid FROM protmembers WHERE id='" + fieldId.toString() + "';")) {
+            try (ResultSet resultSet = statement.executeQuery("SELECT uuid FROM protmembers WHERE protid='" + fieldId.toString() + "';")) {
                 if (!resultSet.wasNull()) {
                     Set<UUID> uuids = new HashSet<>();
                     while (resultSet.next()) {
@@ -44,6 +42,7 @@ public class FieldUtil {
         if (isFieldLoaded(id)) {
             loadedFields.remove(id);
         }
+        removeMembersOnProtection(id);
     }
 
     public static boolean isFieldNerby(User user, Location location) {
@@ -96,7 +95,7 @@ public class FieldUtil {
 
     public static void loadFieldsInChunk(Chunk chunk) {
         String worldName = chunk.getWorld().getName();
-        ElementalsX.newChain().async(() -> {
+        Bukkit.getScheduler().runTaskAsynchronously(ElementalsX.get(), () -> {
             try (Statement statement = ElementalsX.getDatabase().createStatement()) {
                 try (ResultSet resultSet = statement.executeQuery("SELECT maxx, maxz, minx, minz, x, y, z, owner FROM protection WHERE chunkx='" + chunk.getX()
                         + "' AND chunkz='" + chunk.getZ() + "' AND world='" + worldName + "';")) {
@@ -109,18 +108,18 @@ public class FieldUtil {
                         int blockY = resultSet.getInt("y");
                         int blockZ = resultSet.getInt("z");
                         UUID uuid = UUID.fromString(resultSet.getString("owner"));
-                        ElementalsX.newChain().sync(() -> {
+                        Bukkit.getScheduler().runTask(ElementalsX.get(), () -> {
                             Field2D field2D = new Field2D(maxx, maxz, minx, minz);
                             FieldId id = FieldId.fromCoords(blockX, blockY, blockZ, worldName);
                             Field field = new Field(id, uuid, field2D, chunk, blockX, blockY, blockZ, getFieldMembers(id));
                             loadedFields.put(id, field);
-                        }).execute();
+                        });
                     }
                 }
             } catch (SQLException ex) {
                 ex.printStackTrace();
             }
-        }).execute();
+        });
     }
 
     public static void takeProtection(User user) {
@@ -138,7 +137,7 @@ public class FieldUtil {
 
     public static void unloadFieldsInChunk(Chunk chunk) {
         String worldName = chunk.getWorld().getName();
-        ElementalsX.newChain().async(() -> {
+        Bukkit.getScheduler().runTaskAsynchronously(ElementalsX.get(), () -> {
             try (Statement statement = ElementalsX.getDatabase().createStatement()) {
                 try (ResultSet resultSet = statement.executeQuery("SELECT x, y, z FROM protection WHERE chunkx='" + chunk.getX()
                         + "' AND chunkz='" + chunk.getZ() + "' AND world='" + worldName + "';")) {
@@ -146,16 +145,16 @@ public class FieldUtil {
                         int x = resultSet.getInt("x");
                         int y = resultSet.getInt("y");
                         int z = resultSet.getInt("z");
-                        ElementalsX.newChain().sync(() -> {
+                        Bukkit.getScheduler().runTaskAsynchronously(ElementalsX.get(), () -> {
                             FieldId id = FieldId.fromCoords(x, y, z, worldName);
                             loadedFields.remove(id);
-                        }).execute();
+                        });
                     }
                 }
             } catch (SQLException ex) {
                 ex.printStackTrace();
             }
-        }).execute();
+        });
     }
 
     public static boolean isFieldAtLocation(Location location) {
@@ -190,18 +189,15 @@ public class FieldUtil {
     }
 
     public static boolean isFieldBlock(Block block) {
-        TaskChain<?> task = ElementalsX.newChain();
-        task.async(() -> {
-            try (Statement statement = ElementalsX.getDatabase().createStatement()) {
-                try (ResultSet resultSet = statement.executeQuery("SELECT id FROM protection WHERE x='" + block.getX() + "' AND y='" + block.getY()
-                        + "' AND z='" + block.getZ() + "' AND world='" + block.getWorld().getName() + "';")) {
-                    task.setTaskData("return", !resultSet.wasNull());
-                }
-            } catch (SQLException ex) {
-                ex.printStackTrace();
+        try (Statement statement = ElementalsX.getDatabase().createStatement()) {
+            try (ResultSet resultSet = statement.executeQuery("SELECT id FROM protection WHERE x='" + block.getX() + "' AND y='" + block.getY()
+                    + "' AND z='" + block.getZ() + "' AND world='" + block.getWorld().getName() + "';")) {
+                return !resultSet.wasNull();
             }
-        }).execute();
-        return task.getTaskData("return");
+        } catch (SQLException ex) {
+            ex.printStackTrace();
+        }
+        return false;
     }
 
     // DO NEVER PUT COLLIDABLE AGAIN
@@ -226,11 +222,16 @@ public class FieldUtil {
         }
     }
 
+    @SuppressWarnings("deprecation")
     public static void allowInField(User user, String name, boolean all, boolean allow) {
         try {
-            Player member = Bukkit.getPlayer(name);
-            if (member == null) {
+            OfflinePlayer member = Bukkit.getOfflinePlayer(name);
+            if (allow && !member.isOnline()) {
                 user.getBase().sendMessage(ElementalsUtil.color("&f[&cProtectie&f] &c&oJucatorul nu este online!"));
+                return;
+            }
+            if (user.getBase().getName().equals(name)) {
+                user.getBase().sendMessage(ElementalsUtil.color("&f[&cProtectie&f] &c&oNu poti face asta, lol!"));
                 return;
             }
             if (!all) {
@@ -280,7 +281,7 @@ public class FieldUtil {
     }
 
     private static void addMemberOnAllProtections(User user, UUID member) {
-        ElementalsX.newChain().async(() -> {
+        Bukkit.getScheduler().runTaskAsynchronously(ElementalsX.get(), () -> {
             try (Statement statement = ElementalsX.getDatabase().createStatement()) {
                 try (ResultSet resultSet = statement.executeQuery("SELECT id FROM protection WHERE owner='" + user.getUUID().toString() + "';")) {
                     while (resultSet.next()) {
@@ -289,22 +290,31 @@ public class FieldUtil {
                             Field field = getFieldById(fieldId);
                             if (!field.isMember(member))
                                 field.addMember(member);
-                            continue;
-                        }
-                        try (Statement statement1 = ElementalsX.getDatabase().createStatement()) {
-                            statement1.executeQuery("INSERT INTO protmembers (id, uuid) VALUES ('" + fieldId.toString() + "', '" + member.toString() + "')" +
-                                    " ON DUPLICATE KEY UPDATE id='" + fieldId.toString() + "', uuid='" + member.toString() + "';");
-                        }
+                        } else
+                            try (Statement statement1 = ElementalsX.getDatabase().createStatement()) {
+                                statement1.executeUpdate("INSERT INTO protmembers (protid, uuid) VALUES ('" + fieldId.toString() + "', '" + member.toString() + "')" +
+                                        " ON DUPLICATE KEY UPDATE protid='" + fieldId.toString() + "', uuid='" + member.toString() + "';");
+                            }
                     }
                 }
             } catch (SQLException ex) {
                 ex.printStackTrace();
             }
-        }).execute();
+        });
+    }
+
+    private static void removeMembersOnProtection(FieldId fieldId) {
+        Bukkit.getScheduler().runTaskAsynchronously(ElementalsX.get(), () -> {
+            try (Statement statement = ElementalsX.getDatabase().createStatement()) {
+                statement.executeUpdate("DELETE IGNORE FROM protmembers WHERE protid='" + fieldId.toString() + "';");
+            } catch (SQLException ex) {
+                ex.printStackTrace();
+            }
+        });
     }
 
     private static void removeMemberOnAllProtections(User user, UUID member) {
-        ElementalsX.newChain().async(() -> {
+        Bukkit.getScheduler().runTaskAsynchronously(ElementalsX.get(), () -> {
             try (Statement statement = ElementalsX.getDatabase().createStatement()) {
                 try (ResultSet resultSet = statement.executeQuery("SELECT id FROM protection WHERE owner='" + user.getUUID().toString() + "';")) {
                     while (resultSet.next()) {
@@ -313,17 +323,16 @@ public class FieldUtil {
                             Field field = getFieldById(fieldId);
                             if (field.isMember(member))
                                 field.removeMember(member);
-                            continue;
-                        }
-                        try (Statement statement1 = ElementalsX.getDatabase().createStatement()) {
-                            statement1.executeQuery("DELETE IGNORE FROM protmembers WHERE id='" + fieldId.toString() + "' AND uuid='" + member.toString() + "';");
-                        }
+                        } else
+                            try (Statement statement1 = ElementalsX.getDatabase().createStatement()) {
+                                statement1.executeUpdate("DELETE IGNORE FROM protmembers WHERE protid='" + fieldId.toString() + "' AND uuid='" + member.toString() + "';");
+                            }
                     }
                 }
             } catch (SQLException ex) {
                 ex.printStackTrace();
             }
-        }).execute();
+        });
     }
 
     public static void visualiseField(User user) {
@@ -394,7 +403,7 @@ public class FieldUtil {
                 + field.getOwner().toString()));
         if (!field.getMembers().isEmpty())
             user.getBase().sendMessage(ElementalsUtil.color("&bMembrii:"));
-        field.getMembers().forEach((UUID uuid) -> user.getBase()
+        field.getMembers().forEach(uuid -> user.getBase()
                 .sendMessage(ElementalsUtil.color("&e" + Bukkit.getOfflinePlayer(uuid).getName() + " &f-> &d" + uuid)));
         user.getBase().sendMessage(ElementalsUtil.color("&dFun mode: " + field.hasFun()));
         user.getBase().sendMessage("");
@@ -415,25 +424,25 @@ public class FieldUtil {
             user.getBase().sendMessage(ElementalsUtil.color("&f[&cProtectie&f] &c&oNu esti detinatorul protectiei!"));
             return;
         }
-        field.getField2D().sendFieldLocate(user.getBase(), field.getWorld(), field.getBlockY());
+        field.getField2D().sendFieldLocate(field.getBlock(), user.getBase(), field.getWorld(), field.getBlockY());
     }
 
     public static void listFields(User user) {
-        ElementalsX.newChain().async(() -> {
+        Bukkit.getScheduler().runTaskAsynchronously(ElementalsX.get(), () -> {
             try (Statement statement = ElementalsX.getDatabase().createStatement()) {
                 try (ResultSet resultSet = statement.executeQuery("SELECT x, y, z, world FROM protection WHERE owner='"
                         + user.getBase().getUniqueId().toString() + "';")) {
                     if (resultSet.wasNull()) {
-                        ElementalsX.newChain().sync(() -> user.getBase().sendMessage(ElementalsUtil.color("&f[&cProtectie&f] &c&oNu ai nici-o protectie!"))).execute();
+                        Bukkit.getScheduler().runTask(ElementalsX.get(), () -> user.getBase().sendMessage(ElementalsUtil.color("&f[&cProtectie&f] &c&oNu ai nici-o protectie!")));
                     } else {
                         while (resultSet.next()) {
                             String worldName = resultSet.getString("world");
                             int x = resultSet.getInt("x");
                             int y = resultSet.getInt("y");
                             int z = resultSet.getInt("z");
-                            ElementalsX.newChain().sync(() ->
+                            Bukkit.getScheduler().runTask(ElementalsX.get(), () ->
                                     user.getBase().sendMessage(ElementalsUtil.color("&5&l> &b" + worldName + "&c, &b" + x
-                                            + "&c, &b" + y + "&c, &b" + z))).execute();
+                                            + "&c, &b" + y + "&c, &b" + z)));
                         }
                     }
                 }
@@ -441,6 +450,6 @@ public class FieldUtil {
                 user.getBase().sendMessage(ElementalsUtil.color("&f[&cProtectie&f] &c&l&oEroare. &a&l&oContacteaza un admin!"));
                 ex.printStackTrace();
             }
-        }).execute();
+        });
     }
 }
