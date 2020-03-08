@@ -8,9 +8,9 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import ro.nicuch.elementalsx.elementals.ElementalsUtil;
 
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Statement;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
@@ -116,13 +116,18 @@ public class User {
         }
 
         Bukkit.getScheduler().runTaskAsynchronously(ElementalsX.get(), () -> {
-            try (Statement statement = ElementalsX.getDatabase().createStatement()) {
-                try (ResultSet resultSet = statement.executeQuery("SELECT next FROM randomtp WHERE uuid='" + base.getUniqueId().toString() + "';")) {
+            String query = "SELECT next FROM randomtp WHERE uuid=?;";
+            try (PreparedStatement statement = ElementalsX.getDatabase().prepareStatement(query)) {
+                statement.setString(1, base.getUniqueId().toString());
+                try (ResultSet resultSet = statement.executeQuery()) {
                     if (resultSet.next()) {
                         this.lastRandomTeleport.set(resultSet.getLong("next"));
                     } else {
-                        try (Statement statement1 = ElementalsX.getDatabase().createStatement()) {
-                            statement1.executeUpdate("INSERT INTO randomtp (uuid, next) VALUES ('" + this.uuid.toString() + "', '" + this.lastRandomTeleport.get() + "');");
+                        String query1 = "INSERT INTO randomtp (uuid, next) VALUES (?, ?);";
+                        try (PreparedStatement statement1 = ElementalsX.getDatabase().prepareStatement(query1)) {
+                            statement1.setString(1, this.uuid.toString());
+                            statement1.setLong(2, this.lastRandomTeleport.get());
+                            statement1.executeUpdate();
                         }
                     }
                 }
@@ -175,18 +180,21 @@ public class User {
     }
 
     public void save(boolean disable) {
+        String query = "UPDATE randomtp SET next=? WHERE uuid=?;";
         if (disable) {
-            try (Statement statement = ElementalsX.getDatabase().createStatement()) {
-                statement.executeUpdate(
-                        "UPDATE randomtp SET next='" + this.lastRandomTeleport + "' WHERE uuid='" + this.uuid.toString() + "';");
+            try (PreparedStatement statement = ElementalsX.getDatabase().prepareStatement(query)) {
+                statement.setLong(1, this.lastRandomTeleport.get());
+                statement.setString(2, this.uuid.toString());
+                statement.executeUpdate();
             } catch (SQLException ex) {
                 ex.printStackTrace();
             }
         } else {
             Bukkit.getScheduler().runTaskAsynchronously(ElementalsX.get(), () -> {
-                try (Statement statement = ElementalsX.getDatabase().createStatement()) {
-                    statement.executeUpdate(
-                            "UPDATE randomtp SET next='" + this.lastRandomTeleport + "' WHERE uuid='" + this.uuid.toString() + "';");
+                try (PreparedStatement statement = ElementalsX.getDatabase().prepareStatement(query)) {
+                    statement.setLong(1, this.lastRandomTeleport.get());
+                    statement.setString(2, this.uuid.toString());
+                    statement.executeUpdate();
                 } catch (SQLException ex) {
                     ex.printStackTrace();
                 }

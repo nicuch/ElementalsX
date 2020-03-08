@@ -1,5 +1,6 @@
 package ro.nicuch.elementalsx.elementals;
 
+import com.shampaggon.crackshot.events.WeaponDamageEntityEvent;
 import me.clip.placeholderapi.PlaceholderAPI;
 import net.citizensnpcs.api.CitizensAPI;
 import org.bukkit.*;
@@ -33,6 +34,13 @@ import java.util.UUID;
 
 public class ElementalsListener implements Listener {
     private final static List<UUID> interactList = new ArrayList<>();
+
+    @EventHandler(ignoreCancelled = true)
+    public void event(WeaponDamageEntityEvent event) {
+        if (!event.getVictim().getWorld().getName().equals("spawn"))
+            return;
+        event.setCancelled(true);
+    }
 
     @EventHandler(ignoreCancelled = true)
     public void event(EntityDamageEvent event) {

@@ -24,15 +24,13 @@ public class ElementalsUtil {
     private static boolean stopChat = false;
     private static String motd = "&6&oPikaCraft &b&o- &c&oServerul se incarca...";
     private static final List<String> autoMsg = Arrays.asList(
-            "&aUtilizarea hack-urilor este pedepsita cu &4&lBAN&a!",
-            "&bNu uita sa votezi in fiecare zi folosind comanda &f[&6/vote&f]&b! &aVei primi un premiu de fiecare data cand votezi. &6:)",
-            "&f[&6/sort&f] &bPoti sorta inventare! &a:D",
-            "&aDaca ai nevoie de bani, scrie &f[&6/jobs&f] &asi ia-ti un job!",
-            "&6Protectia se face folosind cubul de &bDiamant&6! &aNu uita sa o pui altfel casa ta va fi distrusa!",
-            "&aStaff-ul nu raspunde de obiectele pierdute!",
-            "&cDaca descoperiti un bug, va rugam sa-l raportati! &6Ve-ti primi un bonus daca bug-ul nu a fost raportat deja!",
-            "&cPoti raporta &eJucatorii&c/&5Donatorii&c/&4Staff-ul &cserverului in cazul in care acestia &bincalca regulamentul&c!",
-            "&6Asteptam sugestiile si ideile voastre!");
+            "&8[&eInfo&8] &a&oUtilizarea hack-urilor este pedepsita cu &4&o&lBAN&a&o!",
+            "&8[&eInfo&8] &b&oNu uita sa votezi in fiecare zi folosind comanda &f&o[&6&o/vote&f&o]&b&o! &a&oVei primi un premiu de fiecare data cand votezi. &6:)",
+            "&8[&eInfo&8] &f&o[&6&o/sort&f&o] &b&oPoti sorta inventare! &a:D",
+            "&8[&eInfo&8] &a&oDaca ai nevoie de bani, scrie &f&o[&6&o/jobs&f&o] &a&osi ia-ti un job!",
+            "&8[&eInfo&8] &6&oProtectia se face folosind cubul de &b&oDiamant&6&o! &a&oNu uita sa o pui altfel casa ta va fi distrusa!",
+            "&8[&eInfo&8] &a&oStaff-ul nu raspunde de obiectele pierdute!",
+            "&8[&eInfo&8] &c&oDaca descoperiti un bug, va rugam sa-l raportati! &6&oVe-ti primi un bonus daca bug-ul nu a fost raportat deja!");
 
     public static List<String> getAutoMessages() {
         return autoMsg;

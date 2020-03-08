@@ -135,5 +135,11 @@
             <version>4.8.0</version>
             <scope>provided</scope>
         </dependency>
+        <dependency>
+            <groupId>com.github.CrackShot</groupId>
+            <artifactId>CrackShot</artifactId>
+            <version>0.98.9</version>
+            <scope>provided</scope>
+        </dependency>
     </dependencies>
 </project>

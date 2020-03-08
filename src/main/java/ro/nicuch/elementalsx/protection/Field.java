@@ -6,8 +6,8 @@ import org.bukkit.World;
 import org.bukkit.block.Block;
 import ro.nicuch.elementalsx.ElementalsX;
 
+import java.sql.PreparedStatement;
 import java.sql.SQLException;
-import java.sql.Statement;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
@@ -79,9 +79,13 @@ public class Field {
             return this;
         this.members.add(uuid);
         Bukkit.getScheduler().runTaskAsynchronously(ElementalsX.get(), () -> {
-            try (Statement statement = ElementalsX.getDatabase().createStatement()) {
-                statement.executeUpdate("INSERT INTO protmembers (protid, uuid) VALUES ('" + this.id.toString() + "', '" + uuid.toString() + "')" +
-                        " ON DUPLICATE KEY UPDATE protid='" + this.id.toString() + "', uuid='" + uuid.toString() + "';");
+            String query = "INSERT INTO protmembers (protid, uuid) VALUES (?, ?) ON DUPLICATE KEY UPDATE protid=?, uuid=?;";
+            try (PreparedStatement statement = ElementalsX.getDatabase().prepareStatement(query)) {
+                statement.setString(1, this.id.toString());
+                statement.setString(2, uuid.toString());
+                statement.setString(3, this.id.toString());
+                statement.setString(4, uuid.toString());
+                statement.executeUpdate();
             } catch (SQLException ex) {
                 ex.printStackTrace();
             }
@@ -94,8 +98,11 @@ public class Field {
             return this;
         this.members.remove(uuid);
         Bukkit.getScheduler().runTaskAsynchronously(ElementalsX.get(), () -> {
-            try (Statement statement = ElementalsX.getDatabase().createStatement()) {
-                statement.executeUpdate("DELETE IGNORE FROM protmembers WHERE protid='" + this.id.toString() + "' AND uuid='" + uuid.toString() + "';");
+            String query = "DELETE IGNORE FROM protmembers WHERE protid=? AND uuid=?;";
+            try (PreparedStatement statement = ElementalsX.getDatabase().prepareStatement(query)) {
+                statement.setString(1, this.id.toString());
+                statement.setString(2, uuid.toString());
+                statement.executeUpdate();
             } catch (SQLException ex) {
                 ex.printStackTrace();
             }

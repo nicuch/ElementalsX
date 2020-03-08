@@ -25,43 +25,43 @@ public class ProtectionCommand implements TabExecutor {
             switch (args[0]) {
                 case "allow":
                     if (args.length < 2)
-                        sender.sendMessage(ElementalsUtil.color("&f[&cProtectie&f] &c&oTrebuie sa scri si numele unui jucator!"));
+                        sender.sendMessage(ElementalsUtil.color("&8[&cProtectie&8] &c&oTrebuie sa scri si numele unui jucator!"));
                     else
                         FieldUtil.allowInField(user, args[1], false, true);
                     break;
                 case "allowall":
                     if (args.length < 2)
-                        sender.sendMessage(ElementalsUtil.color("&f[&cProtectie&f] &c&oTrebuie sa scri si numele unui jucator!"));
+                        sender.sendMessage(ElementalsUtil.color("&8[&cProtectie&8] &c&oTrebuie sa scri si numele unui jucator!"));
                     else
                         FieldUtil.allowInField(user, args[1], true, true);
                     break;
                 case "remove":
                     if (args.length < 2)
-                        sender.sendMessage(ElementalsUtil.color("&f[&cProtectie&f] &c&oTrebuie sa scri si numele unui jucator!"));
+                        sender.sendMessage(ElementalsUtil.color("&8[&cProtectie&8] &c&oTrebuie sa scri si numele unui jucator!"));
                     else
                         FieldUtil.allowInField(user, args[1], false, false);
                     break;
                 case "removeall":
                     if (args.length < 2)
-                        sender.sendMessage(ElementalsUtil.color("&f[&cProtectie&f] &c&oTrebuie sa scri si numele unui jucator!"));
+                        sender.sendMessage(ElementalsUtil.color("&8[&cProtectie&8] &c&oTrebuie sa scri si numele unui jucator!"));
                     else
                         FieldUtil.allowInField(user, args[1], true, false);
                     break;
                 case "disable":
                     if (user.isIgnoringPlacingFields()) {
-                        sender.sendMessage(ElementalsUtil.color("&f[&cProtectie&f] &c&oAi dezactivat transformarea blocurilor de diamant din protectii deja."));
+                        sender.sendMessage(ElementalsUtil.color("&8[&cProtectie&8] &c&oAi dezactivat transformarea blocurilor de diamant din protectii deja."));
                         break;
                     }
                     user.setIgnorePlacingFields(true);
-                    sender.sendMessage(ElementalsUtil.color("&f[&cProtectie&f] &b&oAcum poti pune blocuri de diamant fara a se transforma in protectii."));
+                    sender.sendMessage(ElementalsUtil.color("&8[&cProtectie&8] &b&oAcum poti pune blocuri de diamant fara a se transforma in protectii."));
                     break;
                 case "enable":
                     if (!user.isIgnoringPlacingFields()) {
-                        sender.sendMessage(ElementalsUtil.color("&f[&cProtectie&f] &c&oNu ai dezactivat transformarea blocurilor de diamant in protectii."));
+                        sender.sendMessage(ElementalsUtil.color("&8[&cProtectie&8] &c&oNu ai dezactivat transformarea blocurilor de diamant in protectii."));
                         break;
                     }
                     user.setIgnorePlacingFields(false);
-                    sender.sendMessage(ElementalsUtil.color("&f[&cProtectie&f] &b&oAcum blocurile de diamant pe care le pui se vor transforma in protectii."));
+                    sender.sendMessage(ElementalsUtil.color("&8[&cProtectie&8] &b&oAcum blocurile de diamant pe care le pui se vor transforma in protectii."));
                     break;
                 case "visualise":
                     FieldUtil.visualiseField(user);
@@ -135,13 +135,13 @@ public class ProtectionCommand implements TabExecutor {
                                 sender.sendMessage(ElementalsUtil.color("&e&m                                                                      "));
                                 break;
                             default:
-                                sender.sendMessage(ElementalsUtil.color("&f[&cProtectie&f] &c&oPagina nu a fost gasita!"));
+                                sender.sendMessage(ElementalsUtil.color("&8[&cProtectie&8] &c&oPagina nu a fost gasita!"));
                                 break;
                         }
                     }
                     break;
                 default:
-                    sender.sendMessage(ElementalsUtil.color("&f[&cProtectie&f] &bFoloseste &c/ps help <pagina> &b&o!"));
+                    sender.sendMessage(ElementalsUtil.color("&8[&cProtectie&8] &bFoloseste &c/ps help <pagina> &b&o!"));
                     break;
             }
         } else {

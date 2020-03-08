@@ -21,10 +21,7 @@ import ro.nicuch.elementalsx.protection.FieldListener;
 import ro.nicuch.elementalsx.protection.FieldUtil;
 
 import java.io.File;
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.SQLException;
-import java.sql.Statement;
+import java.sql.*;
 import java.util.Collection;
 import java.util.Optional;
 import java.util.UUID;
@@ -178,7 +175,8 @@ public class ElementalsX extends JavaPlugin {
         String password = cfg.getString("db_pass");
         String ip = cfg.getString("db_ip");
         String db_name = cfg.getString("db_name");
-        String url = "jdbc:mysql://" + ip + "/" + db_name + "?user=" + username + "&password=" + password + "&useSSL=false&autoReconnect=true";
+        String url = "jdbc:mysql://" + ip + "/" + db_name + "?user=" + username + "&password=" + password + "&useSSL=false&autoReconnect=true&cachePrepStmts=true&cacheCallableStmts=true&cacheServerConfiguration=true" +
+                "&useLocalSessionState=true&elideSetAutoCommits=true&alwaysSendSetIsolation=false&enableQueryTimeouts=false";
 
         try {
             connection = DriverManager.getConnection(url);
@@ -186,22 +184,22 @@ public class ElementalsX extends JavaPlugin {
             ex.printStackTrace();
         }
 
-        try (Statement statement = getDatabase().createStatement()) {
-            statement.executeUpdate(
-                    "CREATE TABLE IF NOT EXISTS protection(id VARCHAR(200) PRIMARY KEY, x INT, y INT, z INT, world VARCHAR(50), owner VARCHAR(36), maxx INT, maxz INT, minx INT, minz INT, chunkx INT, chunkz INT);");
+        try (PreparedStatement statement = getDatabase().prepareStatement(
+                "CREATE TABLE IF NOT EXISTS protection(id VARCHAR(200) PRIMARY KEY, x INT, y INT, z INT, world VARCHAR(50), owner VARCHAR(36), maxx INT, maxz INT, minx INT, minz INT, chunkx INT, chunkz INT);")) {
+            statement.executeUpdate();
         } catch (SQLException ex) {
             ex.printStackTrace();
         }
 
-        try (Statement statement = getDatabase().createStatement()) {
-            statement.executeUpdate("CREATE TABLE IF NOT EXISTS protmembers(id INT PRIMARY KEY AUTO_INCREMENT, protid VARCHAR(200), uuid VARCHAR(36));");
+        try (PreparedStatement statement = getDatabase().prepareStatement("CREATE TABLE IF NOT EXISTS protmembers(id INT PRIMARY KEY AUTO_INCREMENT, protid VARCHAR(200), uuid VARCHAR(36));")) {
+            statement.executeUpdate();
         } catch (SQLException ex) {
             ex.printStackTrace();
         }
 
-        try (Statement statement = getDatabase().createStatement()) {
-            statement.executeUpdate(
-                    "CREATE TABLE IF NOT EXISTS randomtp(uuid VARCHAR(36) PRIMARY KEY, next BIGINT);");
+        try (PreparedStatement statement = getDatabase().prepareStatement(
+                "CREATE TABLE IF NOT EXISTS randomtp(uuid VARCHAR(36) PRIMARY KEY, next BIGINT);")) {
+            statement.executeUpdate();
         } catch (SQLException ex) {
             ex.printStackTrace();
         }
@@ -216,7 +214,7 @@ public class ElementalsX extends JavaPlugin {
 
     private void randomMsg() {
         Bukkit.getScheduler().runTaskTimerAsynchronously(this, () ->
-                Bukkit.broadcastMessage(ElementalsUtil.color("&c&l>>&r " + ElementalsUtil.getAutoMessages()
+                Bukkit.broadcastMessage(ElementalsUtil.color(ElementalsUtil.getAutoMessages()
                         .get(ElementalsUtil.nextInt(ElementalsUtil.getAutoMessages().size())))), 1L, 2 * 60 * 20L);
     }
 
