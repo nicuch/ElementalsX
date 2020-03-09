@@ -42,7 +42,12 @@ public class FieldListener implements Listener {
 
     @EventHandler(ignoreCancelled = true)
     public void event1(WeaponDamageEntityEvent event) {
-        if (!FieldUtil.isFieldAtLocation(event.getVictim().getLocation()))
+        Location loc = event.getVictim().getLocation();
+        if (FieldChunkUtil.doChunkWait(loc.getChunk())) {
+            event.setCancelled(true);
+            return;
+        }
+        if (!FieldUtil.isFieldAtLocation(loc))
             return;
         Optional<User> optionalUser = ElementalsX.getUser(event.getDamager().getUniqueId());
         if (optionalUser.isPresent()) {
@@ -80,6 +85,10 @@ public class FieldListener implements Listener {
             if (!optionalUser.isPresent())
                 return;
             User user = optionalUser.get();
+            if (FieldChunkUtil.doChunkWait(block.getChunk())) {
+                event.setCancelled(true);
+                return;
+            }
             if (!FieldUtil.isFieldAtLocation(block.getLocation()))
                 return;
             Field field = FieldUtil.getFieldByLocation(block.getLocation());
@@ -94,6 +103,10 @@ public class FieldListener implements Listener {
                 if (!optionalUser.isPresent())
                     return;
                 User user = optionalUser.get();
+                if (FieldChunkUtil.doChunkWait(entity.getLocation().getChunk())) {
+                    event.setCancelled(true);
+                    return;
+                }
                 if (!FieldUtil.isFieldAtLocation(entity.getLocation()))
                     return;
                 Field field = FieldUtil.getFieldByLocation(entity.getLocation());
@@ -120,7 +133,7 @@ public class FieldListener implements Listener {
     @EventHandler(ignoreCancelled = true)
     public void pushProtection(BlockPistonRetractEvent event) {
         for (Block block : event.getBlocks()) {
-            if (!block.getType().equals(Material.DIAMOND_BLOCK))
+            if (block.getType() != Material.DIAMOND_BLOCK)
                 continue;
             if (FieldUtil.isFieldBlock(block)) {
                 event.setCancelled(true);
@@ -149,6 +162,10 @@ public class FieldListener implements Listener {
 
     @EventHandler(priority = EventPriority.LOW, ignoreCancelled = true)
     public void protectionPlace(BlockPlaceEvent event) {
+        if (FieldChunkUtil.doChunkWait(event.getBlock().getChunk())) {
+            event.setCancelled(true);
+            return;
+        }
         Block block = event.getBlock();
         if (block.getType() != Material.DIAMOND_BLOCK)
             return;
@@ -220,6 +237,10 @@ public class FieldListener implements Listener {
 
     @EventHandler(priority = EventPriority.LOW, ignoreCancelled = true)
     public void protectionBreak(BlockBreakEvent event) {
+        if (FieldChunkUtil.doChunkWait(event.getBlock().getChunk())) {
+            event.setCancelled(true);
+            return;
+        }
         Block block = event.getBlock();
         if (block.getType() != Material.DIAMOND_BLOCK)
             return;
@@ -273,6 +294,10 @@ public class FieldListener implements Listener {
 
     @EventHandler(ignoreCancelled = true)
     public void event(BlockBurnEvent event) {
+        if (FieldChunkUtil.doChunkWait(event.getBlock().getChunk())) {
+            event.setCancelled(true);
+            return;
+        }
         if (!FieldUtil.isFieldAtLocation(event.getBlock().getLocation()))
             return;
         event.setCancelled(true);
@@ -354,6 +379,10 @@ public class FieldListener implements Listener {
             return;
         Entity entity = event.getEntity();
         Entity damager;
+        if (FieldChunkUtil.doChunkWait(entity.getLocation().getChunk())) {
+            event.setCancelled(true);
+            return;
+        }
         if (event.getDamager() instanceof Projectile) {
             Projectile proj = (Projectile) event.getDamager();
             if (proj.getShooter() == null)
@@ -389,6 +418,10 @@ public class FieldListener implements Listener {
         if (CitizensAPI.getNPCRegistry().isNPC(event.getEntity()))
             return;
         Entity entity = event.getEntity();
+        if (FieldChunkUtil.doChunkWait(entity.getLocation().getChunk())) {
+            event.setCancelled(true);
+            return;
+        }
         Entity damager;
         if (event.getDamager() instanceof Projectile) {
             Projectile proj = (Projectile) event.getDamager();
@@ -422,6 +455,10 @@ public class FieldListener implements Listener {
 
     @EventHandler(ignoreCancelled = true)
     public void event(EntityExplodeEvent event) {
+        if (FieldChunkUtil.doChunkWait(event.getLocation().getChunk())) {
+            event.blockList().clear();
+            return;
+        }
         String worldName = event.getLocation().getWorld().getName();
         if (worldName.equals("spawn") || worldName.equals("dungeon"))
             return;
@@ -432,6 +469,10 @@ public class FieldListener implements Listener {
 
     @EventHandler
     public void event(BlockExplodeEvent event) {
+        if (FieldChunkUtil.doChunkWait(event.getBlock().getChunk())) {
+            event.blockList().clear();
+            return;
+        }
         event.blockList().removeIf(block -> block.getType() != Material.TNT && FieldUtil.isFieldAtLocation(block.getLocation()));
     }
 
@@ -440,6 +481,10 @@ public class FieldListener implements Listener {
         if (CitizensAPI.getNPCRegistry().isNPC(event.getEntity()))
             return;
         Location loc = event.getEntity().getLocation();
+        if (FieldChunkUtil.doChunkWait(loc.getChunk())) {
+            event.setCancelled(true);
+            return;
+        }
         if (!FieldUtil.isFieldAtLocation(loc))
             return;
         Entity remover;
@@ -472,6 +517,10 @@ public class FieldListener implements Listener {
         if (CitizensAPI.getNPCRegistry().isNPC(event.getRightClicked()))
             return;
         Location loc = event.getRightClicked().getLocation();
+        if (FieldChunkUtil.doChunkWait(loc.getChunk())) {
+            event.setCancelled(true);
+            return;
+        }
         if (!FieldUtil.isFieldAtLocation(loc))
             return;
         Field field = FieldUtil.getFieldByLocation(loc);
@@ -485,6 +534,10 @@ public class FieldListener implements Listener {
         if (CitizensAPI.getNPCRegistry().isNPC(event.getEntity()))
             return;
         Location loc = event.getEntity().getLocation();
+        if (FieldChunkUtil.doChunkWait(loc.getChunk())) {
+            event.setCancelled(true);
+            return;
+        }
         if (!FieldUtil.isFieldAtLocation(loc))
             return;
         UUID uuid = event.getPlayer().getUniqueId();
@@ -503,6 +556,10 @@ public class FieldListener implements Listener {
         if (CitizensAPI.getNPCRegistry().isNPC(event.getPlayer()))
             return;
         Location loc = event.getBlockClicked().getLocation();
+        if (FieldChunkUtil.doChunkWait(loc.getChunk())) {
+            event.setCancelled(true);
+            return;
+        }
         if (!FieldUtil.isFieldAtLocation(loc))
             return;
         UUID uuid = event.getPlayer().getUniqueId();
@@ -522,6 +579,10 @@ public class FieldListener implements Listener {
         if (CitizensAPI.getNPCRegistry().isNPC(event.getPlayer()))
             return;
         Location loc = event.getBlockClicked().getLocation();
+        if (FieldChunkUtil.doChunkWait(loc.getChunk())) {
+            event.setCancelled(true);
+            return;
+        }
         if (!FieldUtil.isFieldAtLocation(loc))
             return;
         UUID uuid = event.getPlayer().getUniqueId();
@@ -541,6 +602,10 @@ public class FieldListener implements Listener {
         if (CitizensAPI.getNPCRegistry().isNPC(event.getRightClicked()))
             return;
         Location loc = event.getRightClicked().getLocation();
+        if (FieldChunkUtil.doChunkWait(loc.getChunk())) {
+            event.setCancelled(true);
+            return;
+        }
         if (!FieldUtil.isFieldAtLocation(loc))
             return;
         UUID uuid = event.getPlayer().getUniqueId();
@@ -610,7 +675,11 @@ public class FieldListener implements Listener {
                 || entityType == EntityType.HORSE
                 || entityType == EntityType.DONKEY
                 || entityType == EntityType.SKELETON_HORSE) {
-            Field field = FieldUtil.getFieldByLocation(entity.getLocation());
+            if (FieldChunkUtil.doChunkWait(event.getBlock().getChunk())) {
+                event.setCancelled(true);
+                return;
+            }
+            Field field = FieldUtil.getFieldByLocation(event.getBlock().getLocation());
             if (field.hasFun())
                 return;
             if (!Tag.WOODEN_PRESSURE_PLATES.isTagged(blockType)
@@ -702,6 +771,10 @@ public class FieldListener implements Listener {
             return;
         //TODO more blocks
         Location loc = event.getClickedBlock().getLocation();
+        if (FieldChunkUtil.doChunkWait(loc.getChunk())) {
+            event.setCancelled(true);
+            return;
+        }
         if (!FieldUtil.isFieldAtLocation(loc))
             return;
         UUID uuid = event.getPlayer().getUniqueId();
@@ -757,6 +830,10 @@ public class FieldListener implements Listener {
                 || handType == Material.SPRUCE_BOAT))
             return;
         Location loc = event.getClickedBlock().getLocation();
+        if (FieldChunkUtil.doChunkWait(loc.getChunk())) {
+            event.setCancelled(true);
+            return;
+        }
         if (!FieldUtil.isFieldAtLocation(loc))
             return;
         UUID uuid = event.getPlayer().getUniqueId();
@@ -780,6 +857,10 @@ public class FieldListener implements Listener {
             return;
         Material handType = hand.getType();
         Location loc = event.getClickedBlock().getLocation();
+        if (FieldChunkUtil.doChunkWait(loc.getChunk())) {
+            event.setCancelled(true);
+            return;
+        }
         if (!FieldUtil.isFieldAtLocation(loc))
             return;
         UUID uuid = event.getPlayer().getUniqueId();
@@ -820,6 +901,10 @@ public class FieldListener implements Listener {
                 return;
         }
         Location loc = block.getLocation();
+        if (FieldChunkUtil.doChunkWait(loc.getChunk())) {
+            event.setCancelled(true);
+            return;
+        }
         if (!FieldUtil.isFieldAtLocation(loc))
             return;
         UUID uuid = event.getPlayer().getUniqueId();
@@ -840,6 +925,10 @@ public class FieldListener implements Listener {
         if (block.getType().equals(Material.DIAMOND_BLOCK))
             return;
         Location loc = block.getLocation();
+        if (FieldChunkUtil.doChunkWait(loc.getChunk())) {
+            event.setCancelled(true);
+            return;
+        }
         if (!FieldUtil.isFieldAtLocation(loc))
             return;
         UUID uuid = event.getPlayer().getUniqueId();
@@ -856,63 +945,67 @@ public class FieldListener implements Listener {
 
     @EventHandler
     public void event0(FakeEntityDamageByEntityEvent event) {
-        {
-            if (CitizensAPI.getNPCRegistry().isNPC(event.getEntity()))
-                return;
-            Entity entity = event.getEntity();
-            Entity damager;
-            if (event.getDamager() instanceof Projectile) {
-                Projectile proj = (Projectile) event.getDamager();
-                if (proj.getShooter() == null)
-                    return;
-                damager = (Entity) proj.getShooter();
-            } else
-                damager = event.getDamager();
-            if (damager.getType() != EntityType.PLAYER)
-                return;
-            Location loc = entity.getLocation();
-            if (!FieldUtil.isFieldAtLocation(loc))
-                return;
-            EntityType entityType = entity.getType();
-            if (entityType != EntityType.PARROT
-                    || entityType != EntityType.LLAMA
-                    || entityType != EntityType.TRADER_LLAMA
-                    || entityType != EntityType.ZOMBIE_HORSE
-                    || entityType != EntityType.MULE
-                    || entityType != EntityType.HORSE
-                    || entityType != EntityType.DONKEY
-                    || entityType != EntityType.SKELETON_HORSE
-                    || entityType != EntityType.PIG
-                    || entityType != EntityType.COW
-                    || entityType != EntityType.OCELOT
-                    || entityType != EntityType.MUSHROOM_COW
-                    || entityType != EntityType.BAT
-                    || entityType != EntityType.BOAT
-                    || entityType != EntityType.CHICKEN
-                    || entityType != EntityType.WOLF
-                    || entityType != EntityType.VILLAGER
-                    || entityType != EntityType.IRON_GOLEM
-                    || entityType != EntityType.LEASH_HITCH
-                    || entityType != EntityType.RABBIT
-                    || entityType != EntityType.SHEEP
-                    || entityType != EntityType.SNOWMAN
-                    || entityType != EntityType.SQUID
-                    || entityType != EntityType.ARMOR_STAND
-                    || entityType != EntityType.ITEM_FRAME)
-                return;
-            UUID uuid = damager.getUniqueId();
-            Optional<User> optionalUser = ElementalsX.getUser(uuid);
-            if (!optionalUser.isPresent())
-                return;
-            User user = optionalUser.get();
-            Field field = FieldUtil.getFieldByLocation(loc);
-            if (field.isMember(uuid) || field.isOwner(uuid) || user.hasPermission("elementals.protection.override"))
-                return;
-            user.getBase().sendMessage(ElementalsUtil.color("&8[&cProtectie&8] &c&oNu poti lovi aceasta entitate aflata in protectie."));
+
+        if (CitizensAPI.getNPCRegistry().isNPC(event.getEntity()))
+            return;
+        Entity entity = event.getEntity();
+        if (FieldChunkUtil.doChunkWait(entity.getLocation().getChunk())) {
             event.setCancelled(true);
-            if (event.getDamager().hasMetadata("flame_ench"))
-                entity.setFireTicks(0);
+            return;
         }
+        Entity damager;
+        if (event.getDamager() instanceof Projectile) {
+            Projectile proj = (Projectile) event.getDamager();
+            if (proj.getShooter() == null)
+                return;
+            damager = (Entity) proj.getShooter();
+        } else
+            damager = event.getDamager();
+        if (damager.getType() != EntityType.PLAYER)
+            return;
+        Location loc = entity.getLocation();
+        if (!FieldUtil.isFieldAtLocation(loc))
+            return;
+        EntityType entityType = entity.getType();
+        if (entityType != EntityType.PARROT
+                || entityType != EntityType.LLAMA
+                || entityType != EntityType.TRADER_LLAMA
+                || entityType != EntityType.ZOMBIE_HORSE
+                || entityType != EntityType.MULE
+                || entityType != EntityType.HORSE
+                || entityType != EntityType.DONKEY
+                || entityType != EntityType.SKELETON_HORSE
+                || entityType != EntityType.PIG
+                || entityType != EntityType.COW
+                || entityType != EntityType.OCELOT
+                || entityType != EntityType.MUSHROOM_COW
+                || entityType != EntityType.BAT
+                || entityType != EntityType.BOAT
+                || entityType != EntityType.CHICKEN
+                || entityType != EntityType.WOLF
+                || entityType != EntityType.VILLAGER
+                || entityType != EntityType.IRON_GOLEM
+                || entityType != EntityType.LEASH_HITCH
+                || entityType != EntityType.RABBIT
+                || entityType != EntityType.SHEEP
+                || entityType != EntityType.SNOWMAN
+                || entityType != EntityType.SQUID
+                || entityType != EntityType.ARMOR_STAND
+                || entityType != EntityType.ITEM_FRAME)
+            return;
+        UUID uuid = damager.getUniqueId();
+        Optional<User> optionalUser = ElementalsX.getUser(uuid);
+        if (!optionalUser.isPresent())
+            return;
+        User user = optionalUser.get();
+        Field field = FieldUtil.getFieldByLocation(loc);
+        if (field.isMember(uuid) || field.isOwner(uuid) || user.hasPermission("elementals.protection.override"))
+            return;
+        user.getBase().sendMessage(ElementalsUtil.color("&8[&cProtectie&8] &c&oNu poti lovi aceasta entitate aflata in protectie."));
+        event.setCancelled(true);
+        if (event.getDamager().hasMetadata("flame_ench"))
+            entity.setFireTicks(0);
+
     }
 
     @EventHandler(ignoreCancelled = true)
@@ -920,6 +1013,10 @@ public class FieldListener implements Listener {
         if (CitizensAPI.getNPCRegistry().isNPC(event.getEntity()))
             return;
         Entity entity = event.getEntity();
+        if (FieldChunkUtil.doChunkWait(entity.getLocation().getChunk())) {
+            event.setCancelled(true);
+            return;
+        }
         Entity damager;
         if (event.getDamager() instanceof Projectile) {
             Projectile proj = (Projectile) event.getDamager();
@@ -994,6 +1091,10 @@ public class FieldListener implements Listener {
         if (damager.getType() != EntityType.PLAYER)
             return;
         Location loc = vehicle.getLocation();
+        if (FieldChunkUtil.doChunkWait(loc.getChunk())) {
+            event.setCancelled(true);
+            return;
+        }
         if (!FieldUtil.isFieldAtLocation(loc))
             return;
         EntityType entityType = vehicle.getType();
@@ -1029,6 +1130,10 @@ public class FieldListener implements Listener {
             return;
         User user = optionalUser.get();
         Location loc = vehicle.getLocation();
+        if (FieldChunkUtil.doChunkWait(loc.getChunk())) {
+            event.setCancelled(true);
+            return;
+        }
         if (!FieldUtil.isFieldAtLocation(loc))
             return;
         Field field = FieldUtil.getFieldByLocation(loc);
@@ -1054,7 +1159,12 @@ public class FieldListener implements Listener {
             return;
         if (event.getDamager().getType() != EntityType.FIREWORK)
             return;
-        if (!FieldUtil.isFieldAtLocation(event.getEntity().getLocation()))
+        Location loc = event.getEntity().getLocation();
+        if (FieldChunkUtil.doChunkWait(loc.getChunk())) {
+            event.setCancelled(true);
+            return;
+        }
+        if (!FieldUtil.isFieldAtLocation(loc))
             return;
         if (!event.getDamager().hasMetadata("firework_ench"))
             return;
@@ -1069,7 +1179,12 @@ public class FieldListener implements Listener {
             return;
         if (event.getDamager().getType() != EntityType.FIREWORK)
             return;
-        if (!FieldUtil.isFieldAtLocation(event.getEntity().getLocation()))
+        Location loc = event.getEntity().getLocation();
+        if (FieldChunkUtil.doChunkWait(loc.getChunk())) {
+            event.setCancelled(true);
+            return;
+        }
+        if (!FieldUtil.isFieldAtLocation(loc))
             return;
         if (!event.getDamager().hasMetadata("firework_ench"))
             return;

@@ -6,6 +6,7 @@ import net.citizensnpcs.api.CitizensAPI;
 import org.bukkit.*;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Parrot;
+import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
@@ -22,6 +23,10 @@ import org.bukkit.event.player.*;
 import org.bukkit.event.player.PlayerLoginEvent.Result;
 import org.bukkit.event.player.PlayerTeleportEvent.TeleportCause;
 import org.bukkit.event.server.ServerListPingEvent;
+import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.potion.PotionEffect;
+import org.bukkit.potion.PotionEffectType;
 import ro.nicuch.elementalsx.ElementalsX;
 import ro.nicuch.elementalsx.User;
 import ro.nicuch.elementalsx.protection.Field;
@@ -34,6 +39,62 @@ import java.util.UUID;
 
 public class ElementalsListener implements Listener {
     private final static List<UUID> interactList = new ArrayList<>();
+
+    @EventHandler(ignoreCancelled = true)
+    public void event(PlayerItemConsumeEvent event) {
+        ItemStack item = event.getItem();
+        if (!item.hasItemMeta())
+            return;
+        ItemMeta itemMeta = item.getItemMeta();
+        if (!itemMeta.hasDisplayName())
+            return;
+        String itemName = itemMeta.getDisplayName();
+        Material itemType = item.getType();
+        Player player = event.getPlayer();
+        if (itemType == Material.CARROT) {
+            if (itemName.equals(ElementalsUtil.color("&b&lRARE &fCarrot"))) {
+                player.addPotionEffect(new PotionEffect(PotionEffectType.FAST_DIGGING, 20 * 45, 0));
+            } else if (itemName.equals(ElementalsUtil.color("&c&lEPIC &fCarrot"))) {
+                player.addPotionEffect(new PotionEffect(PotionEffectType.FAST_DIGGING, 20 * 90, 1));
+                player.addPotionEffect(new PotionEffect(PotionEffectType.NIGHT_VISION, 20 * 150, 0));
+            } else if (itemName.equals(ElementalsUtil.color("&6&lLEGENDARY &fCarrot"))) {
+                player.addPotionEffect(new PotionEffect(PotionEffectType.FAST_DIGGING, 20 * 180, 2));
+                player.addPotionEffect(new PotionEffect(PotionEffectType.NIGHT_VISION, 20 * 300, 0));
+                player.addPotionEffect(new PotionEffect(PotionEffectType.SATURATION, 20 * 60, 0));
+            }
+        } else if (itemType == Material.POTATO) {
+            if (itemName.equals(ElementalsUtil.color("&b&lRARE &fPotato"))) {
+                player.addPotionEffect(new PotionEffect(PotionEffectType.DAMAGE_RESISTANCE, 20 * 60, 0));
+                player.addPotionEffect(new PotionEffect(PotionEffectType.INCREASE_DAMAGE, 20 * 90, 0));
+            } else if (itemName.equals(ElementalsUtil.color("&c&lEPIC &fPotato"))) {
+                player.addPotionEffect(new PotionEffect(PotionEffectType.DAMAGE_RESISTANCE, 20 * 120, 1));
+                player.addPotionEffect(new PotionEffect(PotionEffectType.INCREASE_DAMAGE, 20 * 180, 1));
+                player.addPotionEffect(new PotionEffect(PotionEffectType.REGENERATION, 20 * 60, 1));
+            } else if (itemName.equals(ElementalsUtil.color("&6&lLEGENDARY &fPotato"))) {
+                player.addPotionEffect(new PotionEffect(PotionEffectType.DAMAGE_RESISTANCE, 20 * 300, 1));
+                player.addPotionEffect(new PotionEffect(PotionEffectType.INCREASE_DAMAGE, 20 * 300, 2));
+                player.addPotionEffect(new PotionEffect(PotionEffectType.REGENERATION, 20 * 120, 1));
+                player.addPotionEffect(new PotionEffect(PotionEffectType.FIRE_RESISTANCE, 20 * 180, 0));
+            }
+        } else if (itemType == Material.BREAD) {
+            if (itemName.equals(ElementalsUtil.color("&b&lRARE &fBread"))) {
+                player.addPotionEffect(new PotionEffect(PotionEffectType.SPEED, 20 * 120, 1));
+                player.addPotionEffect(new PotionEffect(PotionEffectType.JUMP, 20 * 120, 0));
+                player.addPotionEffect(new PotionEffect(PotionEffectType.ABSORPTION, 20 * 120, 1));
+            } else if (itemName.equals(ElementalsUtil.color("&c&lEPIC &fBread"))) {
+                player.addPotionEffect(new PotionEffect(PotionEffectType.SPEED, 20 * 240, 2));
+                player.addPotionEffect(new PotionEffect(PotionEffectType.JUMP, 20 * 240, 0));
+                player.addPotionEffect(new PotionEffect(PotionEffectType.ABSORPTION, 20 * 240, 3));
+                player.addPotionEffect(new PotionEffect(PotionEffectType.SATURATION, 20 * 240, 0));
+            } else if (itemName.equals(ElementalsUtil.color("&6&lLEGENDARY &fBread"))) {
+                player.addPotionEffect(new PotionEffect(PotionEffectType.SPEED, 20 * 360, 2));
+                player.addPotionEffect(new PotionEffect(PotionEffectType.JUMP, 20 * 360, 1));
+                player.addPotionEffect(new PotionEffect(PotionEffectType.ABSORPTION, 20 * 360, 7));
+                player.addPotionEffect(new PotionEffect(PotionEffectType.SATURATION, 20 * 360, 1));
+                player.addPotionEffect(new PotionEffect(PotionEffectType.LUCK, 20 * 120, 2));
+            }
+        }
+    }
 
     @EventHandler(ignoreCancelled = true)
     public void event(WeaponDamageEntityEvent event) {

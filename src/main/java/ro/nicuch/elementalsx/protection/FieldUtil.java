@@ -100,7 +100,8 @@ public class FieldUtil {
 
     public static void loadFieldsInChunk(Chunk chunk) {
         String worldName = chunk.getWorld().getName();
-        Bukkit.getScheduler().runTaskAsynchronously(ElementalsX.get(), () -> {
+        FieldChunkUtil.setChunkToWait(chunk);
+        FieldQueueRunnable.offer(() -> {
             String query = "SELECT maxx, maxz, minx, minz, x, y, z, owner FROM protection WHERE chunkx=? AND chunkz=? AND world=?;";
             try (PreparedStatement statement = ElementalsX.getDatabase().prepareStatement(query)) {
                 statement.setInt(1, chunk.getX());
@@ -127,6 +128,7 @@ public class FieldUtil {
             } catch (SQLException ex) {
                 ex.printStackTrace();
             }
+            FieldChunkUtil.removeChunk(chunk);
         });
     }
 
@@ -145,7 +147,7 @@ public class FieldUtil {
 
     public static void unloadFieldsInChunk(Chunk chunk) {
         String worldName = chunk.getWorld().getName();
-        Bukkit.getScheduler().runTaskAsynchronously(ElementalsX.get(), () -> {
+        FieldQueueRunnable.offer(() -> {
             String query = "SELECT x, y, z FROM protection WHERE chunkx=? AND chunkz=? AND world=?;";
             try (PreparedStatement statement = ElementalsX.getDatabase().prepareStatement(query)) {
                 statement.setInt(1, chunk.getX());

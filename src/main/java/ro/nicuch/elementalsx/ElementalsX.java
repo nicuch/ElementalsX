@@ -12,12 +12,14 @@ import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.bukkit.scheduler.BukkitTask;
 import ro.nicuch.elementalsx.deathmessage.DeathMessageListener;
 import ro.nicuch.elementalsx.elementals.ElementalsListener;
 import ro.nicuch.elementalsx.elementals.ElementalsUtil;
 import ro.nicuch.elementalsx.elementals.TopKillsTrickEvent;
 import ro.nicuch.elementalsx.elementals.commands.*;
 import ro.nicuch.elementalsx.protection.FieldListener;
+import ro.nicuch.elementalsx.protection.FieldQueueRunnable;
 import ro.nicuch.elementalsx.protection.FieldUtil;
 
 import java.io.File;
@@ -34,9 +36,12 @@ public class ElementalsX extends JavaPlugin {
     private final static ConcurrentMap<UUID, User> players = new ConcurrentHashMap<>();
     private static Economy vault;
     private static Permission perm;
+    private static BukkitTask fieldQueueTask;
+    private static FieldQueueRunnable fieldQueueRunnable;
 
     @Override
     public void onEnable() {
+        fieldQueueTask = Bukkit.getScheduler().runTaskTimer(this, fieldQueueRunnable = new FieldQueueRunnable(), 1L, 1L);
         long start = System.currentTimeMillis();
         getServer().setSpawnRadius(1);
         new File(this.getDataFolder() + File.separator + "regiuni").mkdirs();
@@ -83,6 +88,8 @@ public class ElementalsX extends JavaPlugin {
 
     @Override
     public void onDisable() {
+        fieldQueueTask.cancel();
+        fieldQueueRunnable.run(); //run for last time
         getOnlineUsers().forEach(u -> u.save(true));
         try {
             connection.close();
