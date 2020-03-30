@@ -16,7 +16,7 @@ public class SoundCommand implements TabExecutor {
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
         Optional<User> optionalUser = ElementalsX.getUser((Player) sender);
-        if (!optionalUser.isPresent())
+        if (optionalUser.isEmpty())
             return true;
         User user = optionalUser.get();
         if (args.length == 1) {

@@ -186,21 +186,21 @@ public class ElementalsListener implements Listener {
 
     @EventHandler
     public void event3(PlayerInteractEvent event) {
-        if (!event.getAction().equals(Action.RIGHT_CLICK_BLOCK))
+        if (event.getAction() != Action.RIGHT_CLICK_BLOCK)
             return;
         String worldName = event.getPlayer().getWorld().getName();
         if (!(worldName.equals("spawn") || worldName.equals("dungeon")))
             return;
         Material clickedBlockType = event.getClickedBlock().getType();
-        if (!(clickedBlockType.equals(Material.FLOWER_POT)
-                || clickedBlockType.equals(Material.JUKEBOX)
-                || clickedBlockType.equals(Material.NOTE_BLOCK)
-                || clickedBlockType.equals(Material.REPEATER)
-                || clickedBlockType.equals(Material.COMPARATOR)
-                || clickedBlockType.equals(Material.BEACON)
-                || clickedBlockType.equals(Material.CAMPFIRE)
-                || clickedBlockType.equals(Material.TURTLE_EGG)
-                || Tag.BEDS.isTagged(clickedBlockType)))
+        if (clickedBlockType != Material.FLOWER_POT
+                || clickedBlockType != Material.JUKEBOX
+                || clickedBlockType != Material.NOTE_BLOCK
+                || clickedBlockType != Material.REPEATER
+                || clickedBlockType != Material.COMPARATOR
+                || clickedBlockType != Material.BEACON
+                || clickedBlockType != Material.CAMPFIRE
+                || clickedBlockType != Material.TURTLE_EGG
+                || !Tag.BEDS.isTagged(clickedBlockType))
             return;
         Optional<User> optionalUser = ElementalsX.getUser(event.getPlayer().getUniqueId());
         if (!optionalUser.isPresent())
@@ -211,65 +211,13 @@ public class ElementalsListener implements Listener {
         event.setCancelled(true);
     }
 
-
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void event0(AsyncPlayerChatEvent event) {
-        Optional<User> optionalUser = ElementalsX.getUser(event.getPlayer().getUniqueId());
-        if (!optionalUser.isPresent())
-            return;
-        User user = optionalUser.get();
-        if (user == null) {
-            event.setCancelled(true);
-            return;
-        }
-        if (ElementalsUtil.hasChatDelay(user) && !user.hasPermission("elementals.chat.override")) {
-            event.getPlayer().sendMessage(ElementalsUtil.color("&cTrebuie sa astepti o secunda pentru a putea vorbi!"));
-            event.setCancelled(true);
-            return;
-        }
-        if (ElementalsUtil.isChatStopped() && !user.hasPermission("elementals.chat.bypass")) {
-            event.getPlayer().sendMessage(ElementalsUtil.color("&cNu se poate vorbi acum!"));
-            event.setCancelled(true);
-            return;
-        }
-        ElementalsUtil.delayChatPlayer(user);
-        List<String> names = ElementalsUtil.getPlayersNames();
-        List<String> recipeNames = new ArrayList<>();
-        String msg = event.getMessage();
-        for (String name : names) {
-            if (msg.contains("@" + name))
-                recipeNames.add(name);
-        }
-        String message = msg.toLowerCase();
-        StringBuilder builder = new StringBuilder(msg);
-        if (!(message.endsWith(".") || message.endsWith("?") || message.endsWith("!") || message.endsWith(")")
-                || message.endsWith("]") || message.endsWith(":d") || message.endsWith("xd") || message.endsWith("*")
-                || message.endsWith("-") || message.endsWith("_") || message.endsWith(",") || message.endsWith("'")
-                || message.endsWith("/") || message.endsWith("|") || message.endsWith("(") || message.endsWith("[")
-                || message.endsWith("@") || message.endsWith("#") || message.endsWith("$") || message.endsWith("%")
-                || message.endsWith("^") || message.endsWith("{") || message.endsWith("}") || message.endsWith(";")
-                || message.endsWith(":") || message.endsWith("<") || message.endsWith(">") || message.endsWith("\\")
-                || message.endsWith("~") || message.endsWith("~") || message.endsWith("=") || message.endsWith("+")
-                || message.endsWith(":3") || message.endsWith(":p") || message.endsWith(":o") || message.endsWith(":s")
-                || message.endsWith("<3") || message.endsWith(":c") || message.endsWith("[item]")))
-            builder.insert(msg.length(), ".");
-        if (!(message.startsWith(".") || message.startsWith("?") || message.startsWith("!") || message.startsWith(")")
-                || message.startsWith("]") || message.startsWith(":d") || message.startsWith("xd") || message.startsWith("*")
-                || message.startsWith("-") || message.startsWith("_") || message.startsWith(",") || message.startsWith("'")
-                || message.startsWith("/") || message.startsWith("|") || message.startsWith("(") || message.startsWith("[")
-                || message.startsWith("@") || message.startsWith("#") || message.startsWith("$") || message.startsWith("%")
-                || message.startsWith("^") || message.startsWith("{") || message.startsWith("}") || message.startsWith(";")
-                || message.startsWith(":") || message.startsWith("<") || message.startsWith(">") || message.startsWith("\\")
-                || message.startsWith("~") || message.startsWith("~") || message.startsWith("=") || message.startsWith("+")
-                || message.startsWith(":3") || message.startsWith(":p") || message.startsWith(":o") || message.startsWith(":s")
-                || message.startsWith("<3") || message.startsWith(":c") || message.startsWith("[item]")))
-            builder.replace(0, 1, msg.substring(0, 1).toUpperCase());
-
-        ElementalsX.getOnlineUsers().stream().filter(User::hasSounds).peek(u -> u.getBase().playSound(u.getBase().getLocation(), Sound.ENTITY_ITEM_PICKUP, 1f, 1f))
-                .filter(u -> recipeNames.contains(u.getBase().getName()) && u.hasSounds()).forEach(u -> u.getBase().playSound(u.getBase().getLocation(), Sound.ENTITY_PLAYER_LEVELUP, 1f, 1f));
-        String level = PlaceholderAPI.setPlaceholders(event.getPlayer(), "%math_{mcmmo_power_level}/15[precision:0]%");
-        event.setFormat(event.getFormat().replace("{LEVEL}", level));
-        event.setMessage(builder.toString());
+        Player player = event.getPlayer();
+        String level = PlaceholderAPI.setPlaceholders(player, "%math_{mcmmo_power_level}/15[precision:0]%");
+        String dragon = PlaceholderAPI.setPlaceholders(player, "%dragonslayer_prefix%");
+        ElementalsX.getOnlineUsers().stream().filter(User::hasSounds).forEach(user -> user.getBase().playSound(user.getBase().getLocation(), Sound.ENTITY_ITEM_PICKUP, 1f, 1f));
+        event.setFormat(event.getFormat().replace("{LEVEL}", level).replace("{DRAGON}", dragon));
     }
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)

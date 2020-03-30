@@ -5,7 +5,7 @@ api-version: 1.14
 authors: [nicuch]
 description: Elementals 2 for Pikacraft server.
 website: pikacraft.ro
-depend: [Jobs, TagRegisterLib, WorldEdit, Vault, Citizens, AuthMe, PlaceholderAPI, mcMMO, MythicMobs, CrackShot]
+depend: [Jobs, TagRegisterLib, WorldEdit, Vault, Citizens, AuthMe, PlaceholderAPI, mcMMO, MythicMobs, CrackShot, InfernalMobs, CitizensBooks]
 loadbefore: [FugusCore, AncientGates]
 commands:
   randomtp:
@@ -14,8 +14,6 @@ commands:
   adminchat:
     aliases: [ac]
     description: Chat pentru staff.
-  chat:
-    description: Comanda pentru chat.
   ps:
     description: Comanda pentru protectie.
   sound:
@@ -24,8 +22,6 @@ commands:
     description: Comanda pentru giveall.
   test:
     description: Comanda folosita pentru test.
-  admin:
-    description: Comanda folosita de admin.
   achivements:
     description: Comanda pentru achivementuri.
   sort:

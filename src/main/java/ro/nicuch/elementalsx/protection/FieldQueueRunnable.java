@@ -1,19 +1,18 @@
 package ro.nicuch.elementalsx.protection;
 
-import java.util.Queue;
-import java.util.concurrent.ConcurrentLinkedQueue;
+import com.mfk.lockfree.queue.LockFreeQueue;
 
 public class FieldQueueRunnable implements Runnable {
-    private final static Queue<Runnable> tasks = new ConcurrentLinkedQueue<>();
+    private final static LockFreeQueue<Runnable> tasks = LockFreeQueue.newQueue(32);
 
     @Override
     public void run() {
-        while (!tasks.isEmpty()) {
-            tasks.poll().run();
+        while (tasks.size() > 0) {
+            tasks.poll().ifPresent(Runnable::run);
         }
     }
 
     public static void offer(Runnable runnable) {
-        tasks.offer(runnable);
+        tasks.add(runnable);
     }
 }

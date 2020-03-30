@@ -3,6 +3,7 @@ package ro.nicuch.elementalsx.protection;
 import com.gamingmesh.jobs.api.JobsPrePaymentEvent;
 import com.gmail.nossr50.events.fake.FakeEntityDamageByEntityEvent;
 import com.shampaggon.crackshot.events.WeaponDamageEntityEvent;
+import io.hotmail.com.jacob_vejvoda.infernal_mobs.InfernalSpawnEvent;
 import net.citizensnpcs.api.CitizensAPI;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
@@ -41,6 +42,17 @@ import java.util.UUID;
 public class FieldListener implements Listener {
 
     @EventHandler(ignoreCancelled = true)
+    public void event(InfernalSpawnEvent event) {
+        Location loc = event.getEntity().getLocation();
+        if (FieldChunkUtil.doChunkWait(loc.getChunk())) {
+            return;
+        }
+        if (!FieldUtil.isFieldAtLocation(loc))
+            return;
+        event.setCancelled(true);
+    }
+
+    @EventHandler(ignoreCancelled = true)
     public void event1(WeaponDamageEntityEvent event) {
         Location loc = event.getVictim().getLocation();
         if (FieldChunkUtil.doChunkWait(loc.getChunk())) {
@@ -68,7 +80,7 @@ public class FieldListener implements Listener {
         if (event.getTo().getBlock().equals(event.getFrom().getBlock()))
             return;
         Optional<User> optionalUser = ElementalsX.getUser(event.getPlayer().getUniqueId());
-        if (!optionalUser.isPresent())
+        if (optionalUser.isEmpty())
             return;
         User user = optionalUser.get();
         FieldUtil.updateUser(user, event.getTo());
@@ -82,7 +94,7 @@ public class FieldListener implements Listener {
         if (block != null) {
             UUID uuid = event.getPlayer().getUniqueId();
             Optional<User> optionalUser = ElementalsX.getUser(uuid);
-            if (!optionalUser.isPresent())
+            if (optionalUser.isEmpty())
                 return;
             User user = optionalUser.get();
             if (FieldChunkUtil.doChunkWait(block.getChunk())) {
@@ -100,7 +112,7 @@ public class FieldListener implements Listener {
             if (block != null) {
                 UUID uuid = event.getPlayer().getUniqueId();
                 Optional<User> optionalUser = ElementalsX.getUser(uuid);
-                if (!optionalUser.isPresent())
+                if (optionalUser.isEmpty())
                     return;
                 User user = optionalUser.get();
                 if (FieldChunkUtil.doChunkWait(entity.getLocation().getChunk())) {
@@ -151,7 +163,7 @@ public class FieldListener implements Listener {
             return;
         UUID uuid = event.getPlayer().getUniqueId();
         Optional<User> optionalUser = ElementalsX.getUser(uuid);
-        if (!optionalUser.isPresent())
+        if (optionalUser.isEmpty())
             return;
         User user = optionalUser.get();
         Field field = FieldUtil.getFieldByLocation(event.getCaught().getLocation());
@@ -174,7 +186,7 @@ public class FieldListener implements Listener {
             return;
         UUID uuid = event.getPlayer().getUniqueId();
         Optional<User> optionalUser = ElementalsX.getUser(uuid);
-        if (!optionalUser.isPresent())
+        if (optionalUser.isEmpty())
             return;
         User user = optionalUser.get();
         if (user.isIgnoringPlacingFields())
@@ -189,7 +201,7 @@ public class FieldListener implements Listener {
             for (Entity entity : event.getPlayer().getNearbyEntities(25, 64, 25))
                 if (entity.getType() == EntityType.PLAYER) {
                     Optional<User> entityuser = ElementalsX.getUser(entity.getUniqueId()); //using uuids is better
-                    if (!entityuser.isPresent())
+                    if (entityuser.isEmpty())
                         continue; //Continue
                     if (!entityuser.get().hasPermission("elementals.protection.override")) {
                         event.getPlayer().sendMessage(ElementalsUtil.color("&8[&cProtectie&8] &c&oNu poti pune protectia cat timp sunt jucatori in zona!"));
@@ -249,7 +261,7 @@ public class FieldListener implements Listener {
             return;
         UUID uuid = event.getPlayer().getUniqueId();
         Optional<User> optionalUser = ElementalsX.getUser(uuid);
-        if (!optionalUser.isPresent())
+        if (optionalUser.isEmpty())
             return;
         User user = optionalUser.get();
         if (!FieldUtil.isFieldBlock(event.getBlock()))
@@ -264,7 +276,7 @@ public class FieldListener implements Listener {
             for (Entity entity : event.getPlayer().getNearbyEntities(25, 64, 25))
                 if (entity.getType() == EntityType.PLAYER) {
                     Optional<User> entityuser = ElementalsX.getUser(entity.getUniqueId()); //using uuids is better
-                    if (!entityuser.isPresent())
+                    if (entityuser.isEmpty())
                         continue; //Continue
                     if (!entityuser.get().hasPermission("elementals.protection.override")) {
                         event.getPlayer().sendMessage(ElementalsUtil.color("&8[&cProtectie&8] &c&oNu poti distruge protectia cat timp sunt jucatori in zona!"));
@@ -359,7 +371,7 @@ public class FieldListener implements Listener {
             return;
         UUID uuid = event.getEntity().getUniqueId();
         Optional<User> optionalUser = ElementalsX.getUser(uuid);
-        if (!optionalUser.isPresent())
+        if (optionalUser.isEmpty())
             return;
         User user = optionalUser.get();
         if (event.getBlock().getType() != Material.FARMLAND)
@@ -402,7 +414,7 @@ public class FieldListener implements Listener {
         if (!FieldUtil.isFieldAtLocation(entity.getLocation()))
             return;
         Optional<User> optionalUser = ElementalsX.getUser(damager.getUniqueId());
-        if (!optionalUser.isPresent())
+        if (optionalUser.isEmpty())
             return;
         User user = optionalUser.get();
         if (user.hasPermission("elementals.protection.override"))
@@ -442,7 +454,7 @@ public class FieldListener implements Listener {
         if (!FieldUtil.isFieldAtLocation(entity.getLocation()))
             return;
         Optional<User> optionalUser = ElementalsX.getUser(damager.getUniqueId());
-        if (!optionalUser.isPresent())
+        if (optionalUser.isEmpty())
             return;
         User user = optionalUser.get();
         if (user.hasPermission("elementals.protection.override"))
@@ -499,7 +511,7 @@ public class FieldListener implements Listener {
             return;
         UUID uuid = remover.getUniqueId();
         Optional<User> optionalUser = ElementalsX.getUser(uuid);
-        if (!optionalUser.isPresent())
+        if (optionalUser.isEmpty())
             return;
         User user = optionalUser.get();
         Field field = FieldUtil.getFieldByLocation(loc);
@@ -511,7 +523,7 @@ public class FieldListener implements Listener {
     public void event(PlayerArmorStandManipulateEvent event) {
         UUID uuid = event.getPlayer().getUniqueId();
         Optional<User> optionalUser = ElementalsX.getUser(uuid);
-        if (!optionalUser.isPresent())
+        if (optionalUser.isEmpty())
             return;
         User user = optionalUser.get();
         if (CitizensAPI.getNPCRegistry().isNPC(event.getRightClicked()))
@@ -542,7 +554,7 @@ public class FieldListener implements Listener {
             return;
         UUID uuid = event.getPlayer().getUniqueId();
         Optional<User> optionalUser = ElementalsX.getUser(uuid);
-        if (!optionalUser.isPresent())
+        if (optionalUser.isEmpty())
             return;
         User user = optionalUser.get();
         Field field = FieldUtil.getFieldByLocation(loc);
@@ -564,7 +576,7 @@ public class FieldListener implements Listener {
             return;
         UUID uuid = event.getPlayer().getUniqueId();
         Optional<User> optionalUser = ElementalsX.getUser(uuid);
-        if (!optionalUser.isPresent())
+        if (optionalUser.isEmpty())
             return;
         User user = optionalUser.get();
         Field field = FieldUtil.getFieldByLocation(loc);
@@ -587,7 +599,7 @@ public class FieldListener implements Listener {
             return;
         UUID uuid = event.getPlayer().getUniqueId();
         Optional<User> optionalUser = ElementalsX.getUser(uuid);
-        if (!optionalUser.isPresent())
+        if (optionalUser.isEmpty())
             return;
         User user = optionalUser.get();
         Field field = FieldUtil.getFieldByLocation(loc);
@@ -610,7 +622,7 @@ public class FieldListener implements Listener {
             return;
         UUID uuid = event.getPlayer().getUniqueId();
         Optional<User> optionalUser = ElementalsX.getUser(uuid);
-        if (!optionalUser.isPresent())
+        if (optionalUser.isEmpty())
             return;
         User user = optionalUser.get();
         Field field = FieldUtil.getFieldByLocation(loc);
@@ -679,7 +691,10 @@ public class FieldListener implements Listener {
                 event.setCancelled(true);
                 return;
             }
-            Field field = FieldUtil.getFieldByLocation(event.getBlock().getLocation());
+            Location loc = event.getBlock().getLocation();
+            if (!FieldUtil.isFieldAtLocation(loc))
+                return;
+            Field field = FieldUtil.getFieldByLocation(loc);
             if (field.hasFun())
                 return;
             if (!Tag.WOODEN_PRESSURE_PLATES.isTagged(blockType)
@@ -779,7 +794,7 @@ public class FieldListener implements Listener {
             return;
         UUID uuid = event.getPlayer().getUniqueId();
         Optional<User> optionalUser = ElementalsX.getUser(uuid);
-        if (!optionalUser.isPresent())
+        if (optionalUser.isEmpty())
             return;
         User user = optionalUser.get();
         Field field = FieldUtil.getFieldByLocation(loc);
@@ -838,7 +853,7 @@ public class FieldListener implements Listener {
             return;
         UUID uuid = event.getPlayer().getUniqueId();
         Optional<User> optionalUser = ElementalsX.getUser(uuid);
-        if (!optionalUser.isPresent())
+        if (optionalUser.isEmpty())
             return;
         User user = optionalUser.get();
         Field field = FieldUtil.getFieldByLocation(loc);
@@ -865,7 +880,7 @@ public class FieldListener implements Listener {
             return;
         UUID uuid = event.getPlayer().getUniqueId();
         Optional<User> optionalUser = ElementalsX.getUser(uuid);
-        if (!optionalUser.isPresent())
+        if (optionalUser.isEmpty())
             return;
         User user = optionalUser.get();
         Field field = FieldUtil.getFieldByLocation(loc);
@@ -887,7 +902,7 @@ public class FieldListener implements Listener {
         if (CitizensAPI.getNPCRegistry().isNPC(event.getPlayer()))
             return;
         Optional<User> optionalUser = ElementalsX.getUser(event.getPlayer().getUniqueId());
-        if (!optionalUser.isPresent())
+        if (optionalUser.isEmpty())
             return;
         User user = optionalUser.get();
         FieldUtil.updateUser(user, event.getTo());
@@ -909,7 +924,7 @@ public class FieldListener implements Listener {
             return;
         UUID uuid = event.getPlayer().getUniqueId();
         Optional<User> optionalUser = ElementalsX.getUser(uuid);
-        if (!optionalUser.isPresent())
+        if (optionalUser.isEmpty())
             return;
         User user = optionalUser.get();
         Field field = FieldUtil.getFieldByLocation(loc);
@@ -933,7 +948,7 @@ public class FieldListener implements Listener {
             return;
         UUID uuid = event.getPlayer().getUniqueId();
         Optional<User> optionalUser = ElementalsX.getUser(uuid);
-        if (!optionalUser.isPresent())
+        if (optionalUser.isEmpty())
             return;
         User user = optionalUser.get();
         Field field = FieldUtil.getFieldByLocation(loc);
@@ -995,7 +1010,7 @@ public class FieldListener implements Listener {
             return;
         UUID uuid = damager.getUniqueId();
         Optional<User> optionalUser = ElementalsX.getUser(uuid);
-        if (!optionalUser.isPresent())
+        if (optionalUser.isEmpty())
             return;
         User user = optionalUser.get();
         Field field = FieldUtil.getFieldByLocation(loc);
@@ -1059,7 +1074,7 @@ public class FieldListener implements Listener {
             return;
         UUID uuid = damager.getUniqueId();
         Optional<User> optionalUser = ElementalsX.getUser(uuid);
-        if (!optionalUser.isPresent())
+        if (optionalUser.isEmpty())
             return;
         User user = optionalUser.get();
         Field field = FieldUtil.getFieldByLocation(loc);
@@ -1109,7 +1124,7 @@ public class FieldListener implements Listener {
             return;
         UUID uuid = damager.getUniqueId();
         Optional<User> optionalUser = ElementalsX.getUser(uuid);
-        if (!optionalUser.isPresent())
+        if (optionalUser.isEmpty())
             return;
         User user = optionalUser.get();
         Field field = FieldUtil.getFieldByLocation(loc);
@@ -1126,7 +1141,7 @@ public class FieldListener implements Listener {
         Vehicle vehicle = event.getVehicle();
         UUID uuid = event.getEntered().getUniqueId();
         Optional<User> optionalUser = ElementalsX.getUser(uuid);
-        if (!optionalUser.isPresent())
+        if (optionalUser.isEmpty())
             return;
         User user = optionalUser.get();
         Location loc = vehicle.getLocation();

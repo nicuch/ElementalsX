@@ -30,7 +30,7 @@ public class AdminChatCommand implements CommandExecutor {
             return true;
         }
         Optional<User> optionalUser = ElementalsX.getUser((Player) sender);
-        if (!optionalUser.isPresent())
+        if (optionalUser.isEmpty())
             return true;
         User user = optionalUser.get();
         if (!user.hasPermission("elementals.adminchat")) {

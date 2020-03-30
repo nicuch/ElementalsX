@@ -17,7 +17,7 @@ public class SortCommand implements TabExecutor {
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
         if (args.length != 0) {
             Optional<User> optionalUser = ElementalsX.getUser((Player) sender);
-            if (!optionalUser.isPresent())
+            if (optionalUser.isEmpty())
                 return true;
             User user = optionalUser.get();
             switch (args[0].toLowerCase()) {

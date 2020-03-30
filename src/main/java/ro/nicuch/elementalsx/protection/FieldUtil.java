@@ -11,9 +11,11 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
 public class FieldUtil {
-    private final static Map<FieldId, Field> loadedFields = new HashMap<>();
+    private final static ConcurrentMap<FieldId, Field> loadedFields = new ConcurrentHashMap<>();
 
     public static void registerField(User user, Block block, FieldId id, Field2D field2D) {
         Field field = new Field(id, user.getBase().getUniqueId(), field2D, block, new HashSet<>());
@@ -117,12 +119,10 @@ public class FieldUtil {
                         int blockY = resultSet.getInt("y");
                         int blockZ = resultSet.getInt("z");
                         UUID uuid = UUID.fromString(resultSet.getString("owner"));
-                        Bukkit.getScheduler().runTask(ElementalsX.get(), () -> {
-                            Field2D field2D = new Field2D(maxx, maxz, minx, minz);
-                            FieldId id = FieldId.fromCoords(blockX, blockY, blockZ, worldName);
-                            Field field = new Field(id, uuid, field2D, chunk, blockX, blockY, blockZ, getFieldMembers(id));
-                            loadedFields.put(id, field);
-                        });
+                        Field2D field2D = new Field2D(maxx, maxz, minx, minz);
+                        FieldId id = FieldId.fromCoords(blockX, blockY, blockZ, worldName);
+                        Field field = new Field(id, uuid, field2D, chunk, blockX, blockY, blockZ, getFieldMembers(id));
+                        loadedFields.put(id, field);
                     }
                 }
             } catch (SQLException ex) {
@@ -158,10 +158,8 @@ public class FieldUtil {
                         int x = resultSet.getInt("x");
                         int y = resultSet.getInt("y");
                         int z = resultSet.getInt("z");
-                        Bukkit.getScheduler().runTaskAsynchronously(ElementalsX.get(), () -> {
-                            FieldId id = FieldId.fromCoords(x, y, z, worldName);
-                            loadedFields.remove(id);
-                        });
+                        FieldId id = FieldId.fromCoords(x, y, z, worldName);
+                        loadedFields.remove(id);
                     }
                 }
             } catch (SQLException ex) {
@@ -409,8 +407,8 @@ public class FieldUtil {
 
     public static void infoField(User user) {
         Field field;
-        Block block = user.getBase().getTargetBlock(null, 3);
-        if (block.getType().equals(Material.DIAMOND_BLOCK) && isFieldBlock(block))
+        Block block = user.getBase().getTargetBlock(Collections.singleton(Material.DIAMOND_BLOCK), 3);
+        if (block != null && block.getType() == Material.DIAMOND_BLOCK && isFieldBlock(block))
             field = getFieldById(FieldId.fromBlock(block));
         else if (isFieldAtLocation(user.getBase().getLocation()))
             field = getFieldByLocation(user.getBase().getLocation());
@@ -425,8 +423,8 @@ public class FieldUtil {
         }
         user.getBase().sendMessage(ElementalsUtil.color("&a&lInformatii despre protectie:"));
         user.getBase().sendMessage("");
-        user.getBase().sendMessage(ElementalsUtil.color("&eLocatie: &6" + block.getWorld().getName() + " &c/ &6" + block.getX()
-                + "(x) &c/ &6" + block.getY() + "(y) &c/ &6" + block.getZ() + "(z)"));
+        user.getBase().sendMessage(ElementalsUtil.color("&eLocatie: &6" + field.getWorld().getName() + " &c/ &6" + field.getBlock().getX()
+                + "(x) &c/ &6" + field.getBlock().getY() + "(y) &c/ &6" + field.getBlock().getZ() + "(z)"));
         user.getBase().sendMessage(ElementalsUtil.color("&9Marime: &a51(x) &c/ &a256(y) &c/ &a51(x)"));
         user.getBase().sendMessage(ElementalsUtil.color("&4Locatie maxima: &a" + field.getWorld().getName() + " &c/ &a"
                 + field.getField2D().getMaxX() + "(x) &c/ &a" + field.getField2D().getMaxZ() + "(z)"));

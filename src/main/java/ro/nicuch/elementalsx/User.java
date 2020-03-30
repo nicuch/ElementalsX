@@ -6,6 +6,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.entity.EntityDamageEvent.DamageCause;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
+import ro.nicuch.citizensbooks.CitizensBooksPlugin;
 import ro.nicuch.elementalsx.elementals.ElementalsUtil;
 
 import java.sql.PreparedStatement;
@@ -93,6 +94,7 @@ public class User {
             ItemStack i15 = new ItemStack(Material.SADDLE);
             ItemStack i16 = new ItemStack(Material.LEAD, 2);
             ItemStack i17 = new ItemStack(Material.SHIELD);
+            ItemStack reguli = ((CitizensBooksPlugin) Bukkit.getPluginManager().getPlugin("CitizensBooks")).getAPI().getFilter("reguli");
             ItemMeta prot = i11.getItemMeta();
             prot.setDisplayName(ElementalsUtil.color("&bProtectie de Diamant &8(&a51x256x52&8)"));
             i11.setItemMeta(prot);
@@ -106,6 +108,7 @@ public class User {
             base.getInventory().setItem(9, i14);
             base.getInventory().setItem(10, i13);
             base.getInventory().setItem(11, i15);
+            base.getInventory().setItem(12, reguli);
             base.getInventory().setItem(27, i11);
             base.getInventory().setItem(28, i12);
             base.getInventory().setHelmet(i1);

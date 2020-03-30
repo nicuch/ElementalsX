@@ -25,7 +25,7 @@ public class DeathMessageListener implements Listener {
         if (event.getEntity().getType() != EntityType.PLAYER)
             return;
         Optional<User> optionalUser = ElementalsX.getUser(event.getEntity().getUniqueId());
-        if (!optionalUser.isPresent())
+        if (optionalUser.isEmpty())
             return;
         optionalUser.get().setLastDamageCause(event.getCause());
     }
@@ -35,7 +35,7 @@ public class DeathMessageListener implements Listener {
         if (CitizensAPI.getNPCRegistry().isNPC(event.getEntity()))
             return;
         Optional<User> optionalUser = ElementalsX.getUser(event.getEntity());
-        if (!optionalUser.isPresent())
+        if (optionalUser.isEmpty())
             return;
         User user = optionalUser.get();
         int change_2 = ElementalsUtil.nextInt(2);

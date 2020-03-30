@@ -1,6 +1,7 @@
 package ro.nicuch.elementalsx.elementals;
 
 import org.bukkit.*;
+import org.bukkit.FireworkEffect.Type;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Firework;
@@ -9,19 +10,15 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.FireworkMeta;
-import ro.nicuch.elementalsx.ElementalsX;
 import ro.nicuch.elementalsx.User;
 import ro.nicuch.elementalsx.protection.Field;
 import ro.nicuch.elementalsx.protection.FieldUtil;
 import ro.nicuch.lwjnbtl.CompoundTag;
 import ro.nicuch.tag.TagRegister;
-import org.bukkit.FireworkEffect.Type;
 
 import java.util.*;
 
 public class ElementalsUtil {
-    private static final Set<UUID> delayChat = new HashSet<>();
-    private static boolean stopChat = false;
     private static String motd = "&6&oPikaCraft &b&o- &c&oServerul se incarca...";
     private static final List<String> autoMsg = Arrays.asList(
             "&8[&eInfo&8] &a&oUtilizarea hack-urilor este pedepsita cu &4&o&lBAN&a&o!",
@@ -260,33 +257,23 @@ public class ElementalsUtil {
         return Arrays.stream(Bukkit.getOfflinePlayers()).filter(Objects::nonNull).filter(p -> name.equals(p.getName())).findFirst();
     }
 
-    public static void delayChatPlayer(User user) {
-        UUID uuid = user.getBase().getUniqueId();
-        delayChat.add(uuid);
-        Bukkit.getScheduler().runTaskLater(ElementalsX.get(), () -> delayChat.remove(uuid), 20L);
-    }
-
     public static List<String> getPlayersNames() {
         List<String> args = new ArrayList<>();
         Bukkit.getOnlinePlayers().forEach(player -> args.add(player.getName()));
         return args;
     }
 
-    public static boolean hasChatDelay(User user) {
-        return delayChat.contains(user.getBase().getUniqueId());
-    }
-
     public static int foundBlocks(Block block) {
         int i = 1;
-        for (int x = (block.getX() - 2); x < (block.getX() + 2); x++) {
-            for (int y = (block.getY() - 2); y < (block.getY() + 2); y++) {
-                for (int z = (block.getZ() - 2); z < (block.getZ() + 2); z++) {
+        for (int x = (block.getX() - 3); x < (block.getX() + 3); x++) {
+            for (int y = (block.getY() - 3); y < (block.getY() + 3); y++) {
+                for (int z = (block.getZ() - 3); z < (block.getZ() + 3); z++) {
                     if (y < 0)
                         continue;
                     Block founded = block.getWorld().getBlockAt(x, y, z);
                     if (founded.isEmpty())
                         continue;
-                    if (!founded.getType().equals(block.getType()))
+                    if (founded.getType() != block.getType())
                         continue;
                     if (hasTag(founded, "found"))
                         continue;
@@ -296,14 +283,6 @@ public class ElementalsUtil {
             }
         }
         return i;
-    }
-
-    public static void toggleChat(boolean b) {
-        stopChat = b;
-    }
-
-    public static boolean isChatStopped() {
-        return stopChat;
     }
 
     public static void setTag(Entity entity, String arg) {

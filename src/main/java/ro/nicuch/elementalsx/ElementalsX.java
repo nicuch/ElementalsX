@@ -41,7 +41,7 @@ public class ElementalsX extends JavaPlugin {
 
     @Override
     public void onEnable() {
-        fieldQueueTask = Bukkit.getScheduler().runTaskTimer(this, fieldQueueRunnable = new FieldQueueRunnable(), 1L, 1L);
+        fieldQueueTask = Bukkit.getScheduler().runTaskTimerAsynchronously(this, fieldQueueRunnable = new FieldQueueRunnable(), 1L, 1L);
         long start = System.currentTimeMillis();
         getServer().setSpawnRadius(1);
         new File(this.getDataFolder() + File.separator + "regiuni").mkdirs();
@@ -161,7 +161,6 @@ public class ElementalsX extends JavaPlugin {
         this.getCommand("adminchat").setExecutor(new AdminChatCommand());
         this.getCommand("adminchat").setAliases(AdminChatCommand.getAliases());
 
-        this.getCommand("chat").setExecutor(new ChatCommand());
         this.getCommand("randomtp").setExecutor(new RandomTpCommand());
         this.getCommand("randomtp").setAliases(RandomTpCommand.getAliases());
         te = new SoundCommand();
@@ -169,7 +168,6 @@ public class ElementalsX extends JavaPlugin {
         this.getCommand("sound").setTabCompleter(te);
         this.getCommand("giveall").setExecutor(new GiveAllCommand());
         this.getCommand("test").setExecutor(new TestCommand());
-        this.getCommand("admin").setExecutor(new AdminCommand());
         te = new SortCommand();
         this.getCommand("sort").setExecutor(te);
         this.getCommand("sort").setTabCompleter(te);
