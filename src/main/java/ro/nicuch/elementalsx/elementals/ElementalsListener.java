@@ -135,7 +135,7 @@ public class ElementalsListener implements Listener {
                 || event.getCause() != TeleportCause.ENDER_PEARL)
             return;
         Optional<User> optionalUser = ElementalsX.getUser(event.getPlayer().getUniqueId());
-        if (!optionalUser.isPresent())
+        if (optionalUser.isEmpty())
             return;
         User user = optionalUser.get();
         if (user.hasPermission("elementals.admin"))
@@ -150,7 +150,7 @@ public class ElementalsListener implements Listener {
         if (CitizensAPI.getNPCRegistry().isNPC(event.getPlayer()))
             return;
         Optional<User> optionalUser = ElementalsX.getUser(event.getPlayer().getUniqueId());
-        if (!optionalUser.isPresent())
+        if (optionalUser.isEmpty())
             return;
         User user = optionalUser.get();
         if (!user.hasPermission("elementals.gm.toggle")) {
@@ -167,7 +167,7 @@ public class ElementalsListener implements Listener {
         if (CitizensAPI.getNPCRegistry().isNPC(event.getPlayer()))
             return;
         Optional<User> optionalUser = ElementalsX.getUser(event.getPlayer().getUniqueId());
-        if (!optionalUser.isPresent())
+        if (optionalUser.isEmpty())
             return;
         User user = optionalUser.get();
         if (!user.hasPermission("elementals.gm.toggle")) {
@@ -203,7 +203,7 @@ public class ElementalsListener implements Listener {
                 || !Tag.BEDS.isTagged(clickedBlockType))
             return;
         Optional<User> optionalUser = ElementalsX.getUser(event.getPlayer().getUniqueId());
-        if (!optionalUser.isPresent())
+        if (optionalUser.isEmpty())
             return;
         User user = optionalUser.get();
         if (user.hasPermission("elementals.admin"))
@@ -226,7 +226,7 @@ public class ElementalsListener implements Listener {
         if (worldname.equals("spawn") || worldname.equals("dungeon"))
             return;
         Optional<User> optionalUser = ElementalsX.getUser(event.getPlayer().getUniqueId());
-        if (!optionalUser.isPresent())
+        if (optionalUser.isEmpty())
             return;
         User user = optionalUser.get();
         if (FieldUtil.isFieldAtLocation(event.getBlock().getLocation())) {
@@ -250,7 +250,7 @@ public class ElementalsListener implements Listener {
         if (!(worldName.equals("spawn") || worldName.equals("dungeon")))
             return;
         Optional<User> optionalUser = ElementalsX.getUser(event.getPlayer().getUniqueId());
-        if (!optionalUser.isPresent())
+        if (optionalUser.isEmpty())
             return;
         User user = optionalUser.get();
         if (user.hasPermission("elementals.override"))
@@ -264,7 +264,7 @@ public class ElementalsListener implements Listener {
         if (worldname.equals("spawn") || worldname.equals("dungeon"))
             return;
         Optional<User> optionalUser = ElementalsX.getUser(event.getPlayer().getUniqueId());
-        if (!optionalUser.isPresent())
+        if (optionalUser.isEmpty())
             return;
         User user = optionalUser.get();
         if (FieldUtil.isFieldAtLocation(event.getBlock().getLocation())) {
@@ -358,7 +358,7 @@ public class ElementalsListener implements Listener {
             return;
         if (event.getCause() == IgniteCause.FLINT_AND_STEEL) {
             Optional<User> optionalUser = ElementalsX.getUser(event.getPlayer().getUniqueId());
-            if (!optionalUser.isPresent())
+            if (optionalUser.isEmpty())
                 return;
             User user = optionalUser.get();
             if (user.hasPermission("elementals.admin"))
@@ -384,7 +384,7 @@ public class ElementalsListener implements Listener {
             return;
         if (event.getRemover().getType() == EntityType.PLAYER) {
             Optional<User> optionalUser = ElementalsX.getUser(event.getRemover().getUniqueId());
-            if (!optionalUser.isPresent())
+            if (optionalUser.isEmpty())
                 return;
             User user = optionalUser.get();
             if (!user.hasPermission("elementals.admin"))
@@ -405,7 +405,7 @@ public class ElementalsListener implements Listener {
         if (!(worldname.equals("spawn") || worldname.equals("dungeon")))
             return;
         Optional<User> optionalUser = ElementalsX.getUser(event.getPlayer().getUniqueId());
-        if (!optionalUser.isPresent())
+        if (optionalUser.isEmpty())
             return;
         User user = optionalUser.get();
         if (user.hasPermission("elementals.admin"))
@@ -421,7 +421,7 @@ public class ElementalsListener implements Listener {
         if (!(worldname.equals("spawn") || worldname.equals("dungeon")))
             return;
         Optional<User> optionalUser = ElementalsX.getUser(event.getPlayer().getUniqueId());
-        if (!optionalUser.isPresent())
+        if (optionalUser.isEmpty())
             return;
         User user = optionalUser.get();
         if (user.hasPermission("elementals.admin"))
@@ -435,7 +435,7 @@ public class ElementalsListener implements Listener {
         if (!(worldname.equals("spawn") || worldname.equals("dungeon")))
             return;
         Optional<User> optionalUser = ElementalsX.getUser(event.getPlayer().getUniqueId());
-        if (!optionalUser.isPresent())
+        if (optionalUser.isEmpty())
             return;
         User user = optionalUser.get();
         if (user.hasPermission("elementals.admin"))
@@ -449,7 +449,7 @@ public class ElementalsListener implements Listener {
         if (!(worldname.equals("spawn") || worldname.equals("dungeon")))
             return;
         Optional<User> optionalUser = ElementalsX.getUser(event.getPlayer().getUniqueId());
-        if (!optionalUser.isPresent())
+        if (optionalUser.isEmpty())
             return;
         User user = optionalUser.get();
         if (user.hasPermission("elementals.admin"))
@@ -460,7 +460,7 @@ public class ElementalsListener implements Listener {
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void event(PlayerCommandPreprocessEvent event) {
         Optional<User> optionalUser = ElementalsX.getUser(event.getPlayer().getUniqueId());
-        if (!optionalUser.isPresent())
+        if (optionalUser.isEmpty())
             return;
         User user = optionalUser.get();
         if (event.getMessage().startsWith("/spawn")) {
@@ -495,7 +495,7 @@ public class ElementalsListener implements Listener {
         if (event.getRightClicked().getType() != EntityType.ITEM_FRAME)
             return;
         Optional<User> optionalUser = ElementalsX.getUser(event.getPlayer().getUniqueId());
-        if (!optionalUser.isPresent())
+        if (optionalUser.isEmpty())
             return;
         User user = optionalUser.get();
         if (user.hasPermission("elementals.admin"))
@@ -529,7 +529,7 @@ public class ElementalsListener implements Listener {
                 || handType != Material.ARMOR_STAND)
             return;
         Optional<User> optionalUser = ElementalsX.getUser(event.getPlayer().getUniqueId());
-        if (!optionalUser.isPresent())
+        if (optionalUser.isEmpty())
             return;
         User user = optionalUser.get();
         if (user.hasPermission("elementals.admin"))
@@ -539,16 +539,18 @@ public class ElementalsListener implements Listener {
 
     @EventHandler
     public void event(PlayerJoinEvent event) {
-        ElementalsX.getOnlineUsers().stream().filter(User::hasSounds).forEach(u -> u.getBase().playSound(u.getBase().getLocation(), Sound.BLOCK_NOTE_BLOCK_PLING, 1, 1));
         ElementalsX.createUser(event.getPlayer());
+        if (!event.getPlayer().hasPotionEffect(PotionEffectType.INVISIBILITY))
+            ElementalsX.getOnlineUsers().stream().filter(User::hasSounds).forEach(u -> u.getBase().playSound(u.getBase().getLocation(), Sound.BLOCK_NOTE_BLOCK_PLING, 1, 1));
         event.getPlayer().playSound(event.getPlayer().getLocation(), Sound.BLOCK_NOTE_BLOCK_PLING, 1, 1);
     }
 
     @EventHandler
     public void event(PlayerQuitEvent event) {
         ElementalsX.removeUser(event.getPlayer());
-        ElementalsX.getOnlineUsers().stream().filter(User::hasSounds).forEach(u ->
-                u.getBase().playSound(u.getBase().getLocation(), Sound.BLOCK_NOTE_BLOCK_BASS, 1, 1));
+        if (!event.getPlayer().hasPotionEffect(PotionEffectType.INVISIBILITY))
+            ElementalsX.getOnlineUsers().stream().filter(User::hasSounds).forEach(u ->
+                    u.getBase().playSound(u.getBase().getLocation(), Sound.BLOCK_NOTE_BLOCK_BASS, 1, 1));
     }
 
     @EventHandler(priority = EventPriority.HIGHEST)
@@ -572,7 +574,7 @@ public class ElementalsListener implements Listener {
         if (!(worldname.equals("spawn") || worldname.equals("dungeon")))
             return;
         Optional<User> optionalUser = ElementalsX.getUser(event.getPlayer().getUniqueId());
-        if (!optionalUser.isPresent())
+        if (optionalUser.isEmpty())
             return;
         User user = optionalUser.get();
         if (user.hasPermission("elementals.admin"))

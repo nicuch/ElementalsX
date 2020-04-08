@@ -1,5 +1,6 @@
 package ro.nicuch.elementalsx;
 
+import com.mfk.lockfree.map.LockFreeMap;
 import net.milkbowl.vault.economy.Economy;
 import net.milkbowl.vault.permission.Permission;
 import org.bukkit.*;
@@ -23,17 +24,18 @@ import ro.nicuch.elementalsx.protection.FieldQueueRunnable;
 import ro.nicuch.elementalsx.protection.FieldUtil;
 
 import java.io.File;
-import java.sql.*;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
 import java.util.Collection;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
 
 public class ElementalsX extends JavaPlugin {
 
     private static Connection connection;
-    private final static ConcurrentMap<UUID, User> players = new ConcurrentHashMap<>();
+    private final static LockFreeMap<UUID, User> players = LockFreeMap.newMap(1);
     private static Economy vault;
     private static Permission perm;
     private static BukkitTask fieldQueueTask;
@@ -100,7 +102,7 @@ public class ElementalsX extends JavaPlugin {
     }
 
     public static void createUser(Player player) {
-        players.putIfAbsent(player.getUniqueId(), new User(player));
+        players.put(player.getUniqueId(), new User(player));
     }
 
     public static boolean existUser(UUID uuid) {
@@ -128,7 +130,7 @@ public class ElementalsX extends JavaPlugin {
     }
 
     public static Optional<User> getUser(UUID uuid) {
-        return Optional.ofNullable(players.get(uuid));
+        return players.get(uuid);
     }
 
     public static Economy getVault() {
@@ -145,7 +147,7 @@ public class ElementalsX extends JavaPlugin {
 
     public static void removeUser(UUID uuid) {
         if (players.containsKey(uuid)) {
-            players.get(uuid).save(false);
+            players.getUnsafe(uuid).save(false);
             players.remove(uuid);
         }
     }

@@ -3,7 +3,6 @@ package ro.nicuch.elementalsx.protection;
 import com.gamingmesh.jobs.api.JobsPrePaymentEvent;
 import com.gmail.nossr50.events.fake.FakeEntityDamageByEntityEvent;
 import com.shampaggon.crackshot.events.WeaponDamageEntityEvent;
-import io.hotmail.com.jacob_vejvoda.infernal_mobs.InfernalSpawnEvent;
 import net.citizensnpcs.api.CitizensAPI;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
@@ -40,17 +39,6 @@ import java.util.Optional;
 import java.util.UUID;
 
 public class FieldListener implements Listener {
-
-    @EventHandler(ignoreCancelled = true)
-    public void event(InfernalSpawnEvent event) {
-        Location loc = event.getEntity().getLocation();
-        if (FieldChunkUtil.doChunkWait(loc.getChunk())) {
-            return;
-        }
-        if (!FieldUtil.isFieldAtLocation(loc))
-            return;
-        event.setCancelled(true);
-    }
 
     @EventHandler(ignoreCancelled = true)
     public void event1(WeaponDamageEntityEvent event) {
@@ -132,6 +120,10 @@ public class FieldListener implements Listener {
     //Prevent pushing of protections
     @EventHandler(ignoreCancelled = true)
     public void pushProtection(BlockPistonExtendEvent event) {
+        if (FieldChunkUtil.doChunkWait(event.getBlock().getChunk())) {
+            event.setCancelled(true);
+            return;
+        }
         for (Block block : event.getBlocks()) {
             if (block.getType() != Material.DIAMOND_BLOCK)
                 continue;
@@ -144,6 +136,10 @@ public class FieldListener implements Listener {
 
     @EventHandler(ignoreCancelled = true)
     public void pushProtection(BlockPistonRetractEvent event) {
+        if (FieldChunkUtil.doChunkWait(event.getBlock().getChunk())) {
+            event.setCancelled(true);
+            return;
+        }
         for (Block block : event.getBlocks()) {
             if (block.getType() != Material.DIAMOND_BLOCK)
                 continue;
@@ -911,14 +907,14 @@ public class FieldListener implements Listener {
     @EventHandler(ignoreCancelled = true)
     public void event0(BlockBreakEvent event) {
         Block block = event.getBlock();
-        if (block.getType().equals(Material.DIAMOND_BLOCK)) {
-            if (FieldUtil.isFieldBlock(block))
-                return;
-        }
         Location loc = block.getLocation();
         if (FieldChunkUtil.doChunkWait(loc.getChunk())) {
             event.setCancelled(true);
             return;
+        }
+        if (block.getType().equals(Material.DIAMOND_BLOCK)) {
+            if (FieldUtil.isFieldBlock(block))
+                return;
         }
         if (!FieldUtil.isFieldAtLocation(loc))
             return;

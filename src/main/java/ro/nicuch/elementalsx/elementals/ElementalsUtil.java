@@ -293,7 +293,7 @@ public class ElementalsUtil {
     public static boolean hasTag(Entity entity, String arg) {
         if (!TagRegister.isStored(entity))
             return false;
-        if (!TagRegister.getStored(entity).isPresent())
+        if (TagRegister.getStored(entity).isEmpty())
             return false;
         return TagRegister.getStored(entity).get().contains(arg);
     }
@@ -306,7 +306,7 @@ public class ElementalsUtil {
     public static boolean hasTag(Block block, String arg) {
         if (!TagRegister.isStored(block))
             return false;
-        if (!TagRegister.getStored(block).isPresent())
+        if (TagRegister.getStored(block).isEmpty())
             return false;
         return TagRegister.getStored(block).get().contains(arg);
     }
@@ -314,7 +314,7 @@ public class ElementalsUtil {
     public static void removeTag(Entity entity, String arg) {
         if (!TagRegister.isStored(entity))
             return;
-        if (!TagRegister.getStored(entity).isPresent())
+        if (TagRegister.getStored(entity).isEmpty())
             return;
         TagRegister.getStored(entity).get().remove(arg);
     }
@@ -322,7 +322,7 @@ public class ElementalsUtil {
     public static void removeTag(Block block, String arg) {
         if (!TagRegister.isStored(block))
             return;
-        if (!TagRegister.getStored(block).isPresent())
+        if (TagRegister.getStored(block).isEmpty())
             return;
         TagRegister.getStored(block).get().remove(arg);
     }

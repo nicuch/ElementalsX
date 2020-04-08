@@ -1,5 +1,6 @@
 package ro.nicuch.elementalsx.protection;
 
+import com.mfk.lockfree.map.LockFreeMap;
 import org.bukkit.*;
 import org.bukkit.block.Block;
 import org.bukkit.event.block.BlockBreakEvent;
@@ -11,15 +12,13 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
 
 public class FieldUtil {
-    private final static ConcurrentMap<FieldId, Field> loadedFields = new ConcurrentHashMap<>();
+    private final static LockFreeMap<FieldId, Field> loadedFields = LockFreeMap.newMap(1);
 
     public static void registerField(User user, Block block, FieldId id, Field2D field2D) {
         Field field = new Field(id, user.getBase().getUniqueId(), field2D, block, new HashSet<>());
-        loadedFields.putIfAbsent(id, field);
+        loadedFields.put(id, field);
     }
 
     public static Set<UUID> getFieldMembers(FieldId fieldId) {
@@ -186,7 +185,7 @@ public class FieldUtil {
 
     public static Field getFieldById(FieldId id) {
         if (loadedFields.containsKey(id))
-            return loadedFields.get(id);
+            return loadedFields.getUnsafe(id);
         else
             throw new NullPointerException("Nici o protectie gasita dupa id-ul " + id.toString() + "!");
     }
@@ -200,17 +199,9 @@ public class FieldUtil {
     }
 
     public static boolean isFieldBlock(Block block) {
-        String query = "SELECT id FROM protection WHERE x=? AND y=? AND z=? AND world=?;";
-        try (PreparedStatement statement = ElementalsX.getDatabase().prepareStatement(query)) {
-            statement.setInt(1, block.getX());
-            statement.setInt(2, block.getY());
-            statement.setInt(3, block.getZ());
-            statement.setString(4, block.getWorld().getName());
-            try (ResultSet resultSet = statement.executeQuery()) {
-                return !resultSet.wasNull();
-            }
-        } catch (SQLException ex) {
-            ex.printStackTrace();
+        for (Field field : loadedFields.values()) {
+            if (field.getBlock().getLocation().equals(block.getLocation()))
+                return true;
         }
         return false;
     }
@@ -252,7 +243,7 @@ public class FieldUtil {
             if (!all) {
                 Field field;
                 Block block = user.getBase().getTargetBlock(null, 3);
-                if (block.getType().equals(Material.DIAMOND_BLOCK) && isFieldBlock(block))
+                if (block.getType() == Material.DIAMOND_BLOCK && isFieldBlock(block))
                     field = getFieldById(FieldId.fromBlock(block));
                 else if (isFieldAtLocation(user.getBase().getLocation()))
                     field = getFieldByLocation(user.getBase().getLocation());
