@@ -1,6 +1,5 @@
 package ro.nicuch.elementalsx.protection;
 
-import com.mfk.lockfree.map.LockFreeMap;
 import org.bukkit.*;
 import org.bukkit.block.Block;
 import org.bukkit.event.block.BlockBreakEvent;
@@ -12,24 +11,26 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
 public class FieldUtil {
-    private final static LockFreeMap<FieldId, Field> loadedFields = LockFreeMap.newMap(1);
+    private final static ConcurrentMap<FieldId, Field> loadedFields = new ConcurrentHashMap<>();
 
     public static void registerField(User user, Block block, FieldId id, Field2D field2D) {
         Field field = new Field(id, user.getBase().getUniqueId(), field2D, block, new HashSet<>());
         loadedFields.put(id, field);
     }
 
-    public static Set<UUID> getFieldMembers(FieldId fieldId) {
+    public static Set<String> getFieldMembers(FieldId fieldId) {
         String query = "SELECT uuid FROM protmembers WHERE protid=?;";
         try (PreparedStatement statement = ElementalsX.getDatabase().prepareStatement(query)) {
             statement.setString(1, fieldId.toString());
             try (ResultSet resultSet = statement.executeQuery()) {
                 if (!resultSet.wasNull()) {
-                    Set<UUID> uuids = new HashSet<>();
+                    Set<String> uuids = new HashSet<>();
                     while (resultSet.next()) {
-                        uuids.add(UUID.fromString(resultSet.getString("uuid")));
+                        uuids.add(resultSet.getString("uuid"));
                     }
                     return uuids;
                 }
@@ -103,20 +104,23 @@ public class FieldUtil {
         String worldName = chunk.getWorld().getName();
         FieldChunkUtil.setChunkToWait(chunk);
         FieldQueueRunnable.offer(() -> {
-            String query = "SELECT maxx, maxz, minx, minz, x, y, z, owner FROM protection WHERE chunkx=? AND chunkz=? AND world=?;";
+            String query = "SELECT x, y, z, owner FROM protection WHERE chunkx=? AND chunkz=? AND world=?;";
             try (PreparedStatement statement = ElementalsX.getDatabase().prepareStatement(query)) {
                 statement.setInt(1, chunk.getX());
                 statement.setInt(2, chunk.getZ());
                 statement.setString(3, worldName);
                 try (ResultSet resultSet = statement.executeQuery()) {
                     while (resultSet.next()) {
-                        int maxx = resultSet.getInt("maxx");
-                        int maxz = resultSet.getInt("maxz");
-                        int minx = resultSet.getInt("minx");
-                        int minz = resultSet.getInt("minz");
+
                         int blockX = resultSet.getInt("x");
                         int blockY = resultSet.getInt("y");
                         int blockZ = resultSet.getInt("z");
+
+                        int maxx = blockX + 25;
+                        int maxz = blockZ + 25;
+                        int minx = blockX - 25;
+                        int minz = blockZ - 25;
+
                         UUID uuid = UUID.fromString(resultSet.getString("owner"));
                         Field2D field2D = new Field2D(maxx, maxz, minx, minz);
                         FieldId id = FieldId.fromCoords(blockX, blockY, blockZ, worldName);
@@ -126,22 +130,10 @@ public class FieldUtil {
                 }
             } catch (SQLException ex) {
                 ex.printStackTrace();
+            } finally {
+                FieldChunkUtil.removeChunk(chunk);
             }
-            FieldChunkUtil.removeChunk(chunk);
         });
-    }
-
-    public static void takeProtection(User user) {
-        Block block = user.getBase().getTargetBlock(null, 3);
-        if (!block.getType().equals(Material.DIAMOND_BLOCK)) {
-            user.getBase().sendMessage(ElementalsUtil.color("&cTrebuie sa te uiti la blocul de diamant (&arespectiv protectia&c)!"));
-            return;
-        }
-        BlockBreakEvent event = new BlockBreakEvent(block, user.getBase());
-        Bukkit.getPluginManager().callEvent(event);
-        if (event.isCancelled())
-            return;
-        block.breakNaturally();
     }
 
     public static void unloadFieldsInChunk(Chunk chunk) {
@@ -167,9 +159,22 @@ public class FieldUtil {
         });
     }
 
+    public static void takeProtection(User user) {
+        Block block = user.getBase().getTargetBlock(null, 3);
+        if (!block.getType().equals(Material.DIAMOND_BLOCK)) {
+            user.getBase().sendMessage(ElementalsUtil.color("&cTrebuie sa te uiti la blocul de diamant (&arespectiv protectia&c)!"));
+            return;
+        }
+        BlockBreakEvent event = new BlockBreakEvent(block, user.getBase());
+        Bukkit.getPluginManager().callEvent(event);
+        if (event.isCancelled())
+            return;
+        block.breakNaturally();
+    }
+
     public static boolean isFieldAtLocation(Location location) {
         for (Field field : loadedFields.values())
-            if (field.getWorld().getName().equals(location.getWorld().getName())
+            if (field.getWorld().equals(location.getWorld().getName())
                     && field.getField2D().isInLocation(location))
                 return true;
         return false;
@@ -177,7 +182,7 @@ public class FieldUtil {
 
     public static Field getFieldByLocation(Location location) {
         for (Field field : loadedFields.values())
-            if (field.getWorld().getName().equals(location.getWorld().getName())
+            if (field.getWorld().equals(location.getWorld().getName())
                     && field.getField2D().isInLocation(location))
                 return field;
         throw new NullPointerException("Nici o protectie gasita la locatia data.");
@@ -185,7 +190,7 @@ public class FieldUtil {
 
     public static Field getFieldById(FieldId id) {
         if (loadedFields.containsKey(id))
-            return loadedFields.getUnsafe(id);
+            return loadedFields.get(id);
         else
             throw new NullPointerException("Nici o protectie gasita dupa id-ul " + id.toString() + "!");
     }
@@ -256,18 +261,18 @@ public class FieldUtil {
                     return;
                 }
                 if (allow) {
-                    if (field.isMember(member.getUniqueId())) {
+                    if (field.isMember(member.getUniqueId().toString())) {
                         user.getBase().sendMessage(ElementalsUtil.color("&8[&cProtectie&8] &a&oJucatorul &f&o" + name + " &a&oeste deja membru al protectiei."));
                         return;
                     }
-                    field.addMember(member.getUniqueId());
+                    field.addMember(member.getUniqueId().toString());
                     user.getBase().sendMessage(ElementalsUtil.color("&8[&cProtectie&8] &a&oJucatorul &f&o" + name + " &a&oa fost adaugat in protectie."));
                 } else {
                     if (!field.isMember(member.getUniqueId())) {
                         user.getBase().sendMessage(ElementalsUtil.color("&8[&cProtectie&8] &a&oJucatorul &f&o" + name + " &a&onu este membru al protectiei."));
                         return;
                     }
-                    field.removeMember(member.getUniqueId());
+                    field.removeMember(member.getUniqueId().toString());
                     user.getBase().sendMessage(ElementalsUtil.color("&8[&cProtectie&8] &a&oJucatorul &f&o" + name + " &a&oa fost sters din protectie."));
                 }
             } else {
@@ -296,8 +301,8 @@ public class FieldUtil {
                         FieldId fieldId = FieldId.fromString(resultSet.getString("id"));
                         if (isFieldLoaded(fieldId)) {
                             Field field = getFieldById(fieldId);
-                            if (!field.isMember(member))
-                                field.addMember(member);
+                            if (!field.isMember(member.toString()))
+                                field.addMember(member.toString());
                         } else {
                             String query1 = "INSERT INTO protmembers (protid, uuid) VALUES (?, ?)" +
                                     " ON DUPLICATE KEY UPDATE protid=?, uuid=?;";
@@ -339,8 +344,8 @@ public class FieldUtil {
                         FieldId fieldId = FieldId.fromString(resultSet.getString("id"));
                         if (isFieldLoaded(fieldId)) {
                             Field field = getFieldById(fieldId);
-                            if (field.isMember(member))
-                                field.removeMember(member);
+                            if (field.isMember(member.toString()))
+                                field.removeMember(member.toString());
                         } else {
                             String query1 = "DELETE IGNORE FROM protmembers WHERE protid=? AND uuid=?;";
                             try (PreparedStatement statement1 = ElementalsX.getDatabase().prepareStatement(query1)) {
@@ -414,19 +419,18 @@ public class FieldUtil {
         }
         user.getBase().sendMessage(ElementalsUtil.color("&a&lInformatii despre protectie:"));
         user.getBase().sendMessage("");
-        user.getBase().sendMessage(ElementalsUtil.color("&eLocatie: &6" + field.getWorld().getName() + " &c/ &6" + field.getBlock().getX()
+        user.getBase().sendMessage(ElementalsUtil.color("&eLocatie: &6" + field.getWorld() + " &c/ &6" + field.getBlock().getX()
                 + "(x) &c/ &6" + field.getBlock().getY() + "(y) &c/ &6" + field.getBlock().getZ() + "(z)"));
         user.getBase().sendMessage(ElementalsUtil.color("&9Marime: &a51(x) &c/ &a256(y) &c/ &a51(x)"));
-        user.getBase().sendMessage(ElementalsUtil.color("&4Locatie maxima: &a" + field.getWorld().getName() + " &c/ &a"
+        user.getBase().sendMessage(ElementalsUtil.color("&4Locatie maxima: &a" + field.getWorld() + " &c/ &a"
                 + field.getField2D().getMaxX() + "(x) &c/ &a" + field.getField2D().getMaxZ() + "(z)"));
-        user.getBase().sendMessage(ElementalsUtil.color("&cLocatie minima: &a" + field.getWorld().getName() + " &c/ &a"
+        user.getBase().sendMessage(ElementalsUtil.color("&cLocatie minima: &a" + field.getWorld() + " &c/ &a"
                 + field.getField2D().getMinX() + "(x) &c/ &a" + field.getField2D().getMinZ() + "(z)"));
-        user.getBase().sendMessage(ElementalsUtil.color("&bDetinator: &6" + Bukkit.getOfflinePlayer(field.getOwner()).getName() + " &f-> &d"
-                + field.getOwner().toString()));
+        user.getBase().sendMessage(ElementalsUtil.color("&bDetinator: &6" + Bukkit.getOfflinePlayer(field.getOwner()).getName()));
         if (!field.getMembers().isEmpty())
             user.getBase().sendMessage(ElementalsUtil.color("&bMembrii:"));
         field.getMembers().forEach(uuid -> user.getBase()
-                .sendMessage(ElementalsUtil.color("&e" + Bukkit.getOfflinePlayer(uuid).getName() + " &f-> &d" + uuid)));
+                .sendMessage(ElementalsUtil.color("&e" + Bukkit.getOfflinePlayer(UUID.fromString(uuid)).getName())));
         user.getBase().sendMessage(ElementalsUtil.color("&dFun mode: " + field.hasFun()));
         user.getBase().sendMessage("");
     }

@@ -29,11 +29,11 @@ public class FieldId {
     public boolean equals(Object o) {
         if (o == null) return false;
         if (!(o instanceof FieldId)) return false;
-        FieldId other = (FieldId) o;
-        return this.x == other.x &&
-                this.y == other.y &&
-                this.z == other.z &&
-                world.equals(other.world);
+        FieldId that = (FieldId) o;
+        return this.x == that.x &&
+                this.y == that.y &&
+                this.z == that.z &&
+                world.equals(that.world);
     }
 
     @Override

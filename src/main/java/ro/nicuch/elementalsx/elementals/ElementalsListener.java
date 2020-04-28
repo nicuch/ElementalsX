@@ -1,9 +1,11 @@
 package ro.nicuch.elementalsx.elementals;
 
+import com.gmail.nossr50.events.fake.FakeBlockBreakEvent;
 import com.shampaggon.crackshot.events.WeaponDamageEntityEvent;
 import me.clip.placeholderapi.PlaceholderAPI;
 import net.citizensnpcs.api.CitizensAPI;
 import org.bukkit.*;
+import org.bukkit.block.Block;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Parrot;
 import org.bukkit.entity.Player;
@@ -20,9 +22,7 @@ import org.bukkit.event.entity.EntityExplodeEvent;
 import org.bukkit.event.hanging.HangingBreakByEntityEvent;
 import org.bukkit.event.hanging.HangingPlaceEvent;
 import org.bukkit.event.player.*;
-import org.bukkit.event.player.PlayerLoginEvent.Result;
 import org.bukkit.event.player.PlayerTeleportEvent.TeleportCause;
-import org.bukkit.event.server.ServerListPingEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.potion.PotionEffect;
@@ -31,14 +31,227 @@ import ro.nicuch.elementalsx.ElementalsX;
 import ro.nicuch.elementalsx.User;
 import ro.nicuch.elementalsx.protection.Field;
 import ro.nicuch.elementalsx.protection.FieldUtil;
+import ro.nicuch.lwjnbtl.CompoundTag;
+import ro.nicuch.tag.TagRegister;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
 
 public class ElementalsListener implements Listener {
     private final static List<UUID> interactList = new ArrayList<>();
+
+    @EventHandler
+    public void event2(BlockIgniteEvent event) {
+        Block block = event.getBlock();
+        if (event.getCause() == IgniteCause.FLINT_AND_STEEL) {
+            if (block.getType() != Material.FIRE)
+                return;
+            if (event.getPlayer() == null)
+                return;
+            UUID uuid = event.getPlayer().getUniqueId();
+            CompoundTag tag = TagRegister.getStored(block).orElseGet(() -> TagRegister.create(block));
+            tag.putString("fire-placed", uuid.toString());
+        }
+        if (event.getCause() == IgniteCause.LAVA) {
+            if (block.getType() != Material.FIRE)
+                return;
+            if (event.getIgnitingBlock() == null)
+                return;
+            Block from = event.getIgnitingBlock();
+            Optional<CompoundTag> optionalCompoundTag = TagRegister.getStored(from);
+            if (optionalCompoundTag.isEmpty())
+                return;
+            CompoundTag tag = optionalCompoundTag.get();
+            if (!tag.containsString("lava-placed"))
+                return;
+            String uuid = tag.getString("lava-placed");
+            CompoundTag toTag = TagRegister.getStored(block).orElseGet(() -> TagRegister.create(block));
+            toTag.putString("fire-placed", uuid);
+        }
+    }
+
+    @EventHandler
+    public void event0(BlockSpreadEvent event) {
+        Block from = event.getSource();
+        Block to = event.getBlock();
+        if (from.getType() != Material.FIRE)
+            return;
+        Optional<CompoundTag> optionalCompoundTag = TagRegister.getStored(from);
+        if (optionalCompoundTag.isEmpty())
+            return;
+        CompoundTag tag = optionalCompoundTag.get();
+        if (!tag.containsString("fire-placed"))
+            return;
+        String uuid = tag.getString("fire-placed");
+        CompoundTag toTag = TagRegister.getStored(to).orElseGet(() -> TagRegister.create(to));
+        toTag.putString("fire-placed", uuid);
+    }
+
+    @EventHandler
+    public void event(BlockFormEvent event) {
+        Block block = event.getBlock();
+        if (event.getBlock().getType() != Material.LAVA)
+            return;
+        if (event.getNewState().getType() == Material.LAVA)
+            return;
+        Optional<CompoundTag> optionalCompoundTag = TagRegister.getStored(block);
+        if (optionalCompoundTag.isEmpty())
+            return;
+        CompoundTag tag = optionalCompoundTag.get();
+        if (!tag.containsString("lava-placed"))
+            return;
+        tag.remove("lava-placed");
+    }
+
+    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
+    public void event0(PlayerBucketEmptyEvent event) {
+        UUID uuid = event.getPlayer().getUniqueId();
+        Block block = event.getBlock();
+        if (event.getBucket() == Material.LAVA_BUCKET) {
+            CompoundTag tag = TagRegister.getStored(block).orElseGet(() -> TagRegister.create(block));
+            tag.putString("lava-placed", uuid.toString());
+        }
+        if (block.getType() == Material.FIRE) {
+            Optional<CompoundTag> optionalCompoundTag = TagRegister.getStored(block);
+            if (optionalCompoundTag.isEmpty())
+                return;
+            CompoundTag tag = optionalCompoundTag.get();
+            if (!tag.containsString("fire-placed"))
+                return;
+            tag.remove("fire-placed");
+        }
+    }
+
+    @EventHandler
+    public void onPlayerInteract(PlayerInteractEvent event) {
+        if (event.getAction() != Action.LEFT_CLICK_BLOCK)
+            return;
+        Block block = event.getClickedBlock();
+        if (block == null)
+            return;
+        if (block.getType() != Material.FIRE)
+            return;
+        Optional<CompoundTag> optionalCompoundTag = TagRegister.getStored(block);
+        if (optionalCompoundTag.isEmpty())
+            return;
+        CompoundTag tag = optionalCompoundTag.get();
+        if (!tag.containsString("fire-placed"))
+            return;
+        tag.remove("fire-placed");
+    }
+
+    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
+    public void event1(BlockPlaceEvent event) {
+        Material blockReplacedMaterial = event.getBlockReplacedState().getType();
+        if (blockReplacedMaterial == Material.LAVA) {
+            Optional<CompoundTag> optionalCompoundTag = TagRegister.getStored(event.getBlock());
+            if (optionalCompoundTag.isEmpty())
+                return;
+            CompoundTag tag = optionalCompoundTag.get();
+            if (!tag.containsString("lava-placed"))
+                return;
+            tag.remove("lava-placed");
+        } else if (blockReplacedMaterial == Material.FIRE) {
+            if (event.getBlock().getType() == Material.FIRE)
+                return;
+            Optional<CompoundTag> optionalCompoundTag = TagRegister.getStored(event.getBlock());
+            if (optionalCompoundTag.isEmpty())
+                return;
+            CompoundTag tag = optionalCompoundTag.get();
+            if (!tag.containsString("fire-placed"))
+                return;
+            tag.remove("fire-placed");
+        }
+    }
+
+    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
+    public void event0(PlayerBucketFillEvent event) {
+        Block block = event.getBlock();
+        Optional<CompoundTag> optionalCompoundTag = TagRegister.getStored(block);
+        if (optionalCompoundTag.isEmpty())
+            return;
+        CompoundTag tag = optionalCompoundTag.get();
+        if (!tag.containsString("lava-placed"))
+            return;
+        tag.remove("lava-placed");
+    }
+
+    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
+    public void event(FluidLevelChangeEvent event) {
+        Block block = event.getBlock();
+        if (event.getBlock().getType() != Material.LAVA)
+            return;
+        if (event.getNewData().getMaterial() == Material.LAVA)
+            return;
+        Optional<CompoundTag> optionalCompoundTag = TagRegister.getStored(block);
+        if (optionalCompoundTag.isEmpty())
+            return;
+        CompoundTag tag = optionalCompoundTag.get();
+        if (!tag.containsString("lava-placed"))
+            return;
+        tag.remove("lava-placed");
+    }
+
+    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
+    public void event0(BlockFadeEvent event) {
+        Block block = event.getBlock();
+        if (block.getType() == Material.LAVA) {
+            if (event.getNewState().getType() == Material.LAVA)
+                return;
+            Optional<CompoundTag> optionalCompoundTag = TagRegister.getStored(block);
+            if (optionalCompoundTag.isEmpty())
+                return;
+            CompoundTag tag = optionalCompoundTag.get();
+            if (!tag.containsString("lava-placed"))
+                return;
+            tag.remove("lava-placed");
+        } else if (block.getType() == Material.FIRE) {
+            if (event.getNewState().getType() == Material.FIRE)
+                return;
+            Optional<CompoundTag> optionalCompoundTag = TagRegister.getStored(block);
+            if (optionalCompoundTag.isEmpty())
+                return;
+            CompoundTag tag = optionalCompoundTag.get();
+            if (!tag.containsString("fire-placed"))
+                return;
+            tag.remove("fire-placed");
+        }
+    }
+
+    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
+    public void event0(BlockFromToEvent event) {
+        Block from = event.getBlock();
+        Block to = event.getToBlock();
+        if (from.getType() == Material.LAVA) {
+            Optional<CompoundTag> optionalCompoundTag = TagRegister.getStored(from);
+            if (optionalCompoundTag.isEmpty())
+                return;
+            CompoundTag tag = optionalCompoundTag.get();
+            if (!tag.containsString("lava-placed"))
+                return;
+            String uuid = tag.getString("lava-placed");
+            CompoundTag toTag = TagRegister.getStored(to).orElseGet(() -> TagRegister.create(to));
+            toTag.putString("lava-placed", uuid);
+        }
+        if (to.getType() == Material.AIR) {
+            Optional<CompoundTag> optionalCompoundTag = TagRegister.getStored(to);
+            if (optionalCompoundTag.isEmpty())
+                return;
+            CompoundTag tag = optionalCompoundTag.get();
+            if (!tag.containsString("fire-placed"))
+                return;
+            tag.remove("fire-placed");
+        }
+    }
+
+    @EventHandler(ignoreCancelled = true)
+    public void event(BlockFadeEvent event) {
+        if (!event.getBlock().getWorld().getName().equals("spawn"))
+            return;
+        Material blockMat = event.getBlock().getType();
+        if (!(Tag.CORAL_BLOCKS.isTagged(blockMat) || Tag.CORAL_PLANTS.isTagged(blockMat) || Tag.CORALS.isTagged(blockMat) || Tag.WALL_CORALS.isTagged(blockMat)))
+            return;
+        event.setCancelled(true);
+    }
 
     @EventHandler(ignoreCancelled = true)
     public void event(PlayerItemConsumeEvent event) {
@@ -152,36 +365,65 @@ public class ElementalsListener implements Listener {
         Optional<User> optionalUser = ElementalsX.getUser(event.getPlayer().getUniqueId());
         if (optionalUser.isEmpty())
             return;
+        String worldName = event.getTo().getWorld().getName();
         User user = optionalUser.get();
         if (!user.hasPermission("elementals.gm.toggle")) {
-            String worldName = event.getTo().getWorld().getName();
             if (worldName.equals("spawn") || worldName.equals("dungeon"))
                 user.getBase().setGameMode(GameMode.ADVENTURE);
             else
                 user.getBase().setGameMode(GameMode.SURVIVAL);
         }
+        if (!user.hasPermission("elementals.fly.toggle")) {
+            if (worldName.equals("spawn") || worldName.equals("dungeon")) {
+                event.getPlayer().setFlying(false);
+                event.getPlayer().setAllowFlight(false);
+            }
+        }
     }
 
     @EventHandler
-    public void event(PlayerTeleportEvent event) {
+    public void event(PlayerToggleFlightEvent event) {
         if (CitizensAPI.getNPCRegistry().isNPC(event.getPlayer()))
             return;
         Optional<User> optionalUser = ElementalsX.getUser(event.getPlayer().getUniqueId());
         if (optionalUser.isEmpty())
             return;
         User user = optionalUser.get();
+        if (user.hasPermission("elementals.fly.toggle"))
+            return;
+        String worldName = event.getPlayer().getWorld().getName();
+        if (!(worldName.equals("spawn") || worldName.equals("dungeon")))
+            return;
+        if (event.isFlying()) {
+            event.getPlayer().setFlying(false);
+            event.getPlayer().setAllowFlight(false);
+        } else
+            event.setCancelled(true);
+    }
+
+    @EventHandler
+    public void event(PlayerTeleportEvent event) {
+        if (event.getFrom().getBlock().equals(event.getTo().getBlock()))
+            return;
+        if (CitizensAPI.getNPCRegistry().isNPC(event.getPlayer()))
+            return;
+        Optional<User> optionalUser = ElementalsX.getUser(event.getPlayer().getUniqueId());
+        if (optionalUser.isEmpty())
+            return;
+        String worldName = event.getTo().getWorld().getName();
+        User user = optionalUser.get();
         if (!user.hasPermission("elementals.gm.toggle")) {
-            String worldName = event.getTo().getWorld().getName();
             if (worldName.equals("spawn") || worldName.equals("dungeon"))
                 user.getBase().setGameMode(GameMode.ADVENTURE);
             else
                 user.getBase().setGameMode(GameMode.SURVIVAL);
         }
-    }
-
-    @EventHandler
-    public void event(ServerListPingEvent event) {
-        event.setMotd(ElementalsUtil.color(ElementalsUtil.getMotd()));
+        if (!user.hasPermission("elementals.fly.toggle")) {
+            if (worldName.equals("spawn") || worldName.equals("dungeon")) {
+                event.getPlayer().setFlying(false);
+                event.getPlayer().setAllowFlight(false);
+            }
+        }
     }
 
     @EventHandler
@@ -216,12 +458,37 @@ public class ElementalsListener implements Listener {
         Player player = event.getPlayer();
         String level = PlaceholderAPI.setPlaceholders(player, "%math_{mcmmo_power_level}/15[precision:0]%");
         String dragon = PlaceholderAPI.setPlaceholders(player, "%dragonslayer_prefix%");
-        ElementalsX.getOnlineUsers().stream().filter(User::hasSounds).forEach(user -> user.getBase().playSound(user.getBase().getLocation(), Sound.ENTITY_ITEM_PICKUP, 1f, 1f));
+        Set<Player> recipe = event.getRecipients();
+        ElementalsX.getOnlineUsers().stream().filter(User::hasSounds).filter(user -> recipe.contains(user.getBase())).forEach(user -> user.getBase().playSound(user.getBase().getLocation(), Sound.ENTITY_ITEM_PICKUP, 1f, 1f));
         event.setFormat(event.getFormat().replace("{LEVEL}", level).replace("{DRAGON}", dragon));
     }
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void event3(BlockBreakEvent event) {
+        String worldname = event.getBlock().getWorld().getName();
+        if (worldname.equals("spawn") || worldname.equals("dungeon"))
+            return;
+        Optional<User> optionalUser = ElementalsX.getUser(event.getPlayer().getUniqueId());
+        if (optionalUser.isEmpty())
+            return;
+        User user = optionalUser.get();
+        if (FieldUtil.isFieldAtLocation(event.getBlock().getLocation())) {
+            Field field = FieldUtil.getFieldByLocation(event.getBlock().getLocation());
+            if (!(field.isMember(user.getBase().getUniqueId()) || field.isOwner(user.getBase().getUniqueId())
+                    || user.hasPermission("protection.override")))
+                return;
+        }
+        if (!(event.getBlock().getType() == Material.DIAMOND_ORE
+                || event.getBlock().getType() == Material.EMERALD_ORE
+                || event.getBlock().getType() == Material.GOLD_ORE
+                || event.getBlock().getType() == Material.IRON_ORE
+                || event.getBlock().getType() == Material.LAPIS_ORE))
+            return;
+        ElementalsUtil.removeTag(event.getBlock(), "found");
+    }
+
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+    public void event3(FakeBlockBreakEvent event) {
         String worldname = event.getBlock().getWorld().getName();
         if (worldname.equals("spawn") || worldname.equals("dungeon"))
             return;
@@ -258,7 +525,7 @@ public class ElementalsListener implements Listener {
         event.setCancelled(true);
     }
 
-    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+    @EventHandler(priority = EventPriority.HIGHEST)
     public void event(BlockPlaceEvent event) {
         String worldname = event.getBlock().getWorld().getName();
         if (worldname.equals("spawn") || worldname.equals("dungeon"))
@@ -282,7 +549,7 @@ public class ElementalsListener implements Listener {
         ElementalsUtil.setTag(event.getBlock(), "found");
     }
 
-    @EventHandler(ignoreCancelled = true)
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void event(BlockDamageEvent event) {
         String worldname = event.getBlock().getWorld().getName();
         if (worldname.equals("spawn") || worldname.equals("dungeon"))
@@ -295,8 +562,9 @@ public class ElementalsListener implements Listener {
             return;
         if (ElementalsUtil.hasTag(event.getBlock(), "found"))
             return;
-        ElementalsUtil.setTag(event.getBlock(), "found");
         int n = ElementalsUtil.foundBlocks(event.getBlock());
+        if (n == 0)
+            return;
         switch (event.getBlock().getType()) {
             case DIAMOND_ORE:
                 if (n == 1) {
@@ -462,28 +730,30 @@ public class ElementalsListener implements Listener {
         Optional<User> optionalUser = ElementalsX.getUser(event.getPlayer().getUniqueId());
         if (optionalUser.isEmpty())
             return;
+        Location loc = event.getPlayer().getLocation();
         User user = optionalUser.get();
-        if (event.getMessage().startsWith("/spawn")) {
-            if (!event.getPlayer().isInsideVehicle())
-                return;
-            event.getPlayer().sendMessage(ElementalsUtil.color("&cNu poti folosi comanda cat timp esti intr-un vehicul!"));
-            event.setCancelled(true);
-        } else if (event.getMessage().startsWith("/sethome")) {
+        if (event.getMessage().startsWith("/sethome") || event.getMessage().startsWith("/essentials:sethome")) {
             String worldname = event.getPlayer().getWorld().getName();
             if (worldname.equals("spawn") || worldname.equals("dungeon")) {
-                if (user.hasPermission("elementals.command.minecraft"))
+                if (user.hasPermission("elementals.command.sethome"))
                     return;
-                event.getPlayer().sendMessage(ElementalsUtil.color("&cNu poti folosi comanda in spawn!"));
+                event.getPlayer().sendMessage(ElementalsUtil.color("&cNu poti folosi comanda in spawn/dungeon!"));
                 event.setCancelled(true);
-            } else if (FieldUtil.isFieldAtLocation(event.getPlayer().getLocation()))
-                if (!(FieldUtil.getFieldByLocation(event.getPlayer().getLocation())
-                        .isMember(event.getPlayer().getUniqueId())
-                        || FieldUtil.getFieldByLocation(event.getPlayer().getLocation()).isOwner(
-                        event.getPlayer().getUniqueId())
-                        || user.hasPermission("protection.override"))) {
+            } else if (FieldUtil.isFieldAtLocation(loc)) {
+                Field field = FieldUtil.getFieldByLocation(loc);
+                if (!(field.isMember(user.getUUID()) || field.isOwner(user.getUUID()) || user.hasPermission("protection.override"))) {
                     event.getPlayer().sendMessage(ElementalsUtil.color("&cNu poti folosi comanda in protectia altcuiva!"));
                     event.setCancelled(true);
                 }
+            }
+        } else if (event.getMessage().startsWith("/fly") || event.getMessage().startsWith("/essentials:fly")) {
+            String worldname = event.getPlayer().getWorld().getName();
+            if (worldname.equals("spawn") || worldname.equals("dungeon")) {
+                if (user.hasPermission("elementals.command.fly"))
+                    return;
+                event.getPlayer().sendMessage(ElementalsUtil.color("&cNu poti folosi comanda in spawn/dungeon!"));
+                event.setCancelled(true);
+            }
         }
     }
 
@@ -540,24 +810,11 @@ public class ElementalsListener implements Listener {
     @EventHandler
     public void event(PlayerJoinEvent event) {
         ElementalsX.createUser(event.getPlayer());
-        if (!event.getPlayer().hasPotionEffect(PotionEffectType.INVISIBILITY))
-            ElementalsX.getOnlineUsers().stream().filter(User::hasSounds).forEach(u -> u.getBase().playSound(u.getBase().getLocation(), Sound.BLOCK_NOTE_BLOCK_PLING, 1, 1));
-        event.getPlayer().playSound(event.getPlayer().getLocation(), Sound.BLOCK_NOTE_BLOCK_PLING, 1, 1);
     }
 
     @EventHandler
     public void event(PlayerQuitEvent event) {
         ElementalsX.removeUser(event.getPlayer());
-        if (!event.getPlayer().hasPotionEffect(PotionEffectType.INVISIBILITY))
-            ElementalsX.getOnlineUsers().stream().filter(User::hasSounds).forEach(u ->
-                    u.getBase().playSound(u.getBase().getLocation(), Sound.BLOCK_NOTE_BLOCK_BASS, 1, 1));
-    }
-
-    @EventHandler(priority = EventPriority.HIGHEST)
-    public void event(PlayerLoginEvent event) {
-        if (event.getResult().equals(Result.KICK_FULL))
-            event.setKickMessage(ElementalsUtil.color(
-                    "\n" + "&a[&6PikaCraft&a]\n" + "&aNu te poti conecta!\n" + "&eServerul este plin."));
     }
 
     @EventHandler(ignoreCancelled = true)

@@ -58,8 +58,12 @@ public class DeathMessageListener implements Listener {
             case ENTITY_ATTACK:
                 Entity damager = ((EntityDamageByEntityEvent) event.getEntity().getLastDamageCause()).getDamager();
                 if (MythicMobs.inst().getAPIHelper().isMythicMob(damager)) {
-                    event.setDeathMessage(ElementalsUtil.color("&8[&4Info&8] &f&o" + user.getBase().getName() + " &9&oa fost omorat de un &f&o"
-                            + MythicMobs.inst().getAPIHelper().getMythicMobInstance(damager).getDisplayName() + "&9&o."));
+                    if (damager.getType() == EntityType.RABBIT) {
+                        event.setDeathMessage(ElementalsUtil.color("&8[&4Info&8] &f&o" + user.getBase().getName() + " &9&oa fost sfasiat de &f&o"
+                                + MythicMobs.inst().getAPIHelper().getMythicMobInstance(damager).getDisplayName() + "&9&o."));
+                    } else
+                        event.setDeathMessage(ElementalsUtil.color("&8[&4Info&8] &f&o" + user.getBase().getName() + " &9&oa fost omorat de un &f&o"
+                                + MythicMobs.inst().getAPIHelper().getMythicMobInstance(damager).getDisplayName() + "&9&o."));
                     return;
                 } else
                     switch (damager.getType()) {

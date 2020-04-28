@@ -42,7 +42,8 @@ public class Field2D {
                 && this.minZ <= location.getBlockZ();
     }
 
-    public void sendFieldLocate(Block b, Player player, World world, int yLoc) {
+    public void sendFieldLocate(Block b, Player player, String worldName, int yLoc) {
+        World world = Bukkit.getWorld(worldName);
         BlockData glass = Material.GLASS.createBlockData();
         for (int x = this.minX; x <= this.maxX; x++)
             if (b.getX() != x)
@@ -72,7 +73,8 @@ public class Field2D {
         }, 20 * 20);
     }
 
-    public void sendFieldVisualize(Player player, World world) {
+    public void sendFieldVisualize(Player player, String worldName) {
+        World world = Bukkit.getWorld(worldName);
         int midX = this.maxX - ((this.maxX - this.minX) / 2);
         int midZ = this.maxZ - ((this.maxZ - this.minZ) / 2);
         BlockData glass = Material.GLASS.createBlockData();

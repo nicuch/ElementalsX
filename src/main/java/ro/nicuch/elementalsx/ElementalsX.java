@@ -1,6 +1,7 @@
 package ro.nicuch.elementalsx;
 
-import com.mfk.lockfree.map.LockFreeMap;
+import com.zaxxer.hikari.HikariConfig;
+import com.zaxxer.hikari.HikariDataSource;
 import net.milkbowl.vault.economy.Economy;
 import net.milkbowl.vault.permission.Permission;
 import org.bukkit.*;
@@ -25,17 +26,19 @@ import ro.nicuch.elementalsx.protection.FieldUtil;
 
 import java.io.File;
 import java.sql.Connection;
-import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.util.Collection;
 import java.util.Optional;
+import java.util.Properties;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
 public class ElementalsX extends JavaPlugin {
-
+    private static HikariDataSource ds;
     private static Connection connection;
-    private final static LockFreeMap<UUID, User> players = LockFreeMap.newMap(1);
+    private final static ConcurrentMap<UUID, User> players = new ConcurrentHashMap<>();
     private static Economy vault;
     private static Permission perm;
     private static BukkitTask fieldQueueTask;
@@ -61,7 +64,6 @@ public class ElementalsX extends JavaPlugin {
         this.commandsCreator();
         this.eventCreator();
         this.randomMsg();
-        this.timer();
         this.topKillsTrick();
         Bukkit.getOnlinePlayers().forEach(ElementalsX::createUser);
         sendConsoleMessage("&bPluginul a pornit! (" + (System.currentTimeMillis() - start) + "ms)");
@@ -98,6 +100,8 @@ public class ElementalsX extends JavaPlugin {
         } catch (SQLException ex) {
             ex.printStackTrace();
         }
+        if (ds != null)
+            ds.close();
         sendConsoleMessage("&bPluginul s-a oprit!");
     }
 
@@ -130,7 +134,7 @@ public class ElementalsX extends JavaPlugin {
     }
 
     public static Optional<User> getUser(UUID uuid) {
-        return players.get(uuid);
+        return Optional.ofNullable(players.get(uuid));
     }
 
     public static Economy getVault() {
@@ -147,7 +151,7 @@ public class ElementalsX extends JavaPlugin {
 
     public static void removeUser(UUID uuid) {
         if (players.containsKey(uuid)) {
-            players.getUnsafe(uuid).save(false);
+            players.get(uuid).save(false);
             players.remove(uuid);
         }
     }
@@ -182,15 +186,28 @@ public class ElementalsX extends JavaPlugin {
         String password = cfg.getString("db_pass");
         String ip = cfg.getString("db_ip");
         String db_name = cfg.getString("db_name");
-        String url = "jdbc:mysql://" + ip + "/" + db_name + "?user=" + username + "&password=" + password + "&useSSL=false&autoReconnect=true&cachePrepStmts=true&cacheCallableStmts=true&cacheServerConfiguration=true" +
-                "&useLocalSessionState=true&elideSetAutoCommits=true&alwaysSendSetIsolation=false&enableQueryTimeouts=false";
-
+        HikariConfig config = new HikariConfig();
+        config.setJdbcUrl("jdbc:mysql://" + ip + "/" + db_name);
+        config.setUsername(username);
+        config.setPassword(password);
+        Properties properties = new Properties();
+        properties.setProperty("useSSL", "false");
+        properties.setProperty("cachePrepStmts", "true");
+        properties.setProperty("cacheCallableStmts", "true");
+        properties.setProperty("cacheServerConfiguration", "true");
+        properties.setProperty("useLocalSessionState", "true");
+        properties.setProperty("elideSetAutoCommits", "true");
+        properties.setProperty("alwaysSendSetIsolation", "false");
+        properties.setProperty("enableQueryTimeouts", "false");
+        config.setDataSourceProperties(properties);
+        config.setMaximumPoolSize(20);
+        config.setMinimumIdle(2);
+        ds = new HikariDataSource(config);
         try {
-            connection = DriverManager.getConnection(url);
+            connection = ds.getConnection();
         } catch (SQLException ex) {
             ex.printStackTrace();
         }
-
         try (PreparedStatement statement = getDatabase().prepareStatement(
                 "CREATE TABLE IF NOT EXISTS protection(id VARCHAR(200) PRIMARY KEY, x INT, y INT, z INT, world VARCHAR(50), owner VARCHAR(36), maxx INT, maxz INT, minx INT, minz INT, chunkx INT, chunkz INT);")) {
             statement.executeUpdate();
@@ -220,12 +237,10 @@ public class ElementalsX extends JavaPlugin {
     }
 
     private void randomMsg() {
-        Bukkit.getScheduler().runTaskTimerAsynchronously(this, () ->
+        Bukkit.getScheduler().runTaskTimerAsynchronously(this, () -> {
+            if (!Bukkit.getOnlinePlayers().isEmpty()) //Don't spam the console at night, when there are no players online!
                 Bukkit.broadcastMessage(ElementalsUtil.color(ElementalsUtil.getAutoMessages()
-                        .get(ElementalsUtil.nextInt(ElementalsUtil.getAutoMessages().size())))), 1L, 2 * 60 * 20L);
-    }
-
-    private void timer() {
-        Bukkit.getScheduler().runTaskTimerAsynchronously(this, ElementalsUtil::tickMotd, 20L, 20L);
+                        .get(ElementalsUtil.nextInt(ElementalsUtil.getAutoMessages().size()))));
+        }, 1L, 2 * 60 * 20L);
     }
 }

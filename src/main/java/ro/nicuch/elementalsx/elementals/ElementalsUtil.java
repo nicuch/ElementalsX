@@ -19,7 +19,6 @@ import ro.nicuch.tag.TagRegister;
 import java.util.*;
 
 public class ElementalsUtil {
-    private static String motd = "&6&oPikaCraft &b&o- &c&oServerul se incarca...";
     private static final List<String> autoMsg = Arrays.asList(
             "&8[&eInfo&8] &a&oUtilizarea hack-urilor este pedepsita cu &4&o&lBAN&a&o!",
             "&8[&eInfo&8] &b&oNu uita sa votezi in fiecare zi folosind comanda &f&o[&6&o/vote&f&o]&b&o! &a&oVei primi un premiu de fiecare data cand votezi. &6:)",
@@ -27,7 +26,7 @@ public class ElementalsUtil {
             "&8[&eInfo&8] &a&oDaca ai nevoie de bani, scrie &f&o[&6&o/jobs&f&o] &a&osi ia-ti un job!",
             "&8[&eInfo&8] &6&oProtectia se face folosind cubul de &b&oDiamant&6&o! &a&oNu uita sa o pui altfel casa ta va fi distrusa!",
             "&8[&eInfo&8] &a&oStaff-ul nu raspunde de obiectele pierdute!",
-            "&8[&eInfo&8] &c&oDaca descoperiti un bug, va rugam sa-l raportati! &6&oVe-ti primi un bonus daca bug-ul nu a fost raportat deja!");
+            "&8[&eInfo&8] &c&oDaca descoperiti un bug, va rugam sa-l raportati! &6&oVeti primi un bonus daca bug-ul nu a fost raportat deja!");
 
     public static List<String> getAutoMessages() {
         return autoMsg;
@@ -211,28 +210,6 @@ public class ElementalsUtil {
         return fw;
     }
 
-    public static void tickMotd() {
-        int random = nextInt(4);
-        switch (random) {
-            case 0:
-                motd = "&6&oPikaCraft &b&o- &a&oMinecraft la un alt nivel!";
-                break;
-            case 1:
-                motd = "&6&oPikaCraft &b&o- &b&oMinecraft la un alt nivel!";
-                break;
-            case 2:
-                motd = "&6&oPikaCraft &b&o- &c&oMinecraft la un alt nivel!";
-                break;
-            case 3:
-                motd = "&6&oPikaCraft &b&o- &e&oMinecraft la un alt nivel!";
-                break;
-        }
-    }
-
-    public static String getMotd() {
-        return motd;
-    }
-
     public static int nextInt(int max) {
         return (int) nextDouble(max);
     }
@@ -264,7 +241,7 @@ public class ElementalsUtil {
     }
 
     public static int foundBlocks(Block block) {
-        int i = 1;
+        int i = 0;
         for (int x = (block.getX() - 3); x < (block.getX() + 3); x++) {
             for (int y = (block.getY() - 3); y < (block.getY() + 3); y++) {
                 for (int z = (block.getZ() - 3); z < (block.getZ() + 3); z++) {
@@ -286,26 +263,22 @@ public class ElementalsUtil {
     }
 
     public static void setTag(Entity entity, String arg) {
-        CompoundTag tag = TagRegister.isStored(entity) && TagRegister.getStored(entity).isPresent() ? TagRegister.getStored(entity).get() : TagRegister.create(entity);
-        tag.putByte(arg, (byte) 1);
+        CompoundTag tag = TagRegister.getStored(entity).orElseGet(() -> TagRegister.create(entity));
+        tag.putBoolean(arg, true);
     }
 
     public static boolean hasTag(Entity entity, String arg) {
-        if (!TagRegister.isStored(entity))
-            return false;
         if (TagRegister.getStored(entity).isEmpty())
             return false;
         return TagRegister.getStored(entity).get().contains(arg);
     }
 
     public static void setTag(Block block, String arg) {
-        CompoundTag tag = TagRegister.isStored(block) && TagRegister.getStored(block).isPresent() ? TagRegister.getStored(block).get() : TagRegister.create(block);
-        tag.putByte(arg, (byte) 1);
+        CompoundTag tag = TagRegister.getStored(block).orElseGet(() -> TagRegister.create(block));
+        tag.putBoolean(arg, true);
     }
 
     public static boolean hasTag(Block block, String arg) {
-        if (!TagRegister.isStored(block))
-            return false;
         if (TagRegister.getStored(block).isEmpty())
             return false;
         return TagRegister.getStored(block).get().contains(arg);

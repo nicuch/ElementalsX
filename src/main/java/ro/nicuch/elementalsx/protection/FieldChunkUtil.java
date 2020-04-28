@@ -1,22 +1,23 @@
 package ro.nicuch.elementalsx.protection;
 
-import io.netty.util.internal.ConcurrentSet;
 import org.bukkit.Chunk;
 
-import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+
 
 public class FieldChunkUtil {
-    private final static Set<Chunk> chunks = new ConcurrentSet<>();
+    private final static ConcurrentMap<ChunkData, Boolean> chunks = new ConcurrentHashMap<>();
 
     public static void setChunkToWait(Chunk chunk) {
-        chunks.add(chunk);
+        chunks.put(ChunkData.fromChunk(chunk), true);
     }
 
     public static void removeChunk(Chunk chunk) {
-        chunks.remove(chunk);
+        chunks.remove(ChunkData.fromChunk(chunk));
     }
 
     public static boolean doChunkWait(Chunk chunk) {
-        return chunks.contains(chunk);
+        return chunks.containsKey(ChunkData.fromChunk(chunk));
     }
 }

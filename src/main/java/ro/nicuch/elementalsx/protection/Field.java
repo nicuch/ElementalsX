@@ -2,7 +2,6 @@ package ro.nicuch.elementalsx.protection;
 
 import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
-import org.bukkit.World;
 import org.bukkit.block.Block;
 import ro.nicuch.elementalsx.ElementalsX;
 
@@ -16,26 +15,52 @@ public class Field {
     private final FieldId id;
     private final UUID owner;
     private final Field2D field2D;
-    private final Set<UUID> members;
+    private final Set<String> members;
     private final int chunkX;
     private final int chunkZ;
-    private final World world;
+    private final String world;
     private boolean fun;
     private final int blockX;
     private final int blockY;
     private final int blockZ;
 
-    public Field(FieldId id, UUID owner, Field2D field2D, Block block, Set<UUID> members) {
+    public Field(FieldId id, UUID owner, Field2D field2D, Block block, Set<String> members) {
         this(id, owner, field2D, block.getChunk(), block.getX(), block.getY(), block.getZ(), members);
     }
 
-    public Field(FieldId id, UUID owner, Field2D field2D, Chunk chunk, int x, int y, int z, Set<UUID> members) {
+    public Field(FieldId id, UUID owner, Field2D field2D, Chunk chunk, int x, int y, int z, Set<String> members) {
+        this.id = id;
+        this.owner = owner;
+        this.field2D = field2D;
+        this.chunkX = chunk.getX();
+        this.chunkZ = chunk.getZ();
+        this.world = chunk.getWorld().getName();
+        this.blockX = x;
+        this.blockY = y;
+        this.blockZ = z;
+        this.members = members;
+    }
+
+    public Field(FieldId id, UUID owner, Field2D field2D, ChunkData chunk, int x, int y, int z, Set<String> members) {
         this.id = id;
         this.owner = owner;
         this.field2D = field2D;
         this.chunkX = chunk.getX();
         this.chunkZ = chunk.getZ();
         this.world = chunk.getWorld();
+        this.blockX = x;
+        this.blockY = y;
+        this.blockZ = z;
+        this.members = members;
+    }
+
+    public Field(FieldId id, UUID owner, Field2D field2D, int chunkx, int chunkz, String world, int x, int y, int z, Set<String> members) {
+        this.id = id;
+        this.owner = owner;
+        this.field2D = field2D;
+        this.chunkX = chunkx;
+        this.chunkZ = chunkz;
+        this.world = world;
         this.blockX = x;
         this.blockY = y;
         this.blockZ = z;
@@ -55,7 +80,7 @@ public class Field {
     }
 
     public Block getBlock() {
-        return this.world.getBlockAt(this.blockX, this.blockY, this.blockZ);
+        return Bukkit.getWorld(this.world).getBlockAt(this.blockX, this.blockY, this.blockZ);
     }
 
     public FieldId getId() {
@@ -74,7 +99,7 @@ public class Field {
         return this.field2D;
     }
 
-    public Field addMember(UUID uuid) {
+    public Field addMember(String uuid) {
         if (this.isMember(uuid))
             return this;
         this.members.add(uuid);
@@ -82,9 +107,9 @@ public class Field {
             String query = "INSERT INTO protmembers (protid, uuid) VALUES (?, ?) ON DUPLICATE KEY UPDATE protid=?, uuid=?;";
             try (PreparedStatement statement = ElementalsX.getDatabase().prepareStatement(query)) {
                 statement.setString(1, this.id.toString());
-                statement.setString(2, uuid.toString());
+                statement.setString(2, uuid);
                 statement.setString(3, this.id.toString());
-                statement.setString(4, uuid.toString());
+                statement.setString(4, uuid);
                 statement.executeUpdate();
             } catch (SQLException ex) {
                 ex.printStackTrace();
@@ -93,7 +118,7 @@ public class Field {
         return this;
     }
 
-    public Field removeMember(UUID uuid) {
+    public Field removeMember(String uuid) {
         if (!this.isMember(uuid))
             return this;
         this.members.remove(uuid);
@@ -101,7 +126,7 @@ public class Field {
             String query = "DELETE IGNORE FROM protmembers WHERE protid=? AND uuid=?;";
             try (PreparedStatement statement = ElementalsX.getDatabase().prepareStatement(query)) {
                 statement.setString(1, this.id.toString());
-                statement.setString(2, uuid.toString());
+                statement.setString(2, uuid);
                 statement.executeUpdate();
             } catch (SQLException ex) {
                 ex.printStackTrace();
@@ -110,8 +135,12 @@ public class Field {
         return this;
     }
 
-    public boolean isMember(UUID uuid) {
+    public boolean isMember(String uuid) {
         return this.members.contains(uuid);
+    }
+
+    public boolean isMember(UUID uuid) {
+        return this.members.contains(uuid.toString());
     }
 
     public int getChunkX() {
@@ -122,11 +151,11 @@ public class Field {
         return this.chunkZ;
     }
 
-    public World getWorld() {
+    public String getWorld() {
         return this.world;
     }
 
-    public Set<UUID> getMembers() {
+    public Set<String> getMembers() {
         return this.members;
     }
 

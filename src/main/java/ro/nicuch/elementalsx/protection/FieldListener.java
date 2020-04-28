@@ -3,21 +3,17 @@ package ro.nicuch.elementalsx.protection;
 import com.gamingmesh.jobs.api.JobsPrePaymentEvent;
 import com.gmail.nossr50.events.fake.FakeEntityDamageByEntityEvent;
 import com.shampaggon.crackshot.events.WeaponDamageEntityEvent;
+import io.hotmail.com.jacob_vejvoda.infernal_mobs.InfernalSpawnEvent;
 import net.citizensnpcs.api.CitizensAPI;
-import org.bukkit.Bukkit;
-import org.bukkit.Location;
-import org.bukkit.Material;
-import org.bukkit.Tag;
+import org.bukkit.*;
 import org.bukkit.block.Block;
+import org.bukkit.block.BlockFace;
 import org.bukkit.entity.*;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.*;
-import org.bukkit.event.entity.EntityChangeBlockEvent;
-import org.bukkit.event.entity.EntityDamageByEntityEvent;
-import org.bukkit.event.entity.EntityExplodeEvent;
-import org.bukkit.event.entity.EntityInteractEvent;
+import org.bukkit.event.entity.*;
 import org.bukkit.event.hanging.HangingBreakByEntityEvent;
 import org.bukkit.event.hanging.HangingPlaceEvent;
 import org.bukkit.event.player.*;
@@ -29,16 +25,97 @@ import org.bukkit.event.world.ChunkUnloadEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.SpawnEggMeta;
 import org.bukkit.projectiles.BlockProjectileSource;
+import org.bukkit.util.BoundingBox;
 import ro.nicuch.elementalsx.ElementalsX;
 import ro.nicuch.elementalsx.User;
 import ro.nicuch.elementalsx.elementals.ElementalsUtil;
+import ro.nicuch.lwjnbtl.CompoundTag;
+import ro.nicuch.tag.TagRegister;
 
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
 public class FieldListener implements Listener {
+
+    @EventHandler
+    public void event(EntityTargetLivingEntityEvent event) {
+        Entity entity = event.getEntity();
+        Entity target = event.getTarget();
+        if (target == null)
+            return;
+        if (CitizensAPI.getNPCRegistry().isNPC(entity))
+            return;
+        if (CitizensAPI.getNPCRegistry().isNPC(target))
+            return;
+        if (target.getType() != EntityType.PLAYER)
+            return;
+        Location loc = entity.getLocation();
+        if (FieldChunkUtil.doChunkWait(loc.getChunk())) {
+            event.setCancelled(true);
+            return;
+        }
+        if (!FieldUtil.isFieldAtLocation(loc))
+            return;
+        EntityType entityType = entity.getType();
+        if (!(entityType == EntityType.BEE
+                || entityType == EntityType.PARROT
+                || entityType == EntityType.LLAMA
+                || entityType == EntityType.TRADER_LLAMA
+                || entityType == EntityType.ZOMBIE_HORSE
+                || entityType == EntityType.MULE
+                || entityType == EntityType.HORSE
+                || entityType == EntityType.DONKEY
+                || entityType == EntityType.SKELETON_HORSE
+                || entityType == EntityType.PIG
+                || entityType == EntityType.COW
+                || entityType == EntityType.OCELOT
+                || entityType == EntityType.MUSHROOM_COW
+                || entityType == EntityType.BAT
+                || entityType == EntityType.BOAT
+                || entityType == EntityType.CHICKEN
+                || entityType == EntityType.WOLF
+                || entityType == EntityType.VILLAGER
+                || entityType == EntityType.IRON_GOLEM
+                || entityType == EntityType.LEASH_HITCH
+                || entityType == EntityType.RABBIT
+                || entityType == EntityType.SHEEP
+                || entityType == EntityType.SNOWMAN
+                || entityType == EntityType.SQUID
+                || entityType == EntityType.ARMOR_STAND
+                || entityType == EntityType.ITEM_FRAME
+                || entityType == EntityType.POLAR_BEAR))
+            return;
+        UUID uuid = target.getUniqueId();
+        Optional<User> optionalUser = ElementalsX.getUser(uuid);
+        if (optionalUser.isEmpty())
+            return;
+        User user = optionalUser.get();
+        Field field = FieldUtil.getFieldByLocation(loc);
+        if (field.isMember(uuid) || field.isOwner(uuid) || user.hasPermission("elementals.protection.override"))
+            return;
+        event.setCancelled(true);
+    }
+
+    @EventHandler(ignoreCancelled = true)
+    public void event(SpongeAbsorbEvent event) {
+        if (!FieldUtil.isFieldAtLocation(event.getBlock().getLocation()))
+            event.getBlocks().removeIf(b -> FieldUtil.isFieldAtLocation(b.getLocation()));
+    }
+
+    @EventHandler(ignoreCancelled = true)
+    public void event(InfernalSpawnEvent event) {
+        Location loc = event.getEntity().getLocation();
+        if (FieldChunkUtil.doChunkWait(loc.getChunk())) {
+            return;
+        }
+        if (!FieldUtil.isFieldAtLocation(loc))
+            return;
+        event.setCancelled(true);
+    }
 
     @EventHandler(ignoreCancelled = true)
     public void event1(WeaponDamageEntityEvent event) {
@@ -170,7 +247,8 @@ public class FieldListener implements Listener {
 
     @EventHandler(priority = EventPriority.LOW, ignoreCancelled = true)
     public void protectionPlace(BlockPlaceEvent event) {
-        if (FieldChunkUtil.doChunkWait(event.getBlock().getChunk())) {
+        Chunk chunk = event.getBlock().getChunk();
+        if (FieldChunkUtil.doChunkWait(chunk)) {
             event.setCancelled(true);
             return;
         }
@@ -211,10 +289,14 @@ public class FieldListener implements Listener {
             return;
         }
         FieldId id = FieldId.fromBlock(block);
-        Location loc = block.getLocation();
-        Block locMax = loc.clone().add(25, 0, 25).getBlock();
-        Block locMin = loc.clone().add(-25, 0, -25).getBlock();
-        Field2D field2D = new Field2D(locMax.getX(), locMax.getZ(), locMin.getX(), locMin.getZ());
+
+        int maxx = block.getX() + 25;
+        int maxz = block.getZ() + 25;
+        int minx = block.getX() - 25;
+        int minz = block.getZ() - 25;
+
+        Field2D field2D = new Field2D(maxx, maxz, minx, minz);
+
         Bukkit.getScheduler().runTaskAsynchronously(ElementalsX.get(), () -> {
             String query = "INSERT INTO protection (id, x, y, z, world, owner, maxx, maxz, minx, minz, chunkx, chunkz) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);";
             try (PreparedStatement statement = ElementalsX.getDatabase().prepareStatement(query)) {
@@ -224,12 +306,12 @@ public class FieldListener implements Listener {
                 statement.setInt(4, block.getZ());
                 statement.setString(5, block.getWorld().getName());
                 statement.setString(6, uuid.toString());
-                statement.setInt(7, field2D.getMaxX());
-                statement.setInt(8, field2D.getMaxZ());
-                statement.setInt(9, field2D.getMinX());
-                statement.setInt(10, field2D.getMinZ());
-                statement.setInt(11, block.getChunk().getX());
-                statement.setInt(12, block.getChunk().getZ());
+                statement.setInt(7, maxx);
+                statement.setInt(8, maxz);
+                statement.setInt(9, minx);
+                statement.setInt(10, minz);
+                statement.setInt(11, chunk.getX());
+                statement.setInt(12, chunk.getZ());
                 statement.executeUpdate();
                 Bukkit.getScheduler().runTask(ElementalsX.get(), () -> {
                     FieldUtil.registerField(user, block, id, field2D);
@@ -329,13 +411,16 @@ public class FieldListener implements Listener {
 
     @EventHandler(ignoreCancelled = true)
     public void event(BlockFromToEvent event) {
-        if (!FieldUtil.isFieldAtLocation(event.getBlock().getLocation())
-                && FieldUtil.isFieldAtLocation(event.getToBlock().getLocation()))
-            event.setCancelled(true);
-        else if (FieldUtil.isFieldAtLocation(event.getBlock().getLocation())
-                && FieldUtil.isFieldAtLocation(event.getToBlock().getLocation()))
-            if (!FieldUtil.getFieldByLocation(event.getBlock().getLocation())
-                    .isOwner(FieldUtil.getFieldByLocation(event.getToBlock().getLocation()).getOwner()))
+        Location from = event.getBlock().getLocation();
+        Location to = event.getToBlock().getLocation();
+        if (!FieldUtil.isFieldAtLocation(from)
+                && FieldUtil.isFieldAtLocation(to)) {
+            if (!FieldUtil.getFieldByLocation(to).hasFun())
+                event.setCancelled(true);
+        } else if (FieldUtil.isFieldAtLocation(from)
+                && FieldUtil.isFieldAtLocation(to))
+            if (!FieldUtil.getFieldByLocation(from)
+                    .isOwner(FieldUtil.getFieldByLocation(to).getOwner()))
                 event.setCancelled(true);
     }
 
@@ -381,23 +466,175 @@ public class FieldListener implements Listener {
         event.setCancelled(true);
     }
 
+    @EventHandler(ignoreCancelled = true)
+    public void event(EntityDamageEvent event) {
+        Entity entity = event.getEntity();
+        if (entity.getType() != EntityType.PLAYER)
+            return;
+        if (!(event.getCause() == EntityDamageEvent.DamageCause.FIRE ||
+                event.getCause() == EntityDamageEvent.DamageCause.FIRE_TICK ||
+                event.getCause() == EntityDamageEvent.DamageCause.LAVA))
+            return;
+        BoundingBox bb = entity.getBoundingBox();
+
+        List<BlockFace> foundLava = new ArrayList<>();
+
+        Block center = event.getEntity().getLocation().getBlock();
+        Block north = center.getRelative(BlockFace.NORTH);
+        Block south = center.getRelative(BlockFace.SOUTH);
+        Block west = center.getRelative(BlockFace.WEST);
+        Block east = center.getRelative(BlockFace.EAST);
+        Block north_west = center.getRelative(BlockFace.NORTH_WEST);
+        Block north_east = center.getRelative(BlockFace.NORTH_EAST);
+        Block south_west = center.getRelative(BlockFace.SOUTH_WEST);
+        Block south_east = center.getRelative(BlockFace.SOUTH_EAST);
+        if (center.getType() == Material.LAVA || center.getType() == Material.FIRE) {
+            if (bb.overlaps(center.getBoundingBox()))
+                foundLava.add(BlockFace.SELF);
+        }
+        if (north.getType() == Material.LAVA || north.getType() == Material.FIRE) {
+            if (bb.overlaps(north.getBoundingBox()))
+                foundLava.add(BlockFace.NORTH);
+        }
+        if (south.getType() == Material.LAVA || south.getType() == Material.FIRE) {
+            if (bb.overlaps(south.getBoundingBox()))
+                foundLava.add(BlockFace.SOUTH);
+        }
+        if (west.getType() == Material.LAVA || west.getType() == Material.FIRE) {
+            if (bb.overlaps(west.getBoundingBox()))
+                foundLava.add(BlockFace.WEST);
+        }
+        if (east.getType() == Material.LAVA || east.getType() == Material.FIRE) {
+            if (bb.overlaps(east.getBoundingBox()))
+                foundLava.add(BlockFace.EAST);
+        }
+        if (north_west.getType() == Material.LAVA || north_west.getType() == Material.FIRE) {
+            if (bb.overlaps(north_west.getBoundingBox()))
+                foundLava.add(BlockFace.NORTH_WEST);
+        }
+        if (north_east.getType() == Material.LAVA || north_east.getType() == Material.FIRE) {
+            if (bb.overlaps(north_east.getBoundingBox()))
+                foundLava.add(BlockFace.NORTH_EAST);
+        }
+        if (south_west.getType() == Material.LAVA || south_west.getType() == Material.FIRE) {
+            if (bb.overlaps(south_west.getBoundingBox()))
+                foundLava.add(BlockFace.SOUTH_WEST);
+        }
+        if (south_east.getType() == Material.LAVA || south_east.getType() == Material.FIRE) {
+            if (bb.overlaps(south_east.getBoundingBox()))
+                foundLava.add(BlockFace.SOUTH_EAST);
+        }
+        for (BlockFace face : foundLava) {
+            Optional<CompoundTag> optionalCompoundTag = TagRegister.getStored(center.getRelative(face));
+            if (optionalCompoundTag.isEmpty())
+                continue;
+            CompoundTag tag = optionalCompoundTag.get();
+            String uuid = null;
+            if (tag.containsString("lava-placed"))
+                uuid = tag.getString("lava-placed");
+            else if (tag.containsString("fire-placed"))
+                uuid = tag.getString("fire-placed");
+            if (uuid == null)
+                continue;
+            if (entity.getUniqueId().toString().equals(uuid))
+                continue;
+            if (FieldChunkUtil.doChunkWait(entity.getLocation().getChunk())) {
+                event.setCancelled(true);
+                return;
+            }
+            if (!FieldUtil.isFieldAtLocation(entity.getLocation()))
+                continue;
+            Field field = FieldUtil.getFieldByLocation(entity.getLocation());
+            if (field.isMember(entity.getUniqueId()) || field.isOwner(entity.getUniqueId()))
+                continue;
+            event.setCancelled(true);
+            return;
+        }
+    }
+
+    @EventHandler(ignoreCancelled = true)
+    public void event0(PlayerMoveEvent event) {
+        Block block = event.getFrom().getBlock();
+        if (!(block.getType() == Material.LAVA || block.getType() == Material.FIRE))
+            return;
+        Optional<CompoundTag> optionalCompoundTag = TagRegister.getStored(block);
+        if (optionalCompoundTag.isEmpty())
+            return;
+        CompoundTag tag = optionalCompoundTag.get();
+        String uuid = null;
+        if (tag.containsString("lava-placed"))
+            uuid = tag.getString("lava-placed");
+        else if (tag.containsString("fire-placed"))
+            uuid = tag.getString("fire-placed");
+        if (uuid == null)
+            return;
+        Player player = event.getPlayer();
+        if (player.getFireTicks() <= 0)
+            return;
+        if (player.getUniqueId().toString().equals(uuid))
+            return;
+        if (FieldChunkUtil.doChunkWait(event.getFrom().getChunk())) {
+            event.setCancelled(true);
+            return;
+        }
+        if (!FieldUtil.isFieldAtLocation(event.getFrom()))
+            return;
+        Field field = FieldUtil.getFieldByLocation(event.getFrom());
+        if (field.isMember(player.getUniqueId()) || field.isOwner(player.getUniqueId()))
+            return;
+        player.setFireTicks(0);
+    }
+
+    @EventHandler(ignoreCancelled = true)
+    public void event1(PlayerTeleportEvent event) {
+        Block block = event.getFrom().getBlock();
+        if (block.getType() != Material.LAVA)
+            return;
+        Optional<CompoundTag> optionalCompoundTag = TagRegister.getStored(block);
+        if (optionalCompoundTag.isEmpty())
+            return;
+        CompoundTag tag = optionalCompoundTag.get();
+        String uuid = null;
+        if (tag.containsString("lava-placed"))
+            uuid = tag.getString("lava-placed");
+        else if (tag.containsString("fire-placed"))
+            uuid = tag.getString("fire-placed");
+        if (uuid == null)
+            return;
+        Player player = event.getPlayer();
+        if (player.getFireTicks() <= 0)
+            return;
+        if (player.getUniqueId().toString().equals(uuid))
+            return;
+        if (FieldChunkUtil.doChunkWait(event.getFrom().getChunk())) {
+            event.setCancelled(true);
+            return;
+        }
+        if (!FieldUtil.isFieldAtLocation(event.getFrom()))
+            return;
+        Field field = FieldUtil.getFieldByLocation(event.getFrom());
+        if (field.isMember(player.getUniqueId()) || field.isOwner(player.getUniqueId()))
+            return;
+        player.setFireTicks(0);
+    }
+
     @EventHandler
     public void event(FakeEntityDamageByEntityEvent event) {
         if (CitizensAPI.getNPCRegistry().isNPC(event.getEntity()))
             return;
         Entity entity = event.getEntity();
-        Entity damager;
         if (FieldChunkUtil.doChunkWait(entity.getLocation().getChunk())) {
             event.setCancelled(true);
             return;
         }
+        Entity damager;
         if (event.getDamager() instanceof Projectile) {
             Projectile proj = (Projectile) event.getDamager();
             if (proj.getShooter() == null)
                 return;
             if (proj.getShooter() instanceof BlockProjectileSource) {
-                if (entity.getType() == EntityType.PLAYER)
-                    event.setCancelled(true);
+                //TODO proj block event
+                event.setCancelled(true);
                 return;
             }
             damager = (Entity) proj.getShooter();
@@ -405,20 +642,31 @@ public class FieldListener implements Listener {
             damager = event.getDamager();
         if (entity.getType() != EntityType.PLAYER)
             return;
-        if (damager.getType() != EntityType.PLAYER)
-            return;
-        if (!FieldUtil.isFieldAtLocation(entity.getLocation()))
-            return;
-        Optional<User> optionalUser = ElementalsX.getUser(damager.getUniqueId());
-        if (optionalUser.isEmpty())
-            return;
-        User user = optionalUser.get();
-        if (user.hasPermission("elementals.protection.override"))
-            return;
-        user.getBase().sendMessage(ElementalsUtil.color("&8[&cProtectie&8] &c&oNu poti face PvP cu un jucator aflat in protectie!"));
-        event.setCancelled(true);
-        if (event.getDamager().hasMetadata("flame_ench"))
-            entity.setFireTicks(0);
+        if (damager.getType() == EntityType.PLAYER) {
+            if (!FieldUtil.isFieldAtLocation(entity.getLocation()))
+                return;
+            Optional<User> optionalUser = ElementalsX.getUser(damager.getUniqueId());
+            if (optionalUser.isEmpty())
+                return;
+            User user = optionalUser.get();
+            if (user.hasPermission("elementals.protection.override"))
+                return;
+            user.getBase().sendMessage(ElementalsUtil.color("&8[&cProtectie&8] &c&oNu poti face PvP cu un jucator aflat in protectie!"));
+            event.setCancelled(true);
+            if (event.getDamager().hasMetadata("flame_ench"))
+                entity.setFireTicks(0);
+        } else if (damager.getType() == EntityType.BEE) {
+            if (!FieldUtil.isFieldAtLocation(entity.getLocation()))
+                return;
+            Optional<User> optionalUser = ElementalsX.getUser(entity.getUniqueId());
+            if (optionalUser.isEmpty())
+                return;
+            User user = optionalUser.get();
+            Field field = FieldUtil.getFieldByLocation(entity.getLocation());
+            if (field.isMember(user.getUUID()) || field.isOwner(user.getUUID()))
+                return;
+            event.setCancelled(true);
+        }
     }
 
     @EventHandler(ignoreCancelled = true)
@@ -445,20 +693,31 @@ public class FieldListener implements Listener {
             damager = event.getDamager();
         if (entity.getType() != EntityType.PLAYER)
             return;
-        if (damager.getType() != EntityType.PLAYER)
-            return;
-        if (!FieldUtil.isFieldAtLocation(entity.getLocation()))
-            return;
-        Optional<User> optionalUser = ElementalsX.getUser(damager.getUniqueId());
-        if (optionalUser.isEmpty())
-            return;
-        User user = optionalUser.get();
-        if (user.hasPermission("elementals.protection.override"))
-            return;
-        user.getBase().sendMessage(ElementalsUtil.color("&8[&cProtectie&8] &c&oNu poti face PvP cu un jucator aflat in protectie!"));
-        event.setCancelled(true);
-        if (event.getDamager().hasMetadata("flame_ench"))
-            entity.setFireTicks(0);
+        if (damager.getType() == EntityType.PLAYER) {
+            if (!FieldUtil.isFieldAtLocation(entity.getLocation()))
+                return;
+            Optional<User> optionalUser = ElementalsX.getUser(damager.getUniqueId());
+            if (optionalUser.isEmpty())
+                return;
+            User user = optionalUser.get();
+            if (user.hasPermission("elementals.protection.override"))
+                return;
+            user.getBase().sendMessage(ElementalsUtil.color("&8[&cProtectie&8] &c&oNu poti face PvP cu un jucator aflat in protectie!"));
+            event.setCancelled(true);
+            if (event.getDamager().hasMetadata("flame_ench"))
+                entity.setFireTicks(0);
+        } else if (damager.getType() == EntityType.BEE) {
+            if (!FieldUtil.isFieldAtLocation(entity.getLocation()))
+                return;
+            Optional<User> optionalUser = ElementalsX.getUser(entity.getUniqueId());
+            if (optionalUser.isEmpty())
+                return;
+            User user = optionalUser.get();
+            Field field = FieldUtil.getFieldByLocation(entity.getLocation());
+            if (field.isMember(user.getUUID()) || field.isOwner(user.getUUID()))
+                return;
+            event.setCancelled(true);
+        }
     }
 
     @EventHandler(ignoreCancelled = true)
@@ -513,28 +772,6 @@ public class FieldListener implements Listener {
         Field field = FieldUtil.getFieldByLocation(loc);
         if (!(field.isMember(uuid) || field.isOwner(uuid) || user.hasPermission("elementals.protection.override")))
             event.setCancelled(true);
-    }
-
-    @EventHandler(ignoreCancelled = true)
-    public void event(PlayerArmorStandManipulateEvent event) {
-        UUID uuid = event.getPlayer().getUniqueId();
-        Optional<User> optionalUser = ElementalsX.getUser(uuid);
-        if (optionalUser.isEmpty())
-            return;
-        User user = optionalUser.get();
-        if (CitizensAPI.getNPCRegistry().isNPC(event.getRightClicked()))
-            return;
-        Location loc = event.getRightClicked().getLocation();
-        if (FieldChunkUtil.doChunkWait(loc.getChunk())) {
-            event.setCancelled(true);
-            return;
-        }
-        if (!FieldUtil.isFieldAtLocation(loc))
-            return;
-        Field field = FieldUtil.getFieldByLocation(loc);
-        if (field.isMember(uuid) || field.isOwner(uuid) || user.hasPermission("elementals.protection.override"))
-            return;
-        event.setCancelled(true);
     }
 
     @EventHandler(ignoreCancelled = true)
@@ -602,6 +839,29 @@ public class FieldListener implements Listener {
         if (field.isMember(uuid) || field.isOwner(uuid) || user.hasPermission("elementals.protection.override"))
             return;
         event.getPlayer().sendMessage(ElementalsUtil.color("&8[&cProtectie&8] &c&oNu poti folosi galeata aici!"));
+        event.setCancelled(true);
+    }
+
+    @EventHandler(ignoreCancelled = true)
+    public void event(PlayerArmorStandManipulateEvent event) {
+        UUID uuid = event.getPlayer().getUniqueId();
+        Optional<User> optionalUser = ElementalsX.getUser(uuid);
+        if (optionalUser.isEmpty())
+            return;
+        User user = optionalUser.get();
+        if (CitizensAPI.getNPCRegistry().isNPC(event.getRightClicked()))
+            return;
+        Location loc = event.getRightClicked().getLocation();
+        if (FieldChunkUtil.doChunkWait(loc.getChunk())) {
+            event.setCancelled(true);
+            return;
+        }
+        if (!FieldUtil.isFieldAtLocation(loc))
+            return;
+        Field field = FieldUtil.getFieldByLocation(loc);
+        if (field.isMember(uuid) || field.isOwner(uuid) || user.hasPermission("elementals.protection.override"))
+            return;
+        user.getBase().sendMessage(ElementalsUtil.color("&8[&cProtectie&8] &c&oNu poti interactiona cu aceast armor stand aflat in protectie."));
         event.setCancelled(true);
     }
 
@@ -892,6 +1152,23 @@ public class FieldListener implements Listener {
         event.setCancelled(true);
     }
 
+    @EventHandler
+    public void event0(PlayerTeleportEvent event) {
+        if (event.getCause() != PlayerTeleportEvent.TeleportCause.NETHER_PORTAL)
+            return;
+        if (!FieldUtil.isFieldAtLocation(event.getFrom()))
+            return;
+        Optional<User> optionalUser = ElementalsX.getUser(event.getPlayer().getUniqueId());
+        if (optionalUser.isEmpty())
+            return;
+        User user = optionalUser.get();
+        Field field = FieldUtil.getFieldByLocation(event.getFrom());
+        if (field.hasFun())
+            return;
+        if (field.isOwner(user.getUUID()) || field.isMember(user.getUUID()) || user.hasPermission("elementals.protection.override"))
+            return;
+        event.setCancelled(true);
+    }
 
     @EventHandler
     public void event(PlayerTeleportEvent event) {
@@ -956,14 +1233,9 @@ public class FieldListener implements Listener {
 
     @EventHandler
     public void event0(FakeEntityDamageByEntityEvent event) {
-
-        if (CitizensAPI.getNPCRegistry().isNPC(event.getEntity()))
-            return;
         Entity entity = event.getEntity();
-        if (FieldChunkUtil.doChunkWait(entity.getLocation().getChunk())) {
-            event.setCancelled(true);
+        if (CitizensAPI.getNPCRegistry().isNPC(entity))
             return;
-        }
         Entity damager;
         if (event.getDamager() instanceof Projectile) {
             Projectile proj = (Projectile) event.getDamager();
@@ -975,34 +1247,40 @@ public class FieldListener implements Listener {
         if (damager.getType() != EntityType.PLAYER)
             return;
         Location loc = entity.getLocation();
+        if (FieldChunkUtil.doChunkWait(loc.getChunk())) {
+            event.setCancelled(true);
+            return;
+        }
         if (!FieldUtil.isFieldAtLocation(loc))
             return;
         EntityType entityType = entity.getType();
-        if (entityType != EntityType.PARROT
-                || entityType != EntityType.LLAMA
-                || entityType != EntityType.TRADER_LLAMA
-                || entityType != EntityType.ZOMBIE_HORSE
-                || entityType != EntityType.MULE
-                || entityType != EntityType.HORSE
-                || entityType != EntityType.DONKEY
-                || entityType != EntityType.SKELETON_HORSE
-                || entityType != EntityType.PIG
-                || entityType != EntityType.COW
-                || entityType != EntityType.OCELOT
-                || entityType != EntityType.MUSHROOM_COW
-                || entityType != EntityType.BAT
-                || entityType != EntityType.BOAT
-                || entityType != EntityType.CHICKEN
-                || entityType != EntityType.WOLF
-                || entityType != EntityType.VILLAGER
-                || entityType != EntityType.IRON_GOLEM
-                || entityType != EntityType.LEASH_HITCH
-                || entityType != EntityType.RABBIT
-                || entityType != EntityType.SHEEP
-                || entityType != EntityType.SNOWMAN
-                || entityType != EntityType.SQUID
-                || entityType != EntityType.ARMOR_STAND
-                || entityType != EntityType.ITEM_FRAME)
+        if (!(entityType == EntityType.BEE
+                || entityType == EntityType.PARROT
+                || entityType == EntityType.LLAMA
+                || entityType == EntityType.TRADER_LLAMA
+                || entityType == EntityType.ZOMBIE_HORSE
+                || entityType == EntityType.MULE
+                || entityType == EntityType.HORSE
+                || entityType == EntityType.DONKEY
+                || entityType == EntityType.SKELETON_HORSE
+                || entityType == EntityType.PIG
+                || entityType == EntityType.COW
+                || entityType == EntityType.OCELOT
+                || entityType == EntityType.MUSHROOM_COW
+                || entityType == EntityType.BAT
+                || entityType == EntityType.BOAT
+                || entityType == EntityType.CHICKEN
+                || entityType == EntityType.WOLF
+                || entityType == EntityType.VILLAGER
+                || entityType == EntityType.IRON_GOLEM
+                || entityType == EntityType.LEASH_HITCH
+                || entityType == EntityType.RABBIT
+                || entityType == EntityType.SHEEP
+                || entityType == EntityType.SNOWMAN
+                || entityType == EntityType.SQUID
+                || entityType == EntityType.ARMOR_STAND
+                || entityType == EntityType.ITEM_FRAME
+                || entityType == EntityType.POLAR_BEAR))
             return;
         UUID uuid = damager.getUniqueId();
         Optional<User> optionalUser = ElementalsX.getUser(uuid);
@@ -1016,18 +1294,13 @@ public class FieldListener implements Listener {
         event.setCancelled(true);
         if (event.getDamager().hasMetadata("flame_ench"))
             entity.setFireTicks(0);
-
     }
 
     @EventHandler(ignoreCancelled = true)
     public void event0(EntityDamageByEntityEvent event) {
-        if (CitizensAPI.getNPCRegistry().isNPC(event.getEntity()))
-            return;
         Entity entity = event.getEntity();
-        if (FieldChunkUtil.doChunkWait(entity.getLocation().getChunk())) {
-            event.setCancelled(true);
+        if (CitizensAPI.getNPCRegistry().isNPC(entity))
             return;
-        }
         Entity damager;
         if (event.getDamager() instanceof Projectile) {
             Projectile proj = (Projectile) event.getDamager();
@@ -1039,34 +1312,40 @@ public class FieldListener implements Listener {
         if (damager.getType() != EntityType.PLAYER)
             return;
         Location loc = entity.getLocation();
+        if (FieldChunkUtil.doChunkWait(loc.getChunk())) {
+            event.setCancelled(true);
+            return;
+        }
         if (!FieldUtil.isFieldAtLocation(loc))
             return;
         EntityType entityType = entity.getType();
-        if (entityType != EntityType.PARROT
-                || entityType != EntityType.LLAMA
-                || entityType != EntityType.TRADER_LLAMA
-                || entityType != EntityType.ZOMBIE_HORSE
-                || entityType != EntityType.MULE
-                || entityType != EntityType.HORSE
-                || entityType != EntityType.DONKEY
-                || entityType != EntityType.SKELETON_HORSE
-                || entityType != EntityType.PIG
-                || entityType != EntityType.COW
-                || entityType != EntityType.OCELOT
-                || entityType != EntityType.MUSHROOM_COW
-                || entityType != EntityType.BAT
-                || entityType != EntityType.BOAT
-                || entityType != EntityType.CHICKEN
-                || entityType != EntityType.WOLF
-                || entityType != EntityType.VILLAGER
-                || entityType != EntityType.IRON_GOLEM
-                || entityType != EntityType.LEASH_HITCH
-                || entityType != EntityType.RABBIT
-                || entityType != EntityType.SHEEP
-                || entityType != EntityType.SNOWMAN
-                || entityType != EntityType.SQUID
-                || entityType != EntityType.ARMOR_STAND
-                || entityType != EntityType.ITEM_FRAME)
+        if (!(entityType == EntityType.BEE
+                || entityType == EntityType.PARROT
+                || entityType == EntityType.LLAMA
+                || entityType == EntityType.TRADER_LLAMA
+                || entityType == EntityType.ZOMBIE_HORSE
+                || entityType == EntityType.MULE
+                || entityType == EntityType.HORSE
+                || entityType == EntityType.DONKEY
+                || entityType == EntityType.SKELETON_HORSE
+                || entityType == EntityType.PIG
+                || entityType == EntityType.COW
+                || entityType == EntityType.OCELOT
+                || entityType == EntityType.MUSHROOM_COW
+                || entityType == EntityType.BAT
+                || entityType == EntityType.BOAT
+                || entityType == EntityType.CHICKEN
+                || entityType == EntityType.WOLF
+                || entityType == EntityType.VILLAGER
+                || entityType == EntityType.IRON_GOLEM
+                || entityType == EntityType.LEASH_HITCH
+                || entityType == EntityType.RABBIT
+                || entityType == EntityType.SHEEP
+                || entityType == EntityType.SNOWMAN
+                || entityType == EntityType.SQUID
+                || entityType == EntityType.ARMOR_STAND
+                || entityType == EntityType.ITEM_FRAME
+                || entityType == EntityType.POLAR_BEAR))
             return;
         UUID uuid = damager.getUniqueId();
         Optional<User> optionalUser = ElementalsX.getUser(uuid);
