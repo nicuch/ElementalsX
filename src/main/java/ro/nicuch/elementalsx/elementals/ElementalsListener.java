@@ -2,23 +2,20 @@ package ro.nicuch.elementalsx.elementals;
 
 import com.gmail.nossr50.events.fake.FakeBlockBreakEvent;
 import com.shampaggon.crackshot.events.WeaponDamageEntityEvent;
+import com.shampaggon.crackshot.events.WeaponShootEvent;
 import me.clip.placeholderapi.PlaceholderAPI;
 import net.citizensnpcs.api.CitizensAPI;
 import org.bukkit.*;
 import org.bukkit.block.Block;
-import org.bukkit.entity.EntityType;
-import org.bukkit.entity.Parrot;
-import org.bukkit.entity.Player;
+import org.bukkit.entity.*;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.*;
 import org.bukkit.event.block.BlockIgniteEvent.IgniteCause;
-import org.bukkit.event.entity.CreatureSpawnEvent;
+import org.bukkit.event.entity.*;
 import org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason;
-import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.EntityDamageEvent.DamageCause;
-import org.bukkit.event.entity.EntityExplodeEvent;
 import org.bukkit.event.hanging.HangingBreakByEntityEvent;
 import org.bukkit.event.hanging.HangingPlaceEvent;
 import org.bukkit.event.player.*;
@@ -38,6 +35,113 @@ import java.util.*;
 
 public class ElementalsListener implements Listener {
     private final static List<UUID> interactList = new ArrayList<>();
+
+    @EventHandler(ignoreCancelled = true, priority = EventPriority.HIGH)
+    public void event(BlockExplodeEvent event) {
+        String worldname = event.getBlock().getWorld().getName();
+        if (worldname.equals("spawn") || worldname.equals("dungeon"))
+            return;
+        for (Block block : event.blockList()) {
+            if (FieldUtil.isFieldAtLocation(block.getLocation()))
+                continue;
+            if (!(block.getType() == Material.DIAMOND_ORE
+                    || block.getType() == Material.EMERALD_ORE
+                    || block.getType() == Material.GOLD_ORE
+                    || block.getType() == Material.IRON_ORE
+                    || block.getType() == Material.LAPIS_ORE))
+                continue;
+            ElementalsUtil.removeTag(block, "found");
+        }
+    }
+
+    @EventHandler(ignoreCancelled = true, priority = EventPriority.HIGH)
+    public void event0(EntityExplodeEvent event) {
+        String worldname = event.getEntity().getWorld().getName();
+        if (worldname.equals("spawn") || worldname.equals("dungeon"))
+            return;
+        for (Block block : event.blockList()) {
+            if (FieldUtil.isFieldAtLocation(block.getLocation()))
+                continue;
+            if (!(block.getType() == Material.DIAMOND_ORE
+                    || block.getType() == Material.EMERALD_ORE
+                    || block.getType() == Material.GOLD_ORE
+                    || block.getType() == Material.IRON_ORE
+                    || block.getType() == Material.LAPIS_ORE))
+                continue;
+            ElementalsUtil.removeTag(block, "found");
+        }
+    }
+
+    @EventHandler
+    public void event(EntityShootBowEvent event) {
+        Entity projectile = event.getProjectile();
+        if (!(projectile.getType() == EntityType.ARROW ||
+                projectile.getType() == EntityType.SPECTRAL_ARROW ||
+                projectile.getType() == EntityType.FIREBALL))
+            return;
+        CompoundTag compoundTag = TagRegister.getStored(projectile).orElseGet(() -> TagRegister.create(projectile));
+        compoundTag.putString("projectile-shooter-type", event.getEntity().getType().toString());
+        compoundTag.putString("projectile-shooter-uuid", event.getEntity().getUniqueId().toString());
+    }
+
+    @EventHandler
+    public void event(ProjectileLaunchEvent event) {
+        Projectile projectile = event.getEntity();
+        if (projectile.getType() == EntityType.ARROW ||
+                projectile.getType() == EntityType.SPECTRAL_ARROW ||
+                projectile.getType() == EntityType.FIREBALL)
+            return;
+        if (projectile.getShooter() instanceof LivingEntity) {
+            LivingEntity thrower = (LivingEntity) projectile.getShooter();
+            CompoundTag compoundTag = TagRegister.getStored(projectile).orElseGet(() -> TagRegister.create(projectile));
+            compoundTag.putString("projectile-shooter-type", thrower.getType().toString());
+            compoundTag.putString("projectile-shooter-uuid", thrower.getUniqueId().toString());
+        }
+    }
+
+    @EventHandler
+    public void event(WeaponShootEvent event) {
+        Player player = event.getPlayer();
+        if (player == null)
+            return;
+        Entity projectile = event.getProjectile();
+        if (projectile == null)
+            return;
+        CompoundTag compoundTag = TagRegister.getStored(projectile).orElseGet(() -> TagRegister.create(projectile));
+        if (projectile.getType() != EntityType.PRIMED_TNT) {
+            compoundTag.putString("projectile-shooter-type", player.getType().toString());
+            compoundTag.putString("projectile-shooter-uuid", player.getUniqueId().toString());
+        } else {
+            compoundTag.putString("tnt-igniter-type", player.getType().toString());
+            compoundTag.putString("tnt-igniter-uuid", player.getUniqueId().toString());
+        }
+    }
+
+    @EventHandler
+    public void event(EntitySpawnEvent event) {
+        if (event.getEntity().getType() != EntityType.PRIMED_TNT)
+            return;
+        TNTPrimed tnt = (TNTPrimed) event.getEntity();
+        Entity source = tnt.getSource();
+        if (source == null)
+            return;
+        Optional<CompoundTag> optionalTNTCompoundTag = TagRegister.getStored(tnt);
+        if (source instanceof Player) {
+            CompoundTag tntCompoundTag = optionalTNTCompoundTag.orElseGet(() -> TagRegister.create(tnt));
+            tntCompoundTag.putString("tnt-igniter-type", source.getType().toString());
+            tntCompoundTag.putString("tnt-igniter-uuid", source.getUniqueId().toString());
+        } else {
+            Optional<CompoundTag> optionalSourceCompoundTag = TagRegister.getStored(source);
+            if (optionalSourceCompoundTag.isEmpty())
+                return;
+            CompoundTag sourceCompoundTag = optionalSourceCompoundTag.get();
+            if (!(sourceCompoundTag.containsString("projectile-shooter-type") && sourceCompoundTag.containsString("projectile-shooter-uuid")))
+                return;
+            CompoundTag tntCompoundTag = optionalTNTCompoundTag.orElseGet(() -> TagRegister.create(tnt));
+            tntCompoundTag.putString("tnt-igniter-type", sourceCompoundTag.getString("projectile-shooter-type"));
+            tntCompoundTag.putString("tnt-igniter-uuid", sourceCompoundTag.getString("projectile-shooter-uuid"));
+        }
+    }
 
     @EventHandler
     public void event2(BlockIgniteEvent event) {

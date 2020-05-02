@@ -18,7 +18,7 @@ public class FieldUtil {
     private final static ConcurrentMap<FieldId, Field> loadedFields = new ConcurrentHashMap<>();
 
     public static void registerField(User user, Block block, FieldId id, Field2D field2D) {
-        Field field = new Field(id, user.getBase().getUniqueId(), field2D, block, new HashSet<>());
+        Field field = new Field(id, user.getBase().getUniqueId().toString(), field2D, block, new HashSet<>());
         loadedFields.put(id, field);
     }
 
@@ -121,7 +121,7 @@ public class FieldUtil {
                         int minx = blockX - 25;
                         int minz = blockZ - 25;
 
-                        UUID uuid = UUID.fromString(resultSet.getString("owner"));
+                        String uuid = resultSet.getString("owner");
                         Field2D field2D = new Field2D(maxx, maxz, minx, minz);
                         FieldId id = FieldId.fromCoords(blockX, blockY, blockZ, worldName);
                         Field field = new Field(id, uuid, field2D, chunk, blockX, blockY, blockZ, getFieldMembers(id));
@@ -216,19 +216,19 @@ public class FieldUtil {
         if (isFieldAtLocation(loc)) {
             if (!user.isInField()) {
                 user.getBase().sendMessage(ElementalsUtil.color("&8[&cProtectie&8] &b&oAi intrat in protectia lui &f&o"
-                        + Bukkit.getOfflinePlayer(getFieldByLocation(loc).getOwner()).getName() + "&b&o!"));
+                        + Bukkit.getOfflinePlayer(UUID.fromString(getFieldByLocation(loc).getOwner())).getName() + "&b&o!"));
             } else if (user.isInField() && !getFieldByLocation(loc).isOwner(user.getLastFieldOwner())) {
                 user.getBase().sendMessage(ElementalsUtil.color("&8[&cProtectie&8] &b&oAi iesit din protectia lui &f&o"
-                        + Bukkit.getOfflinePlayer(user.getLastFieldOwner()).getName() + "&b&o!"));
+                        + Bukkit.getOfflinePlayer(UUID.fromString(user.getLastFieldOwner())).getName() + "&b&o!"));
                 user.getBase().sendMessage(ElementalsUtil.color("&8[&cProtectie&8] &b&oAi intrat in protectia lui &f&o"
-                        + Bukkit.getOfflinePlayer(getFieldByLocation(loc).getOwner()).getName() + "&b&o!"));
+                        + Bukkit.getOfflinePlayer(UUID.fromString(getFieldByLocation(loc).getOwner())).getName() + "&b&o!"));
             }
             user.toggleField(true);
             user.setLastFieldOwner(getFieldByLocation(loc).getOwner());
         } else if (!isFieldAtLocation(loc)) {
             if (user.isInField())
                 user.getBase().sendMessage(ElementalsUtil.color("&8[&cProtectie&8] &b&oAi iesit din protectia lui &f&o"
-                        + Bukkit.getOfflinePlayer(user.getLastFieldOwner()).getName() + "&b&o!"));
+                        + Bukkit.getOfflinePlayer(UUID.fromString(user.getLastFieldOwner())).getName() + "&b&o!"));
             user.toggleField(false);
         }
     }
@@ -426,7 +426,7 @@ public class FieldUtil {
                 + field.getField2D().getMaxX() + "(x) &c/ &a" + field.getField2D().getMaxZ() + "(z)"));
         user.getBase().sendMessage(ElementalsUtil.color("&cLocatie minima: &a" + field.getWorld() + " &c/ &a"
                 + field.getField2D().getMinX() + "(x) &c/ &a" + field.getField2D().getMinZ() + "(z)"));
-        user.getBase().sendMessage(ElementalsUtil.color("&bDetinator: &6" + Bukkit.getOfflinePlayer(field.getOwner()).getName()));
+        user.getBase().sendMessage(ElementalsUtil.color("&bDetinator: &6" + Bukkit.getOfflinePlayer(UUID.fromString(field.getOwner())).getName()));
         if (!field.getMembers().isEmpty())
             user.getBase().sendMessage(ElementalsUtil.color("&bMembrii:"));
         field.getMembers().forEach(uuid -> user.getBase()

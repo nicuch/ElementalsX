@@ -22,7 +22,7 @@ public class User {
     private boolean sounds;
     private DamageCause lastDamageCause;
     private boolean field;
-    private UUID lastFieldOwner;
+    private String lastFieldOwner;
     private int thirstLevel;
     private boolean pack;
     private boolean messages;
@@ -64,7 +64,7 @@ public class User {
         return this.field;
     }
 
-    public UUID getLastFieldOwner() {
+    public String getLastFieldOwner() {
         return this.lastFieldOwner;
     }
 
@@ -174,7 +174,7 @@ public class User {
         this.field = b;
     }
 
-    public void setLastFieldOwner(UUID owner) {
+    public void setLastFieldOwner(String owner) {
         this.lastFieldOwner = owner;
     }
 

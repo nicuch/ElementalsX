@@ -13,7 +13,7 @@ import java.util.UUID;
 
 public class Field {
     private final FieldId id;
-    private final UUID owner;
+    private final String owner;
     private final Field2D field2D;
     private final Set<String> members;
     private final int chunkX;
@@ -24,11 +24,11 @@ public class Field {
     private final int blockY;
     private final int blockZ;
 
-    public Field(FieldId id, UUID owner, Field2D field2D, Block block, Set<String> members) {
+    public Field(FieldId id, String owner, Field2D field2D, Block block, Set<String> members) {
         this(id, owner, field2D, block.getChunk(), block.getX(), block.getY(), block.getZ(), members);
     }
 
-    public Field(FieldId id, UUID owner, Field2D field2D, Chunk chunk, int x, int y, int z, Set<String> members) {
+    public Field(FieldId id, String owner, Field2D field2D, Chunk chunk, int x, int y, int z, Set<String> members) {
         this.id = id;
         this.owner = owner;
         this.field2D = field2D;
@@ -41,7 +41,7 @@ public class Field {
         this.members = members;
     }
 
-    public Field(FieldId id, UUID owner, Field2D field2D, ChunkData chunk, int x, int y, int z, Set<String> members) {
+    public Field(FieldId id, String owner, Field2D field2D, ChunkData chunk, int x, int y, int z, Set<String> members) {
         this.id = id;
         this.owner = owner;
         this.field2D = field2D;
@@ -54,7 +54,7 @@ public class Field {
         this.members = members;
     }
 
-    public Field(FieldId id, UUID owner, Field2D field2D, int chunkx, int chunkz, String world, int x, int y, int z, Set<String> members) {
+    public Field(FieldId id, String owner, Field2D field2D, int chunkx, int chunkz, String world, int x, int y, int z, Set<String> members) {
         this.id = id;
         this.owner = owner;
         this.field2D = field2D;
@@ -87,12 +87,16 @@ public class Field {
         return this.id;
     }
 
-    public UUID getOwner() {
+    public String getOwner() {
         return this.owner;
     }
 
-    public boolean isOwner(UUID uuid) {
+    public boolean isOwner(String uuid) {
         return this.owner.equals(uuid);
+    }
+
+    public boolean isOwner(UUID uuid) {
+        return this.owner.equals(uuid.toString());
     }
 
     public Field2D getField2D() {

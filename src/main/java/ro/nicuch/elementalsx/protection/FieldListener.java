@@ -25,7 +25,6 @@ import org.bukkit.event.world.ChunkUnloadEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.SpawnEggMeta;
 import org.bukkit.projectiles.BlockProjectileSource;
-import org.bukkit.util.BoundingBox;
 import ro.nicuch.elementalsx.ElementalsX;
 import ro.nicuch.elementalsx.User;
 import ro.nicuch.elementalsx.elementals.ElementalsUtil;
@@ -124,17 +123,22 @@ public class FieldListener implements Listener {
             event.setCancelled(true);
             return;
         }
+        if (event.getDamager() == null)
+            return;
         if (!FieldUtil.isFieldAtLocation(loc))
             return;
+        Field field = FieldUtil.getFieldByLocation(loc);
         Optional<User> optionalUser = ElementalsX.getUser(event.getDamager().getUniqueId());
-        if (optionalUser.isPresent()) {
-            if (!optionalUser.get().hasPermission("elementals.protection.override"))
-                return;
-            if (event.getVictim().getType() == EntityType.PLAYER)
-                event.getDamager().sendMessage("&8[&cProtectie&8] &c&oNu poti ataca un jucator aflat in protectie!");
-            else
-                event.getDamager().sendMessage("&8[&cProtectie&8] &c&oNu poti ataca o entitate aflat in protectie!");
-        }
+        if (optionalUser.isEmpty())
+            return;
+        User user = optionalUser.get();
+        if (field.isOwner(user.getUUID()) || field.isMember(user.getUUID()) || user.hasPermission("elementals.protection.override"))
+            return;
+        if (event.getVictim().getType() == EntityType.PLAYER)
+            event.getDamager().sendMessage("&8[&cProtectie&8] &c&oNu poti ataca un jucator aflat in protectie!");
+        else
+            event.getDamager().sendMessage("&8[&cProtectie&8] &c&oNu poti ataca o entitate aflat in protectie!");
+
         event.setCancelled(true);
     }
 
@@ -464,6 +468,57 @@ public class FieldListener implements Listener {
             return;
         Field field = FieldUtil.getFieldByLocation(loc);
         if (field.isMember(uuid) || field.isOwner(uuid) || user.hasPermission("elementals.protection.override"))
+            return;
+        event.setCancelled(true);
+    }
+
+    @EventHandler(ignoreCancelled = true)
+    public void event2(EntityDamageByEntityEvent event) {
+        Entity entity = event.getEntity();
+        Entity damager = event.getDamager();
+        if (!(event.getCause() == EntityDamageEvent.DamageCause.BLOCK_EXPLOSION ||
+                event.getCause() == EntityDamageEvent.DamageCause.ENTITY_EXPLOSION))
+            return;
+        if (damager.getType() == EntityType.PRIMED_TNT) {
+            if (FieldChunkUtil.doChunkWait(entity.getLocation().getChunk())) {
+                event.setCancelled(true);
+                return;
+            }
+            if (!FieldUtil.isFieldAtLocation(entity.getLocation()))
+                return;
+            Field field = FieldUtil.getFieldByLocation(entity.getLocation());
+            if (field.isMember(entity.getUniqueId()) || field.isOwner(entity.getUniqueId()))
+                return;
+            Optional<CompoundTag> optionalTNTCompoundTag = TagRegister.getStored(damager);
+            if (optionalTNTCompoundTag.isEmpty())
+                return;
+            CompoundTag tntCompoundTag = optionalTNTCompoundTag.get();
+            if (!(tntCompoundTag.containsString("tnt-igniter-type") && tntCompoundTag.containsString("tnt-igniter-uuid")))
+                return;
+            event.setCancelled(true);
+        }
+    }
+
+    @EventHandler
+    public void event1(EntityChangeBlockEvent event) {
+        Entity entity = event.getEntity();
+        if (!(entity.getType() == EntityType.ARROW || entity.getType() == EntityType.SPECTRAL_ARROW || entity.getType() == EntityType.FIREBALL))
+            return;
+        Block block = event.getBlock();
+        if (!FieldUtil.isFieldAtLocation(block.getLocation()))
+            return;
+        Optional<CompoundTag> optionalProjectileCompoundTag = TagRegister.getStored(entity);
+        if (optionalProjectileCompoundTag.isEmpty())
+            return;
+        CompoundTag projectileCompoundTag = optionalProjectileCompoundTag.get();
+        if (!(projectileCompoundTag.containsString("projectile-shooter-type") && projectileCompoundTag.containsString("projectile-shooter-uuid")))
+            return;
+        String uuid = projectileCompoundTag.getString("projectile-shooter-uuid");
+        String entityType = projectileCompoundTag.getString("projectile-shooter-type");
+        if (!entityType.equals(EntityType.PLAYER.toString()))
+            return;
+        Field field = FieldUtil.getFieldByLocation(block.getLocation());
+        if (field.isMember(uuid) || field.isOwner(uuid))
             return;
         event.setCancelled(true);
     }
@@ -826,9 +881,26 @@ public class FieldListener implements Listener {
         String worldName = event.getLocation().getWorld().getName();
         if (worldName.equals("spawn") || worldName.equals("dungeon"))
             return;
-        if (!FieldUtil.isFieldAtLocation(event.getLocation()))
-            return;
-        event.blockList().removeIf(block -> block.getType() != Material.TNT && FieldUtil.isFieldAtLocation(block.getLocation()));
+        event.blockList().removeIf(block -> {
+            if (block.getType() != Material.TNT && FieldUtil.isFieldAtLocation(block.getLocation()))
+                return true;
+            Optional<CompoundTag> optionalTNTCompoundTag = TagRegister.getStored(event.getEntity());
+            if (optionalTNTCompoundTag.isEmpty())
+                return false;
+            CompoundTag tntCompoundTag = optionalTNTCompoundTag.get();
+            if (!(tntCompoundTag.containsString("tnt-igniter-type") && tntCompoundTag.containsString("tnt-igniter-uuid")))
+                return false;
+            String type = tntCompoundTag.getString("tnt-igniter-type");
+            if (!type.equals(EntityType.PLAYER.toString()))
+                return false;
+            String uuid = tntCompoundTag.getString("tnt-igniter-uuid");
+            Field field = FieldUtil.getFieldByLocation(block.getLocation());
+            Optional<User> optionalUser = ElementalsX.getUser(UUID.fromString(uuid));
+            User user = null;
+            if (optionalUser.isPresent())
+                user = optionalUser.get();
+            return (!(field.isMember(uuid) || field.isOwner(uuid) || (user != null && user.hasPermission("elementals.protection.override"))));
+        });
     }
 
     @EventHandler
@@ -837,7 +909,29 @@ public class FieldListener implements Listener {
             event.blockList().clear();
             return;
         }
-        event.blockList().removeIf(block -> block.getType() != Material.TNT && FieldUtil.isFieldAtLocation(block.getLocation()));
+        String worldName = event.getBlock().getWorld().getName();
+        if (worldName.equals("spawn") || worldName.equals("dungeon"))
+            return;
+        event.blockList().removeIf(block -> {
+            if (block.getType() != Material.TNT && FieldUtil.isFieldAtLocation(block.getLocation()))
+                return true;
+            Optional<CompoundTag> optionalTNTCompoundTag = TagRegister.getStored(event.getBlock());
+            if (optionalTNTCompoundTag.isEmpty())
+                return false;
+            CompoundTag tntCompoundTag = optionalTNTCompoundTag.get();
+            if (!(tntCompoundTag.containsString("tnt-igniter-type") && tntCompoundTag.containsString("tnt-igniter-uuid")))
+                return false;
+            String type = tntCompoundTag.getString("tnt-igniter-type");
+            if (!type.equals(EntityType.PLAYER.toString()))
+                return false;
+            String uuid = tntCompoundTag.getString("tnt-igniter-uuid");
+            Field field = FieldUtil.getFieldByLocation(block.getLocation());
+            Optional<User> optionalUser = ElementalsX.getUser(UUID.fromString(uuid));
+            User user = null;
+            if (optionalUser.isPresent())
+                user = optionalUser.get();
+            return (!(field.isMember(uuid) || field.isOwner(uuid) || (user != null && user.hasPermission("elementals.protection.override"))));
+        });
     }
 
     @EventHandler(ignoreCancelled = true)
@@ -851,24 +945,42 @@ public class FieldListener implements Listener {
         }
         if (!FieldUtil.isFieldAtLocation(loc))
             return;
-        Entity remover;
-        if (event.getRemover() instanceof Projectile) {
-            Projectile proj = (Projectile) event.getRemover();
-            if (proj.getShooter() == null)
+        if (event.getRemover() == null)
+            return;
+        String uuid;
+        if (event.getRemover().getType() == EntityType.PLAYER) {
+            uuid = event.getRemover().getUniqueId().toString();
+        } else if (event.getRemover().getType() == EntityType.PRIMED_TNT) {
+            Optional<CompoundTag> optionalRemovedCompoundTag = TagRegister.getStored(event.getRemover());
+            if (optionalRemovedCompoundTag.isEmpty())
                 return;
-            remover = (Entity) proj.getShooter();
-        } else
-            remover = event.getRemover();
-        if (remover.getType() != EntityType.PLAYER)
-            return;
-        UUID uuid = remover.getUniqueId();
-        Optional<User> optionalUser = ElementalsX.getUser(uuid);
-        if (optionalUser.isEmpty())
-            return;
-        User user = optionalUser.get();
+            CompoundTag removedCompoundTag = optionalRemovedCompoundTag.get();
+            if (!(removedCompoundTag.containsString("tnt-igniter-type") && removedCompoundTag.containsString("tnt-igniter-uuid")))
+                return;
+            String type = removedCompoundTag.getString("tnt-igniter-type");
+            if (!type.equals(EntityType.PLAYER.toString()))
+                return;
+            uuid = removedCompoundTag.getString("tnt-igniter-uuid");
+        } else {
+            Optional<CompoundTag> optionalRemovedCompoundTag = TagRegister.getStored(event.getRemover());
+            if (optionalRemovedCompoundTag.isEmpty())
+                return;
+            CompoundTag removedCompoundTag = optionalRemovedCompoundTag.get();
+            if (!(removedCompoundTag.containsString("projectile-shooter-type") && removedCompoundTag.containsString("projectile-shooter-uuid")))
+                return;
+            String type = removedCompoundTag.getString("projectile-shooter-type");
+            if (!type.equals(EntityType.PLAYER.toString()))
+                return;
+            uuid = removedCompoundTag.getString("projectile-shooter-uuid");
+        }
+        Optional<User> optionalUser = ElementalsX.getUser(UUID.fromString(uuid));
+        User user = null;
+        if (optionalUser.isPresent())
+            user = optionalUser.get();
         Field field = FieldUtil.getFieldByLocation(loc);
-        if (!(field.isMember(uuid) || field.isOwner(uuid) || user.hasPermission("elementals.protection.override")))
-            event.setCancelled(true);
+        if (field.isMember(uuid) || field.isOwner(uuid) || (user != null && user.hasPermission("elementals.protection.override")))
+            return;
+        event.setCancelled(true);
     }
 
     @EventHandler(ignoreCancelled = true)
@@ -1330,27 +1442,13 @@ public class FieldListener implements Listener {
 
     @EventHandler
     public void event0(FakeEntityDamageByEntityEvent event) {
-        Entity entity = event.getEntity();
-        if (CitizensAPI.getNPCRegistry().isNPC(entity))
+        Entity victim = event.getEntity();
+        Entity damager = event.getDamager();
+        if (CitizensAPI.getNPCRegistry().isNPC(victim))
             return;
-        Entity damager;
-        if (event.getDamager() instanceof Projectile) {
-            Projectile proj = (Projectile) event.getDamager();
-            if (proj.getShooter() == null)
-                return;
-            damager = (Entity) proj.getShooter();
-        } else
-            damager = event.getDamager();
-        if (damager.getType() != EntityType.PLAYER)
+        if (CitizensAPI.getNPCRegistry().isNPC(damager))
             return;
-        Location loc = entity.getLocation();
-        if (FieldChunkUtil.doChunkWait(loc.getChunk())) {
-            event.setCancelled(true);
-            return;
-        }
-        if (!FieldUtil.isFieldAtLocation(loc))
-            return;
-        EntityType entityType = entity.getType();
+        EntityType entityType = victim.getType();
         if (!(entityType == EntityType.BEE
                 || entityType == EntityType.PARROT
                 || entityType == EntityType.LLAMA
@@ -1379,43 +1477,66 @@ public class FieldListener implements Listener {
                 || entityType == EntityType.ITEM_FRAME
                 || entityType == EntityType.POLAR_BEAR))
             return;
-        UUID uuid = damager.getUniqueId();
-        Optional<User> optionalUser = ElementalsX.getUser(uuid);
-        if (optionalUser.isEmpty())
+        Location loc = event.getEntity().getLocation();
+        if (FieldChunkUtil.doChunkWait(loc.getChunk())) {
+            event.setCancelled(true);
             return;
-        User user = optionalUser.get();
+        }
+        if (!FieldUtil.isFieldAtLocation(loc))
+            return;
+        if (damager.hasMetadata("CS_Label")) {
+            event.setCancelled(true);
+            return;
+        }
+        String uuid;
+        if (damager.getType() == EntityType.PLAYER) {
+            uuid = damager.getUniqueId().toString();
+        } else if (damager.getType() == EntityType.PRIMED_TNT) {
+            Optional<CompoundTag> optionalRemovedCompoundTag = TagRegister.getStored(damager);
+            if (optionalRemovedCompoundTag.isEmpty())
+                return;
+            CompoundTag removedCompoundTag = optionalRemovedCompoundTag.get();
+            if (!(removedCompoundTag.containsString("tnt-igniter-type") && removedCompoundTag.containsString("tnt-igniter-uuid")))
+                return;
+            String type = removedCompoundTag.getString("tnt-igniter-type");
+            if (!type.equals(EntityType.PLAYER.toString()))
+                return;
+            uuid = removedCompoundTag.getString("tnt-igniter-uuid");
+        } else {
+            Optional<CompoundTag> optionalRemovedCompoundTag = TagRegister.getStored(damager);
+            if (optionalRemovedCompoundTag.isEmpty())
+                return;
+            CompoundTag removedCompoundTag = optionalRemovedCompoundTag.get();
+            if (!(removedCompoundTag.containsString("projectile-shooter-type") && removedCompoundTag.containsString("projectile-shooter-uuid")))
+                return;
+            String type = removedCompoundTag.getString("projectile-shooter-type");
+            if (!type.equals(EntityType.PLAYER.toString()))
+                return;
+            uuid = removedCompoundTag.getString("projectile-shooter-uuid");
+        }
+        Optional<User> optionalUser = ElementalsX.getUser(UUID.fromString(uuid));
+        User user = null;
+        if (optionalUser.isPresent())
+            user = optionalUser.get();
         Field field = FieldUtil.getFieldByLocation(loc);
-        if (field.isMember(uuid) || field.isOwner(uuid) || user.hasPermission("elementals.protection.override"))
+        if (field.isMember(uuid) || field.isOwner(uuid) || (user != null && user.hasPermission("elementals.protection.override")))
             return;
-        user.getBase().sendMessage(ElementalsUtil.color("&8[&cProtectie&8] &c&oNu poti lovi aceasta entitate aflata in protectie."));
+        if (damager instanceof Projectile)
+            damager.remove(); //Don't spam the players, lol
+        if (user != null && damager.getType() != EntityType.PRIMED_TNT)
+            user.getBase().sendMessage(ElementalsUtil.color("&8[&cProtectie&8] &c&oNu poti lovi aceasta entitate aflata in protectie."));
         event.setCancelled(true);
-        if (event.getDamager().hasMetadata("flame_ench"))
-            entity.setFireTicks(0);
     }
 
     @EventHandler(ignoreCancelled = true)
     public void event0(EntityDamageByEntityEvent event) {
-        Entity entity = event.getEntity();
-        if (CitizensAPI.getNPCRegistry().isNPC(entity))
+        Entity victim = event.getEntity();
+        Entity damager = event.getDamager();
+        if (CitizensAPI.getNPCRegistry().isNPC(victim))
             return;
-        Entity damager;
-        if (event.getDamager() instanceof Projectile) {
-            Projectile proj = (Projectile) event.getDamager();
-            if (proj.getShooter() == null)
-                return;
-            damager = (Entity) proj.getShooter();
-        } else
-            damager = event.getDamager();
-        if (damager.getType() != EntityType.PLAYER)
+        if (CitizensAPI.getNPCRegistry().isNPC(damager))
             return;
-        Location loc = entity.getLocation();
-        if (FieldChunkUtil.doChunkWait(loc.getChunk())) {
-            event.setCancelled(true);
-            return;
-        }
-        if (!FieldUtil.isFieldAtLocation(loc))
-            return;
-        EntityType entityType = entity.getType();
+        EntityType entityType = victim.getType();
         if (!(entityType == EntityType.BEE
                 || entityType == EntityType.PARROT
                 || entityType == EntityType.LLAMA
@@ -1444,18 +1565,55 @@ public class FieldListener implements Listener {
                 || entityType == EntityType.ITEM_FRAME
                 || entityType == EntityType.POLAR_BEAR))
             return;
-        UUID uuid = damager.getUniqueId();
-        Optional<User> optionalUser = ElementalsX.getUser(uuid);
-        if (optionalUser.isEmpty())
+        Location loc = event.getEntity().getLocation();
+        if (FieldChunkUtil.doChunkWait(loc.getChunk())) {
+            event.setCancelled(true);
             return;
-        User user = optionalUser.get();
+        }
+        if (!FieldUtil.isFieldAtLocation(loc))
+            return;
+        if (damager.hasMetadata("CS_Label")) {
+            event.setCancelled(true);
+            return;
+        }
+        String uuid;
+        if (damager.getType() == EntityType.PLAYER) {
+            uuid = damager.getUniqueId().toString();
+        } else if (damager.getType() == EntityType.PRIMED_TNT) {
+            Optional<CompoundTag> optionalRemovedCompoundTag = TagRegister.getStored(damager);
+            if (optionalRemovedCompoundTag.isEmpty())
+                return;
+            CompoundTag removedCompoundTag = optionalRemovedCompoundTag.get();
+            if (!(removedCompoundTag.containsString("tnt-igniter-type") && removedCompoundTag.containsString("tnt-igniter-uuid")))
+                return;
+            String type = removedCompoundTag.getString("tnt-igniter-type");
+            if (!type.equals(EntityType.PLAYER.toString()))
+                return;
+            uuid = removedCompoundTag.getString("tnt-igniter-uuid");
+        } else {
+            Optional<CompoundTag> optionalRemovedCompoundTag = TagRegister.getStored(damager);
+            if (optionalRemovedCompoundTag.isEmpty())
+                return;
+            CompoundTag removedCompoundTag = optionalRemovedCompoundTag.get();
+            if (!(removedCompoundTag.containsString("projectile-shooter-type") && removedCompoundTag.containsString("projectile-shooter-uuid")))
+                return;
+            String type = removedCompoundTag.getString("projectile-shooter-type");
+            if (!type.equals(EntityType.PLAYER.toString()))
+                return;
+            uuid = removedCompoundTag.getString("projectile-shooter-uuid");
+        }
+        Optional<User> optionalUser = ElementalsX.getUser(UUID.fromString(uuid));
+        User user = null;
+        if (optionalUser.isPresent())
+            user = optionalUser.get();
         Field field = FieldUtil.getFieldByLocation(loc);
-        if (field.isMember(uuid) || field.isOwner(uuid) || user.hasPermission("elementals.protection.override"))
+        if (field.isMember(uuid) || field.isOwner(uuid) || (user != null && user.hasPermission("elementals.protection.override")))
             return;
-        user.getBase().sendMessage(ElementalsUtil.color("&8[&cProtectie&8] &c&oNu poti lovi aceasta entitate aflata in protectie."));
+        if (damager instanceof Projectile)
+            damager.remove(); //Don't spam the players, lol
+        if (user != null && damager.getType() != EntityType.PRIMED_TNT)
+            user.getBase().sendMessage(ElementalsUtil.color("&8[&cProtectie&8] &c&oNu poti lovi aceasta entitate aflata in protectie."));
         event.setCancelled(true);
-        if (event.getDamager().hasMetadata("flame_ench"))
-            entity.setFireTicks(0);
     }
 
     @EventHandler(ignoreCancelled = true)
