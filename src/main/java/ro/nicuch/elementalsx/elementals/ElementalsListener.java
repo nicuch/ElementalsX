@@ -42,15 +42,6 @@ public class ElementalsListener implements Listener {
     @EventHandler
     public void event2(BlockIgniteEvent event) {
         Block block = event.getBlock();
-        if (event.getCause() == IgniteCause.FLINT_AND_STEEL) {
-            if (block.getType() != Material.FIRE)
-                return;
-            if (event.getPlayer() == null)
-                return;
-            UUID uuid = event.getPlayer().getUniqueId();
-            CompoundTag tag = TagRegister.getStored(block).orElseGet(() -> TagRegister.create(block));
-            tag.putString("fire-placed", uuid.toString());
-        }
         if (event.getCause() == IgniteCause.LAVA) {
             if (block.getType() != Material.FIRE)
                 return;
@@ -106,12 +97,12 @@ public class ElementalsListener implements Listener {
     public void event0(PlayerBucketEmptyEvent event) {
         UUID uuid = event.getPlayer().getUniqueId();
         Block block = event.getBlock();
+        Optional<CompoundTag> optionalCompoundTag = TagRegister.getStored(block);
         if (event.getBucket() == Material.LAVA_BUCKET) {
-            CompoundTag tag = TagRegister.getStored(block).orElseGet(() -> TagRegister.create(block));
+            CompoundTag tag = optionalCompoundTag.orElseGet(() -> TagRegister.create(block));
             tag.putString("lava-placed", uuid.toString());
         }
         if (block.getType() == Material.FIRE) {
-            Optional<CompoundTag> optionalCompoundTag = TagRegister.getStored(block);
             if (optionalCompoundTag.isEmpty())
                 return;
             CompoundTag tag = optionalCompoundTag.get();
@@ -141,19 +132,24 @@ public class ElementalsListener implements Listener {
 
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void event1(BlockPlaceEvent event) {
-        Material blockReplacedMaterial = event.getBlockReplacedState().getType();
-        if (blockReplacedMaterial == Material.LAVA) {
-            Optional<CompoundTag> optionalCompoundTag = TagRegister.getStored(event.getBlock());
+        Block block = event.getBlock();
+        Optional<CompoundTag> optionalCompoundTag = TagRegister.getStored(block);
+        if (block.getType() == Material.LAVA) {
+            if (event.getBlockPlaced().getType() != Material.LAVA)
+                return;
             if (optionalCompoundTag.isEmpty())
                 return;
             CompoundTag tag = optionalCompoundTag.get();
             if (!tag.containsString("lava-placed"))
                 return;
             tag.remove("lava-placed");
-        } else if (blockReplacedMaterial == Material.FIRE) {
-            if (event.getBlock().getType() == Material.FIRE)
+        } else if (event.getBlockPlaced().getType() == Material.FIRE) {
+            UUID uuid = event.getPlayer().getUniqueId();
+            CompoundTag tag = optionalCompoundTag.orElseGet(() -> TagRegister.create(block));
+            tag.putString("fire-placed", uuid.toString());
+        } else if (block.getType() == Material.FIRE) {
+            if (event.getBlockPlaced().getType() != Material.FIRE)
                 return;
-            Optional<CompoundTag> optionalCompoundTag = TagRegister.getStored(event.getBlock());
             if (optionalCompoundTag.isEmpty())
                 return;
             CompoundTag tag = optionalCompoundTag.get();

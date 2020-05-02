@@ -10,6 +10,7 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.FireworkMeta;
+import org.bukkit.util.BoundingBox;
 import ro.nicuch.elementalsx.User;
 import ro.nicuch.elementalsx.protection.Field;
 import ro.nicuch.elementalsx.protection.FieldUtil;
@@ -27,6 +28,35 @@ public class ElementalsUtil {
             "&8[&eInfo&8] &6&oProtectia se face folosind cubul de &b&oDiamant&6&o! &a&oNu uita sa o pui altfel casa ta va fi distrusa!",
             "&8[&eInfo&8] &a&oStaff-ul nu raspunde de obiectele pierdute!",
             "&8[&eInfo&8] &c&oDaca descoperiti un bug, va rugam sa-l raportati! &6&oVeti primi un bonus daca bug-ul nu a fost raportat deja!");
+
+    public static boolean checkCollision(Block block, Entity entity) {
+        BoundingBox blockBoundingBox = block.getBoundingBox();
+        BoundingBox entityBoundingBox = entity.getBoundingBox();
+
+        Location entityLocation = entity.getLocation();
+
+        double blockMinX = block.getX();
+        double blockMaxX = blockMinX + 1;
+
+        double blockMinY = block.getY();
+        double blockMaxY = blockMinY + 1;
+
+        double blockMinZ = block.getZ();
+        double blockMaxZ = blockMinZ + 1;
+
+        double entityMinX = (entityLocation.getX() - (entityBoundingBox.getWidthX() / 2)) - 0.1;
+        double entityMaxX = entityMinX + entityBoundingBox.getWidthX() + 0.2;
+
+        double entityMinY = (entityLocation.getY() - (entityBoundingBox.getHeight() / 2)) - 0.1;
+        double entityMaxY = entityMinY + entityBoundingBox.getHeight() + 0.2;
+
+        double entityMinZ = (entityLocation.getZ() - (entityBoundingBox.getWidthZ() / 2)) - 0.1;
+        double entityMaxZ = entityMinZ + entityBoundingBox.getWidthZ() + 0.2;
+
+        return (blockMinX <= entityMaxX && blockMaxX >= entityMinX) &&
+                (blockMinY <= entityMaxY && blockMaxY >= entityMinY) &&
+                (blockMinZ <= entityMaxZ && blockMaxZ >= entityMinZ);
+    }
 
     public static List<String> getAutoMessages() {
         return autoMsg;

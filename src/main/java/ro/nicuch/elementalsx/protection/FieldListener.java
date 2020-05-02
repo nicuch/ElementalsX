@@ -258,6 +258,8 @@ public class FieldListener implements Listener {
         String world_name = block.getWorld().getName();
         if (!(world_name.equals("world") || world_name.equals("world_nether") || world_name.equals("world_the_end")))
             return;
+        if (world_name.equals("world_the_end") && block.getX() <= 125 && block.getX() >= -125 && block.getZ() <= 125 && block.getZ() >= -125)
+            return;
         UUID uuid = event.getPlayer().getUniqueId();
         Optional<User> optionalUser = ElementalsX.getUser(uuid);
         if (optionalUser.isEmpty())
@@ -475,10 +477,16 @@ public class FieldListener implements Listener {
                 event.getCause() == EntityDamageEvent.DamageCause.FIRE_TICK ||
                 event.getCause() == EntityDamageEvent.DamageCause.LAVA))
             return;
-        BoundingBox bb = entity.getBoundingBox();
-
+        if (FieldChunkUtil.doChunkWait(entity.getLocation().getChunk())) {
+            event.setCancelled(true);
+            return;
+        }
+        if (!FieldUtil.isFieldAtLocation(entity.getLocation()))
+            return;
+        Field field = FieldUtil.getFieldByLocation(entity.getLocation());
+        if (field.isMember(entity.getUniqueId()) || field.isOwner(entity.getUniqueId()))
+            return;
         List<BlockFace> foundLava = new ArrayList<>();
-
         Block center = event.getEntity().getLocation().getBlock();
         Block north = center.getRelative(BlockFace.NORTH);
         Block south = center.getRelative(BlockFace.SOUTH);
@@ -488,40 +496,127 @@ public class FieldListener implements Listener {
         Block north_east = center.getRelative(BlockFace.NORTH_EAST);
         Block south_west = center.getRelative(BlockFace.SOUTH_WEST);
         Block south_east = center.getRelative(BlockFace.SOUTH_EAST);
+        Block up = center.getRelative(BlockFace.UP);
+        Block down = center.getRelative(BlockFace.DOWN);
         if (center.getType() == Material.LAVA || center.getType() == Material.FIRE) {
-            if (bb.overlaps(center.getBoundingBox()))
+            if (ElementalsUtil.checkCollision(center, entity))
                 foundLava.add(BlockFace.SELF);
         }
         if (north.getType() == Material.LAVA || north.getType() == Material.FIRE) {
-            if (bb.overlaps(north.getBoundingBox()))
+            if (ElementalsUtil.checkCollision(north, entity))
                 foundLava.add(BlockFace.NORTH);
         }
         if (south.getType() == Material.LAVA || south.getType() == Material.FIRE) {
-            if (bb.overlaps(south.getBoundingBox()))
+            if (ElementalsUtil.checkCollision(south, entity))
                 foundLava.add(BlockFace.SOUTH);
         }
         if (west.getType() == Material.LAVA || west.getType() == Material.FIRE) {
-            if (bb.overlaps(west.getBoundingBox()))
+            if (ElementalsUtil.checkCollision(west, entity))
                 foundLava.add(BlockFace.WEST);
         }
         if (east.getType() == Material.LAVA || east.getType() == Material.FIRE) {
-            if (bb.overlaps(east.getBoundingBox()))
+            if (ElementalsUtil.checkCollision(east, entity))
                 foundLava.add(BlockFace.EAST);
         }
         if (north_west.getType() == Material.LAVA || north_west.getType() == Material.FIRE) {
-            if (bb.overlaps(north_west.getBoundingBox()))
+            if (ElementalsUtil.checkCollision(north_west, entity))
                 foundLava.add(BlockFace.NORTH_WEST);
         }
         if (north_east.getType() == Material.LAVA || north_east.getType() == Material.FIRE) {
-            if (bb.overlaps(north_east.getBoundingBox()))
+            if (ElementalsUtil.checkCollision(north_east, entity))
                 foundLava.add(BlockFace.NORTH_EAST);
         }
         if (south_west.getType() == Material.LAVA || south_west.getType() == Material.FIRE) {
-            if (bb.overlaps(south_west.getBoundingBox()))
+            if (ElementalsUtil.checkCollision(south_west, entity))
                 foundLava.add(BlockFace.SOUTH_WEST);
         }
         if (south_east.getType() == Material.LAVA || south_east.getType() == Material.FIRE) {
-            if (bb.overlaps(south_east.getBoundingBox()))
+            if (ElementalsUtil.checkCollision(south_east, entity))
+                foundLava.add(BlockFace.SOUTH_EAST);
+        }
+        if (up.getType() == Material.LAVA || up.getType() == Material.FIRE) {
+            if (ElementalsUtil.checkCollision(up, entity))
+                foundLava.add(BlockFace.UP);
+        }
+        if (down.getType() == Material.LAVA || down.getType() == Material.FIRE) {
+            if (ElementalsUtil.checkCollision(down, entity))
+                foundLava.add(BlockFace.DOWN);
+        }
+        for (BlockFace face : foundLava) {
+            Optional<CompoundTag> optionalCompoundTag = TagRegister.getStored(center.getRelative(face));
+            if (optionalCompoundTag.isEmpty())
+                continue;
+            CompoundTag tag = optionalCompoundTag.get();
+            String uuid = null;
+            if (tag.containsString("lava-placed"))
+                uuid = tag.getString("lava-placed");
+            else if (tag.containsString("fire-placed"))
+                uuid = tag.getString("fire-placed");
+            if (uuid == null)
+                continue;
+            if (entity.getUniqueId().toString().equals(uuid))
+                continue;
+            event.setCancelled(true);
+            return;
+        }
+    }
+
+    @EventHandler(ignoreCancelled = true)
+    public void event0(PlayerMoveEvent event) {
+        Player entity = event.getPlayer();
+        if (entity.getFireTicks() <= 0)
+            return;
+        if (FieldChunkUtil.doChunkWait(entity.getLocation().getChunk()))
+            return;
+        if (!FieldUtil.isFieldAtLocation(entity.getLocation()))
+            return;
+        Field field = FieldUtil.getFieldByLocation(entity.getLocation());
+        if (field.isMember(entity.getUniqueId()) || field.isOwner(entity.getUniqueId()))
+            return;
+        List<BlockFace> foundLava = new ArrayList<>();
+        Block center = entity.getLocation().getBlock();
+        Block north = center.getRelative(BlockFace.NORTH);
+        Block south = center.getRelative(BlockFace.SOUTH);
+        Block west = center.getRelative(BlockFace.WEST);
+        Block east = center.getRelative(BlockFace.EAST);
+        Block north_west = center.getRelative(BlockFace.NORTH_WEST);
+        Block north_east = center.getRelative(BlockFace.NORTH_EAST);
+        Block south_west = center.getRelative(BlockFace.SOUTH_WEST);
+        Block south_east = center.getRelative(BlockFace.SOUTH_EAST);
+        if (center.getType() == Material.LAVA || center.getType() == Material.FIRE) {
+            if (ElementalsUtil.checkCollision(center, entity))
+                foundLava.add(BlockFace.SELF);
+        }
+        if (north.getType() == Material.LAVA || north.getType() == Material.FIRE) {
+            if (ElementalsUtil.checkCollision(north, entity))
+                foundLava.add(BlockFace.NORTH);
+        }
+        if (south.getType() == Material.LAVA || south.getType() == Material.FIRE) {
+            if (ElementalsUtil.checkCollision(south, entity))
+                foundLava.add(BlockFace.SOUTH);
+        }
+        if (west.getType() == Material.LAVA || west.getType() == Material.FIRE) {
+            if (ElementalsUtil.checkCollision(west, entity))
+                foundLava.add(BlockFace.WEST);
+        }
+        if (east.getType() == Material.LAVA || east.getType() == Material.FIRE) {
+            if (ElementalsUtil.checkCollision(east, entity))
+                foundLava.add(BlockFace.EAST);
+        }
+        if (north_west.getType() == Material.LAVA || north_west.getType() == Material.FIRE) {
+            if (ElementalsUtil.checkCollision(north_west, entity))
+                foundLava.add(BlockFace.NORTH_WEST);
+        }
+        if (north_east.getType() == Material.LAVA || north_east.getType() == Material.FIRE) {
+            if (ElementalsUtil.checkCollision(north_east, entity))
+                foundLava.add(BlockFace.NORTH_EAST);
+        }
+        if (south_west.getType() == Material.LAVA || south_west.getType() == Material.FIRE) {
+            if (ElementalsUtil.checkCollision(south_west, entity))
+                foundLava.add(BlockFace.SOUTH_WEST);
+        }
+        if (south_east.getType() == Material.LAVA || south_east.getType() == Material.FIRE) {
+            if (ElementalsUtil.checkCollision(south_east, entity))
                 foundLava.add(BlockFace.SOUTH_EAST);
         }
         for (BlockFace face : foundLava) {
@@ -538,84 +633,86 @@ public class FieldListener implements Listener {
                 continue;
             if (entity.getUniqueId().toString().equals(uuid))
                 continue;
-            if (FieldChunkUtil.doChunkWait(entity.getLocation().getChunk())) {
-                event.setCancelled(true);
-                return;
-            }
-            if (!FieldUtil.isFieldAtLocation(entity.getLocation()))
-                continue;
-            Field field = FieldUtil.getFieldByLocation(entity.getLocation());
-            if (field.isMember(entity.getUniqueId()) || field.isOwner(entity.getUniqueId()))
-                continue;
-            event.setCancelled(true);
+            entity.setFireTicks(0);
             return;
         }
-    }
-
-    @EventHandler(ignoreCancelled = true)
-    public void event0(PlayerMoveEvent event) {
-        Block block = event.getFrom().getBlock();
-        if (!(block.getType() == Material.LAVA || block.getType() == Material.FIRE))
-            return;
-        Optional<CompoundTag> optionalCompoundTag = TagRegister.getStored(block);
-        if (optionalCompoundTag.isEmpty())
-            return;
-        CompoundTag tag = optionalCompoundTag.get();
-        String uuid = null;
-        if (tag.containsString("lava-placed"))
-            uuid = tag.getString("lava-placed");
-        else if (tag.containsString("fire-placed"))
-            uuid = tag.getString("fire-placed");
-        if (uuid == null)
-            return;
-        Player player = event.getPlayer();
-        if (player.getFireTicks() <= 0)
-            return;
-        if (player.getUniqueId().toString().equals(uuid))
-            return;
-        if (FieldChunkUtil.doChunkWait(event.getFrom().getChunk())) {
-            event.setCancelled(true);
-            return;
-        }
-        if (!FieldUtil.isFieldAtLocation(event.getFrom()))
-            return;
-        Field field = FieldUtil.getFieldByLocation(event.getFrom());
-        if (field.isMember(player.getUniqueId()) || field.isOwner(player.getUniqueId()))
-            return;
-        player.setFireTicks(0);
     }
 
     @EventHandler(ignoreCancelled = true)
     public void event1(PlayerTeleportEvent event) {
-        Block block = event.getFrom().getBlock();
-        if (block.getType() != Material.LAVA)
+        Player entity = event.getPlayer();
+        if (entity.getFireTicks() <= 0)
             return;
-        Optional<CompoundTag> optionalCompoundTag = TagRegister.getStored(block);
-        if (optionalCompoundTag.isEmpty())
+        if (FieldChunkUtil.doChunkWait(entity.getLocation().getChunk()))
             return;
-        CompoundTag tag = optionalCompoundTag.get();
-        String uuid = null;
-        if (tag.containsString("lava-placed"))
-            uuid = tag.getString("lava-placed");
-        else if (tag.containsString("fire-placed"))
-            uuid = tag.getString("fire-placed");
-        if (uuid == null)
+        if (!FieldUtil.isFieldAtLocation(entity.getLocation()))
             return;
-        Player player = event.getPlayer();
-        if (player.getFireTicks() <= 0)
+        Field field = FieldUtil.getFieldByLocation(entity.getLocation());
+        if (field.isMember(entity.getUniqueId()) || field.isOwner(entity.getUniqueId()))
             return;
-        if (player.getUniqueId().toString().equals(uuid))
-            return;
-        if (FieldChunkUtil.doChunkWait(event.getFrom().getChunk())) {
-            event.setCancelled(true);
+        List<BlockFace> foundLava = new ArrayList<>();
+        Block center = entity.getLocation().getBlock();
+        Block north = center.getRelative(BlockFace.NORTH);
+        Block south = center.getRelative(BlockFace.SOUTH);
+        Block west = center.getRelative(BlockFace.WEST);
+        Block east = center.getRelative(BlockFace.EAST);
+        Block north_west = center.getRelative(BlockFace.NORTH_WEST);
+        Block north_east = center.getRelative(BlockFace.NORTH_EAST);
+        Block south_west = center.getRelative(BlockFace.SOUTH_WEST);
+        Block south_east = center.getRelative(BlockFace.SOUTH_EAST);
+        if (center.getType() == Material.LAVA || center.getType() == Material.FIRE) {
+            if (ElementalsUtil.checkCollision(center, entity))
+                foundLava.add(BlockFace.SELF);
+        }
+        if (north.getType() == Material.LAVA || north.getType() == Material.FIRE) {
+            if (ElementalsUtil.checkCollision(north, entity))
+                foundLava.add(BlockFace.NORTH);
+        }
+        if (south.getType() == Material.LAVA || south.getType() == Material.FIRE) {
+            if (ElementalsUtil.checkCollision(south, entity))
+                foundLava.add(BlockFace.SOUTH);
+        }
+        if (west.getType() == Material.LAVA || west.getType() == Material.FIRE) {
+            if (ElementalsUtil.checkCollision(west, entity))
+                foundLava.add(BlockFace.WEST);
+        }
+        if (east.getType() == Material.LAVA || east.getType() == Material.FIRE) {
+            if (ElementalsUtil.checkCollision(east, entity))
+                foundLava.add(BlockFace.EAST);
+        }
+        if (north_west.getType() == Material.LAVA || north_west.getType() == Material.FIRE) {
+            if (ElementalsUtil.checkCollision(north_west, entity))
+                foundLava.add(BlockFace.NORTH_WEST);
+        }
+        if (north_east.getType() == Material.LAVA || north_east.getType() == Material.FIRE) {
+            if (ElementalsUtil.checkCollision(north_east, entity))
+                foundLava.add(BlockFace.NORTH_EAST);
+        }
+        if (south_west.getType() == Material.LAVA || south_west.getType() == Material.FIRE) {
+            if (ElementalsUtil.checkCollision(south_west, entity))
+                foundLava.add(BlockFace.SOUTH_WEST);
+        }
+        if (south_east.getType() == Material.LAVA || south_east.getType() == Material.FIRE) {
+            if (ElementalsUtil.checkCollision(south_east, entity))
+                foundLava.add(BlockFace.SOUTH_EAST);
+        }
+        for (BlockFace face : foundLava) {
+            Optional<CompoundTag> optionalCompoundTag = TagRegister.getStored(center.getRelative(face));
+            if (optionalCompoundTag.isEmpty())
+                continue;
+            CompoundTag tag = optionalCompoundTag.get();
+            String uuid = null;
+            if (tag.containsString("lava-placed"))
+                uuid = tag.getString("lava-placed");
+            else if (tag.containsString("fire-placed"))
+                uuid = tag.getString("fire-placed");
+            if (uuid == null)
+                continue;
+            if (entity.getUniqueId().toString().equals(uuid))
+                continue;
+            entity.setFireTicks(0);
             return;
         }
-        if (!FieldUtil.isFieldAtLocation(event.getFrom()))
-            return;
-        Field field = FieldUtil.getFieldByLocation(event.getFrom());
-        if (field.isMember(player.getUniqueId()) || field.isOwner(player.getUniqueId()))
-            return;
-        player.setFireTicks(0);
     }
 
     @EventHandler
@@ -1189,7 +1286,7 @@ public class FieldListener implements Listener {
             event.setCancelled(true);
             return;
         }
-        if (block.getType().equals(Material.DIAMOND_BLOCK)) {
+        if (block.getType() == Material.DIAMOND_BLOCK) {
             if (FieldUtil.isFieldBlock(block))
                 return;
         }
@@ -1210,7 +1307,7 @@ public class FieldListener implements Listener {
     @EventHandler(ignoreCancelled = true)
     public void event0(BlockPlaceEvent event) {
         Block block = event.getBlock();
-        if (block.getType().equals(Material.DIAMOND_BLOCK))
+        if (block.getType() == Material.DIAMOND_BLOCK)
             return;
         Location loc = block.getLocation();
         if (FieldChunkUtil.doChunkWait(loc.getChunk())) {
