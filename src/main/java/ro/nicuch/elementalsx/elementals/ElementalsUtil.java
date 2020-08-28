@@ -14,8 +14,9 @@ import org.bukkit.util.BoundingBox;
 import ro.nicuch.elementalsx.User;
 import ro.nicuch.elementalsx.protection.Field;
 import ro.nicuch.elementalsx.protection.FieldUtil;
-import ro.nicuch.lwjnbtl.CompoundTag;
 import ro.nicuch.tag.TagRegister;
+import ro.nicuch.tag.nbt.CompoundTag;
+import ro.nicuch.tag.register.ChunkRegister;
 
 import java.util.*;
 
@@ -293,7 +294,7 @@ public class ElementalsUtil {
     }
 
     public static void setTag(Entity entity, String arg) {
-        CompoundTag tag = TagRegister.getStored(entity).orElseGet(() -> TagRegister.create(entity));
+        CompoundTag tag = TagRegister.getOrCreateEntity(entity);
         tag.putBoolean(arg, true);
     }
 
@@ -304,29 +305,28 @@ public class ElementalsUtil {
     }
 
     public static void setTag(Block block, String arg) {
-        CompoundTag tag = TagRegister.getStored(block).orElseGet(() -> TagRegister.create(block));
+        CompoundTag tag = TagRegister.getOrCreateBlock(block);
         tag.putBoolean(arg, true);
     }
 
     public static boolean hasTag(Block block, String arg) {
-        if (TagRegister.getStored(block).isEmpty())
+        ChunkRegister chunkRegister = TagRegister.getOrLoadWorld(block.getWorld()).getOrLoadRegion(block.getChunk()).getOrLoadChunk(block.getChunk());
+        if (!chunkRegister.isBlockStored(block))
             return false;
-        return TagRegister.getStored(block).get().contains(arg);
+        return chunkRegister.getStoredBlockUnsafe(block).contains(arg);
     }
 
     public static void removeTag(Entity entity, String arg) {
-        if (!TagRegister.isStored(entity))
+        ChunkRegister chunkRegister = TagRegister.getOrLoadWorld(entity.getWorld()).getOrLoadRegion(entity.getLocation().getChunk()).getOrLoadChunk(entity.getLocation().getChunk());
+        if (!chunkRegister.isEntityStored(entity))
             return;
-        if (TagRegister.getStored(entity).isEmpty())
-            return;
-        TagRegister.getStored(entity).get().remove(arg);
+        chunkRegister.getStoredEntityUnsafe(entity.getUniqueId()).remove(arg);
     }
 
     public static void removeTag(Block block, String arg) {
-        if (!TagRegister.isStored(block))
+        ChunkRegister chunkRegister = TagRegister.getOrLoadWorld(block.getWorld()).getOrLoadRegion(block.getChunk()).getOrLoadChunk(block.getChunk());
+        if (!chunkRegister.isBlockStored(block))
             return;
-        if (TagRegister.getStored(block).isEmpty())
-            return;
-        TagRegister.getStored(block).get().remove(arg);
+        chunkRegister.getStoredBlockUnsafe(block).remove(arg);
     }
 }

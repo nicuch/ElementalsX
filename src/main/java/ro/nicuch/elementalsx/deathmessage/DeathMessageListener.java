@@ -1,13 +1,14 @@
 package ro.nicuch.elementalsx.deathmessage;
 
-import io.lumine.xikage.mythicmobs.MythicMobs;
 import net.citizensnpcs.api.CitizensAPI;
+import org.bukkit.Material;
 import org.bukkit.entity.*;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.PlayerDeathEvent;
+import org.bukkit.inventory.PlayerInventory;
 import org.bukkit.projectiles.BlockProjectileSource;
 import ro.nicuch.elementalsx.ElementalsX;
 import ro.nicuch.elementalsx.User;
@@ -57,7 +58,7 @@ public class DeathMessageListener implements Listener {
                 return;
             case ENTITY_ATTACK:
                 Entity damager = ((EntityDamageByEntityEvent) event.getEntity().getLastDamageCause()).getDamager();
-                if (MythicMobs.inst().getAPIHelper().isMythicMob(damager)) {
+                /*if (MythicMobs.inst().getAPIHelper().isMythicMob(damager)) {
                     if (damager.getType() == EntityType.RABBIT) {
                         event.setDeathMessage(ElementalsUtil.color("&8[&4Info&8] &f&o" + user.getBase().getName() + " &9&oa fost sfasiat de &f&o"
                                 + MythicMobs.inst().getAPIHelper().getMythicMobInstance(damager).getDisplayName() + "&9&o."));
@@ -65,188 +66,209 @@ public class DeathMessageListener implements Listener {
                         event.setDeathMessage(ElementalsUtil.color("&8[&4Info&8] &f&o" + user.getBase().getName() + " &9&oa fost omorat de un &f&o"
                                 + MythicMobs.inst().getAPIHelper().getMythicMobInstance(damager).getDisplayName() + "&9&o."));
                     return;
-                } else
-                    switch (damager.getType()) {
-                        case PLAYER:
-                            event.setDeathMessage(ElementalsUtil.color("&8[&4Info&8] &f&o" + user.getBase().getName() + " &9&oa fost omorat de &f&o"
-                                    + (damager).getName() + "&9&o."));
+                } else*/
+                switch (damager.getType()) {
+                    case PLAYER:
+                        event.setDeathMessage(ElementalsUtil.color("&8[&4Info&8] &f&o" + user.getBase().getName() + " &9&oa fost omorat de &f&o"
+                                + (damager).getName() + "&9&o."));
+                        return;
+                    case BEE:
+                        event.setDeathMessage(ElementalsUtil.color("&8[&4Info&8] &f&o" + user.getBase().getName() + " &9&oa fost omorat de o &eALBINA UCIGASA&9&o!"));
+                        return;
+                    case BLAZE:
+                        event.setDeathMessage(ElementalsUtil.color("&8[&4Info&8] &f&o" + user.getBase().getName() + " &9&oa fost omorat de un blaze."));
+                        return;
+                    case CAVE_SPIDER:
+                        event.setDeathMessage(ElementalsUtil.color("&8[&4Info&8] &f&o" + user.getBase().getName() + " &9&oa fost omorat de un paianjen de pestera."));
+                        return;
+                    case ENDER_DRAGON:
+                        event.setDeathMessage(ElementalsUtil.color("&8[&4Info&8] &f&o" + user.getBase().getName() + " &9&oa fost omorat de dragon."));
+                        return;
+                    case ENDERMAN:
+                        if (ElementalsUtil.hasTag(damager, "end_monster")) {
+                            event.setDeathMessage(ElementalsUtil.color(
+                                    "&8[&4Info&8] &f&o" + user.getBase().getName() + " &9&oa fost omorat de un &5Enderman de End&9&o."));
                             return;
-                        case BEE:
-                            event.setDeathMessage(ElementalsUtil.color("&8[&4Info&8] &f&o" + user.getBase().getName() + " &9&oa fost omorat de o &eALBINA UCIGASA&9&o!"));
+                        }
+                        event.setDeathMessage(ElementalsUtil.color("&8[&4Info&8] &f&o" + user.getBase().getName() + " &9&oa fost omorat de un enderman."));
+                        return;
+                    case ENDERMITE:
+                        event.setDeathMessage(ElementalsUtil.color("&8[&4Info&8] &f&o" + user.getBase().getName() + " &9&oa fost omorat de un endermite."));
+                        return;
+                    case GIANT:
+                        event.setDeathMessage(ElementalsUtil.color("&8[&4Info&8] &f&o" + user.getBase().getName() + " &9&oa fost omorat de un gigant?!"));
+                        return;
+                    case GUARDIAN:
+                    case ELDER_GUARDIAN:
+                        event.setDeathMessage(ElementalsUtil.color("&8[&4Info&8] &f&o" + user.getBase().getName() + " &9&oa fost omorat de un gardian."));
+                        return;
+                    case IRON_GOLEM:
+                        event.setDeathMessage(ElementalsUtil.color("&8[&4Info&8] &f&o" + user.getBase().getName() + " &9&oa fost omorat de un golem de fier."));
+                        return;
+                    case MAGMA_CUBE:
+                        event.setDeathMessage(ElementalsUtil.color("&8[&4Info&8] &f&o" + user.getBase().getName() + " &9&oa fost omorat de un cub de magma."));
+                        return;
+                    case ZOMBIFIED_PIGLIN:
+                        if (ElementalsUtil.hasTag(damager, "lava_monster")) {
+                            event.setDeathMessage(ElementalsUtil.color(
+                                    "&8[&4Info&8] &f&o" + user.getBase().getName() + " &9&oa fost omorat de un &4Zombie de Lava&9&o."));
                             return;
-                        case BLAZE:
-                            event.setDeathMessage(ElementalsUtil.color("&8[&4Info&8] &f&o" + user.getBase().getName() + " &9&oa fost omorat de un blaze."));
+                        }
+                        event.setDeathMessage(ElementalsUtil.color("&8[&4Info&8] &f&o" + user.getBase().getName() + " &9&oa fost omorat de un piglin zombie."));
+                        return;
+                    case PIGLIN:
+                        PlayerInventory playerInventory = user.getBase().getInventory();
+                        Material helmet = playerInventory.getHelmet() == null ? Material.AIR : playerInventory.getHelmet().getType();
+                        Material chest_plate = playerInventory.getChestplate() == null ? Material.AIR : playerInventory.getChestplate().getType();
+                        Material leggings = playerInventory.getLeggings() == null ? Material.AIR : playerInventory.getLeggings().getType();
+                        Material boots = playerInventory.getBoots() == null ? Material.AIR : playerInventory.getBoots().getType();
+                        if (helmet == Material.GOLDEN_HELMET || chest_plate == Material.GOLDEN_CHESTPLATE || leggings == Material.GOLDEN_LEGGINGS || boots == Material.GOLDEN_BOOTS) {
+                            event.setDeathMessage(ElementalsUtil.color("&8[&4Info&8] &f&o" + user.getBase().getName() + " &9&oa enervat un piglin si a fost omorat."));
                             return;
-                        case CAVE_SPIDER:
-                            event.setDeathMessage(ElementalsUtil.color("&8[&4Info&8] &f&o" + user.getBase().getName() + " &9&oa fost omorat de un paianjen de pestera."));
+                        }
+                        event.setDeathMessage(ElementalsUtil.color("&8[&4Info&8] &f&o" + user.getBase().getName() + " &9&onu avea armura de aur echipata si sa intalnit cu un piglin."));
+                        return;
+                    case PIGLIN_BRUTE:
+                        event.setDeathMessage(ElementalsUtil.color("&8[&4Info&8] &f&o" + user.getBase().getName() + " &9&oa fost omorat de un piglin brut."));
+                        return;
+                    case HOGLIN:
+                        event.setDeathMessage(ElementalsUtil.color("&8[&4Info&8] &f&o" + user.getBase().getName() + " &9&oa fost fugarit de un hoglin."));
+                        return;
+                    case ZOGLIN:
+                        event.setDeathMessage(ElementalsUtil.color("&8[&4Info&8] &f&o" + user.getBase().getName() + " &9&oa fost fugarit de un zoglin."));
+                        return;
+                    case SILVERFISH:
+                        event.setDeathMessage(ElementalsUtil.color("&8[&4Info&8] &f&o" + user.getBase().getName() + " &9&oa fost omorat de un peste argintiu."));
+                        return;
+                    case SKELETON:
+                        if (ElementalsUtil.hasTag(damager, "herobrine")) {
+                            event.setDeathMessage(ElementalsUtil.color("&8[&4Info&8] &f&o" + user.getBase().getName() + " &9&oa fost omorat de &cHerobrine&9&o."));
                             return;
-                        case ENDER_DRAGON:
-                            event.setDeathMessage(ElementalsUtil.color("&8[&4Info&8] &f&o" + user.getBase().getName() + " &9&oa fost omorat de dragon."));
+                        }
+                        event.setDeathMessage(ElementalsUtil.color("&8[&4Info&8] &f&o" + user.getBase().getName() + " &9&oa fost omorat de un schelete."));
+                        return;
+                    case WITHER_SKELETON:
+                        event.setDeathMessage(ElementalsUtil.color("&8[&4Info&8] &f&o" + user.getBase().getName() + " &9&oa fost omorat de un schelete wither."));
+                        return;
+                    case STRAY:
+                        event.setDeathMessage(ElementalsUtil.color("&8[&4Info&8] &f&o" + user.getBase().getName() + " &9&oa fost omorat de un stray."));
+                        return;
+                    case WOLF:
+                        if (((Wolf) damager).isTamed())
+                            event.setDeathMessage(ElementalsUtil.color("&8[&4Info&8] &f&o" + user.getBase().getName() + " &9&oa fost omorat de un caine."));
+                        else
+                            event.setDeathMessage(ElementalsUtil.color("&8[&4Info&8] &f&o" + user.getBase().getName() + " &9&oa fost omorat de un lup."));
+                        return;
+                    case ZOMBIE:
+                        if (ElementalsUtil.hasTag(damager, "ice_monster")) {
+                            event.setDeathMessage(ElementalsUtil.color("&8[&4Info&8] &f&o" + user.getBase().getName() + " &9&oa fost omorat de un Zombie de Gheata."));
                             return;
-                        case ENDERMAN:
-                            if (ElementalsUtil.hasTag(damager, "end_monster")) {
+                        } else if (ElementalsUtil.hasTag(damager, "herobrine")) {
+                            event.setDeathMessage(ElementalsUtil.color("&8[&4Info&8] &f&o" + user.getBase().getName() + " &9&oa fost omorat de &cHerobrine&9&o."));
+                            return;
+                        }
+                        event.setDeathMessage(ElementalsUtil.color("&8[&4Info&8] &f&o" + user.getBase().getName() + " &9&oa fost omorat de un zombie."));
+                        return;
+                    case HUSK:
+                        event.setDeathMessage(ElementalsUtil.color("&8[&4Info&8] &f&o" + user.getBase().getName() + " &9&oa fost omorat de un husk."));
+                        return;
+                    case ZOMBIE_VILLAGER:
+                        switch (((ZombieVillager) damager).getVillagerProfession()) {
+                            case ARMORER:
+                                event.setDeathMessage(ElementalsUtil.color("&8[&4Info&8] &f&o" + user.getBase().getName() + " &9&oa fost omorat de un zombie fierar de armuri."));
+                                return;
+                            case BUTCHER:
+                                event.setDeathMessage(ElementalsUtil.color("&8[&4Info&8] &f&o" + user.getBase().getName() + " &9&oa fost omorat de un zombie macelar."));
+                                return;
+                            case FARMER:
+                                event.setDeathMessage(ElementalsUtil.color("&8[&4Info&8] &f&o" + user.getBase().getName() + " &9&oa fost omorat de un zombie fermier."));
+                                return;
+                            case LIBRARIAN:
                                 event.setDeathMessage(ElementalsUtil.color(
-                                        "&8[&4Info&8] &f&o" + user.getBase().getName() + " &9&oa fost omorat de un &5Enderman de End&9&o."));
+                                        "&8[&4Info&8] &f&o" + user.getBase().getName() + " &9&oa fost omorat de un zombie bibliotecar."));
                                 return;
-                            }
-                            event.setDeathMessage(ElementalsUtil.color("&8[&4Info&8] &f&o" + user.getBase().getName() + " &9&oa fost omorat de un enderman."));
-                            return;
-                        case ENDERMITE:
-                            event.setDeathMessage(ElementalsUtil.color("&8[&4Info&8] &f&o" + user.getBase().getName() + " &9&oa fost omorat de un endermite."));
-                            return;
-                        case GIANT:
-                            event.setDeathMessage(ElementalsUtil.color("&8[&4Info&8] &f&o" + user.getBase().getName() + " &9&oa fost omorat de un gigant?!"));
-                            return;
-                        case GUARDIAN:
-                        case ELDER_GUARDIAN:
-                            event.setDeathMessage(ElementalsUtil.color("&8[&4Info&8] &f&o" + user.getBase().getName() + " &9&oa fost omorat de un gardian."));
-                            return;
-                        case IRON_GOLEM:
-                            event.setDeathMessage(ElementalsUtil.color("&8[&4Info&8] &f&o" + user.getBase().getName() + " &9&oa fost omorat de un golem de fier."));
-                            return;
-                        case MAGMA_CUBE:
-                            event.setDeathMessage(ElementalsUtil.color("&8[&4Info&8] &f&o" + user.getBase().getName() + " &9&oa fost omorat de un cub de magma."));
-                            return;
-                        case PIG_ZOMBIE:
-                            if (ElementalsUtil.hasTag(damager, "lava_monster")) {
-                                event.setDeathMessage(ElementalsUtil.color(
-                                        "&8[&4Info&8] &f&o" + user.getBase().getName() + " &9&oa fost omorat de un &4Zombie de Lava&9&o."));
+                            case CARTOGRAPHER:
+                                event.setDeathMessage(ElementalsUtil.color("&8[&4Info&8] &f&o" + user.getBase().getName() + " &9&oa fost omorat de un zombie cartograf."));
                                 return;
-                            }
-                            event.setDeathMessage(ElementalsUtil.color("&8[&4Info&8] &f&o" + user.getBase().getName() + " &9&oa fost omorat de un pigman."));
-                            return;
-                        case SILVERFISH:
-                            event.setDeathMessage(ElementalsUtil.color("&8[&4Info&8] &f&o" + user.getBase().getName() + " &9&oa fost omorat de un peste argintiu."));
-                            return;
-                        case SKELETON:
-                            if (ElementalsUtil.hasTag(damager, "herobrine")) {
-                                event.setDeathMessage(ElementalsUtil.color("&8[&4Info&8] &f&o" + user.getBase().getName() + " &9&oa fost omorat de &cHerobrine&9&o."));
+                            case CLERIC:
+                                event.setDeathMessage(ElementalsUtil.color("&8[&4Info&8] &f&o" + user.getBase().getName() + " &9&oa fost omorat de un zombie preot."));
                                 return;
-                            }
-                            event.setDeathMessage(ElementalsUtil.color("&8[&4Info&8] &f&o" + user.getBase().getName() + " &9&oa fost omorat de un schelete."));
-                            return;
-                        case WITHER_SKELETON:
-                            event.setDeathMessage(ElementalsUtil.color("&8[&4Info&8] &f&o" + user.getBase().getName() + " &9&oa fost omorat de un schelete wither."));
-                            return;
-                        case STRAY:
-                            event.setDeathMessage(ElementalsUtil.color("&8[&4Info&8] &f&o" + user.getBase().getName() + " &9&oa fost omorat de un stray."));
-                            return;
-                        case WOLF:
-                            if (((Wolf) damager).isTamed())
-                                event.setDeathMessage(ElementalsUtil.color("&8[&4Info&8] &f&o" + user.getBase().getName() + " &9&oa fost omorat de un caine."));
-                            else
-                                event.setDeathMessage(ElementalsUtil.color("&8[&4Info&8] &f&o" + user.getBase().getName() + " &9&oa fost omorat de un lup."));
-                            return;
-                        case ZOMBIE:
-                            if (ElementalsUtil.hasTag(damager, "ice_monster")) {
-                                event.setDeathMessage(ElementalsUtil.color("&8[&4Info&8] &f&o" + user.getBase().getName() + " &9&oa fost omorat de un Zombie de Gheata."));
+                            case FISHERMAN:
+                                event.setDeathMessage(ElementalsUtil.color("&8[&4Info&8] &f&o" + user.getBase().getName() + " &9&oa fost omorat de un zombie pescar."));
                                 return;
-                            } else if (ElementalsUtil.hasTag(damager, "herobrine")) {
-                                event.setDeathMessage(ElementalsUtil.color("&8[&4Info&8] &f&o" + user.getBase().getName() + " &9&oa fost omorat de &cHerobrine&9&o."));
+                            case FLETCHER:
+                                event.setDeathMessage(ElementalsUtil.color("&8[&4Info&8] &f&o" + user.getBase().getName() + " &9&oa fost omorat de un zombie arcas."));
                                 return;
-                            }
-                            event.setDeathMessage(ElementalsUtil.color("&8[&4Info&8] &f&o" + user.getBase().getName() + " &9&oa fost omorat de un zombie."));
-                            return;
-                        case HUSK:
-                            event.setDeathMessage(ElementalsUtil.color("&8[&4Info&8] &f&o" + user.getBase().getName() + " &9&oa fost omorat de un husk."));
-                            return;
-                        case ZOMBIE_VILLAGER:
-                            switch (((ZombieVillager) damager).getVillagerProfession()) {
-                                case ARMORER:
-                                    event.setDeathMessage(ElementalsUtil.color("&8[&4Info&8] &f&o" + user.getBase().getName() + " &9&oa fost omorat de un zombie fierar de armuri."));
-                                    return;
-                                case BUTCHER:
-                                    event.setDeathMessage(ElementalsUtil.color("&8[&4Info&8] &f&o" + user.getBase().getName() + " &9&oa fost omorat de un zombie macelar."));
-                                    return;
-                                case FARMER:
-                                    event.setDeathMessage(ElementalsUtil.color("&8[&4Info&8] &f&o" + user.getBase().getName() + " &9&oa fost omorat de un zombie fermier."));
-                                    return;
-                                case LIBRARIAN:
-                                    event.setDeathMessage(ElementalsUtil.color(
-                                            "&8[&4Info&8] &f&o" + user.getBase().getName() + " &9&oa fost omorat de un zombie bibliotecar."));
-                                    return;
-                                case CARTOGRAPHER:
-                                    event.setDeathMessage(ElementalsUtil.color("&8[&4Info&8] &f&o" + user.getBase().getName() + " &9&oa fost omorat de un zombie cartograf."));
-                                    return;
-                                case CLERIC:
-                                    event.setDeathMessage(ElementalsUtil.color("&8[&4Info&8] &f&o" + user.getBase().getName() + " &9&oa fost omorat de un zombie preot."));
-                                    return;
-                                case FISHERMAN:
-                                    event.setDeathMessage(ElementalsUtil.color("&8[&4Info&8] &f&o" + user.getBase().getName() + " &9&oa fost omorat de un zombie pescar."));
-                                    return;
-                                case FLETCHER:
-                                    event.setDeathMessage(ElementalsUtil.color("&8[&4Info&8] &f&o" + user.getBase().getName() + " &9&oa fost omorat de un zombie arcas."));
-                                    return;
-                                case LEATHERWORKER:
-                                    event.setDeathMessage(ElementalsUtil.color("&8[&4Info&8] &f&o" + user.getBase().getName() + " &9&oa fost omorat de un zombie pielar."));
-                                    return;
-                                case MASON:
-                                    event.setDeathMessage(ElementalsUtil.color("&8[&4Info&8] &f&o" + user.getBase().getName() + " &9&oa fost omorat de un zombie zidar."));
-                                    return;
-                                case SHEPHERD:
-                                    event.setDeathMessage(ElementalsUtil.color("&8[&4Info&8] &f&o" + user.getBase().getName() + " &9&oa fost omorat de un zombie pastor."));
-                                    return;
-                                case TOOLSMITH:
-                                    event.setDeathMessage(ElementalsUtil.color("&8[&4Info&8] &f&o" + user.getBase().getName() + " &9&oa fost omorat de un zombie fierar de unelte."));
-                                    return;
-                                case WEAPONSMITH:
-                                    event.setDeathMessage(ElementalsUtil.color("&8[&4Info&8] &f&o" + user.getBase().getName() + " &9&oa fost omorat de un zombie fierar de arme."));
-                                    return;
-                                case NITWIT:
-                                case NONE:
-                                default:
-                                    event.setDeathMessage(ElementalsUtil.color("&8[&4Info&8] &f&o" + user.getBase().getName() + " &9&oa fost omorat de un zombie villager."));
-                                    return;
-                            }
-                        case POLAR_BEAR:
-                            event.setDeathMessage(ElementalsUtil.color("&8[&4Info&8] &f&o" + user.getBase().getName() + " &9&oa fost omorat de un urs polar."));
-                            return;
-                        case SPIDER:
-                            event.setDeathMessage(ElementalsUtil.color("&8[&4Info&8] &f&o" + user.getBase().getName() + " &9&oa fost omorat de un paianjen."));
-                            return;
-                        case SLIME:
-                            event.setDeathMessage(ElementalsUtil.color("&8[&4Info&8] &f&o" + user.getBase().getName() + " &9&oa fost omorat de un slime."));
-                            return;
-                        case VINDICATOR:
-                            event.setDeathMessage(ElementalsUtil.color("&8[&4Info&8] &f&o" + user.getBase().getName() + " &9&oa fost omorat de un vindicator."));
-                            return;
-                        case VEX:
-                            event.setDeathMessage(ElementalsUtil.color("&8[&4Info&8] &f&o" + user.getBase().getName() + " &9&oa fost omorat de un demon."));
-                            return;
-                        case EVOKER:
-                            event.setDeathMessage(ElementalsUtil.color("&8[&4Info&8] &f&o" + user.getBase().getName() + " &9&oa fost omorat de un magician."));
-                            return;
-                        case EVOKER_FANGS:
-                            event.setDeathMessage(ElementalsUtil.color("&8[&4Info&8] &f&o" + user.getBase().getName() + " &9&oa fost mancat."));
-                            return;
-                        case PANDA:
-                            event.setDeathMessage(ElementalsUtil.color("&8[&4Info&8] &f&o" + user.getBase().getName() + " &9&oa fost omorat de un urs panda."));
-                            return;
-                        case PILLAGER:
-                            event.setDeathMessage(ElementalsUtil.color("&8[&4Info&8] &f&o" + user.getBase().getName() + " &9&oa fost omorat de un pillager."));
-                            return;
-                        case RAVAGER:
-                            event.setDeathMessage(ElementalsUtil.color("&8[&4Info&8] &f&o" + user.getBase().getName() + " &9&oa fost omorat de un ravanger."));
-                            return;
-                        case DOLPHIN:
-                            event.setDeathMessage(ElementalsUtil.color("&8[&4Info&8] &f&o" + user.getBase().getName() + " &9&oa fost omorat de un delfin."));
-                            return;
-                        case DROWNED:
-                            event.setDeathMessage(ElementalsUtil.color("&8[&4Info&8] &f&o" + user.getBase().getName() + " &9&oa fost omorat de un zombie inecat."));
-                            return;
-                        case PHANTOM:
-                            event.setDeathMessage(ElementalsUtil.color("&8[&4Info&8] &f&o" + user.getBase().getName() + " &9&oa fost omorat o fantoma a noptii."));
-                            return;
-                        case FALLING_BLOCK:
-                            event.setDeathMessage(ElementalsUtil.color("&8[&4Info&8] &f&o" + user.getBase().getName() + " &9&oa fost strivit."));
-                            return;
-                        case WITHER:
-                            event.setDeathMessage(ElementalsUtil.color("&8[&4Info&8] &f&o" + user.getBase().getName() + " &9&oa fost omorat de un wither."));
-                            return;
-                        default:
-                            event.setDeathMessage(ElementalsUtil.color("&8[&4Info&8] &f&o" + user.getBase().getName() + " &9&oa murit."));
-                            return;
-                    }
+                            case LEATHERWORKER:
+                                event.setDeathMessage(ElementalsUtil.color("&8[&4Info&8] &f&o" + user.getBase().getName() + " &9&oa fost omorat de un zombie pielar."));
+                                return;
+                            case MASON:
+                                event.setDeathMessage(ElementalsUtil.color("&8[&4Info&8] &f&o" + user.getBase().getName() + " &9&oa fost omorat de un zombie zidar."));
+                                return;
+                            case SHEPHERD:
+                                event.setDeathMessage(ElementalsUtil.color("&8[&4Info&8] &f&o" + user.getBase().getName() + " &9&oa fost omorat de un zombie pastor."));
+                                return;
+                            case TOOLSMITH:
+                                event.setDeathMessage(ElementalsUtil.color("&8[&4Info&8] &f&o" + user.getBase().getName() + " &9&oa fost omorat de un zombie fierar de unelte."));
+                                return;
+                            case WEAPONSMITH:
+                                event.setDeathMessage(ElementalsUtil.color("&8[&4Info&8] &f&o" + user.getBase().getName() + " &9&oa fost omorat de un zombie fierar de arme."));
+                                return;
+                            case NITWIT:
+                            case NONE:
+                            default:
+                                event.setDeathMessage(ElementalsUtil.color("&8[&4Info&8] &f&o" + user.getBase().getName() + " &9&oa fost omorat de un zombie villager."));
+                                return;
+                        }
+                    case POLAR_BEAR:
+                        event.setDeathMessage(ElementalsUtil.color("&8[&4Info&8] &f&o" + user.getBase().getName() + " &9&oa fost omorat de un urs polar."));
+                        return;
+                    case SPIDER:
+                        event.setDeathMessage(ElementalsUtil.color("&8[&4Info&8] &f&o" + user.getBase().getName() + " &9&oa fost omorat de un paianjen."));
+                        return;
+                    case SLIME:
+                        event.setDeathMessage(ElementalsUtil.color("&8[&4Info&8] &f&o" + user.getBase().getName() + " &9&oa fost omorat de un slime."));
+                        return;
+                    case VINDICATOR:
+                        event.setDeathMessage(ElementalsUtil.color("&8[&4Info&8] &f&o" + user.getBase().getName() + " &9&oa fost omorat de un vindicator."));
+                        return;
+                    case VEX:
+                        event.setDeathMessage(ElementalsUtil.color("&8[&4Info&8] &f&o" + user.getBase().getName() + " &9&oa fost omorat de un demon."));
+                        return;
+                    case EVOKER:
+                        event.setDeathMessage(ElementalsUtil.color("&8[&4Info&8] &f&o" + user.getBase().getName() + " &9&oa fost omorat de un magician."));
+                        return;
+                    case EVOKER_FANGS:
+                        event.setDeathMessage(ElementalsUtil.color("&8[&4Info&8] &f&o" + user.getBase().getName() + " &9&oa fost mancat."));
+                        return;
+                    case PANDA:
+                        event.setDeathMessage(ElementalsUtil.color("&8[&4Info&8] &f&o" + user.getBase().getName() + " &9&oa fost omorat de un urs panda."));
+                        return;
+                    case PILLAGER:
+                        event.setDeathMessage(ElementalsUtil.color("&8[&4Info&8] &f&o" + user.getBase().getName() + " &9&oa fost omorat de un pillager."));
+                        return;
+                    case RAVAGER:
+                        event.setDeathMessage(ElementalsUtil.color("&8[&4Info&8] &f&o" + user.getBase().getName() + " &9&oa fost omorat de un ravanger."));
+                        return;
+                    case DOLPHIN:
+                        event.setDeathMessage(ElementalsUtil.color("&8[&4Info&8] &f&o" + user.getBase().getName() + " &9&oa fost omorat de un delfin."));
+                        return;
+                    case DROWNED:
+                        event.setDeathMessage(ElementalsUtil.color("&8[&4Info&8] &f&o" + user.getBase().getName() + " &9&oa fost omorat de un zombie inecat."));
+                        return;
+                    case PHANTOM:
+                        event.setDeathMessage(ElementalsUtil.color("&8[&4Info&8] &f&o" + user.getBase().getName() + " &9&oa fost omorat o fantoma a noptii."));
+                        return;
+                    case FALLING_BLOCK:
+                        event.setDeathMessage(ElementalsUtil.color("&8[&4Info&8] &f&o" + user.getBase().getName() + " &9&oa fost strivit."));
+                        return;
+                    case WITHER:
+                        event.setDeathMessage(ElementalsUtil.color("&8[&4Info&8] &f&o" + user.getBase().getName() + " &9&oa fost omorat de un wither."));
+                        return;
+                    default:
+                        event.setDeathMessage(ElementalsUtil.color("&8[&4Info&8] &f&o" + user.getBase().getName() + " &9&oa murit."));
+                        return;
+                }
             case ENTITY_EXPLOSION:
                 switch (((EntityDamageByEntityEvent) event.getEntity().getLastDamageCause()).getDamager().getType()) {
                     case CREEPER:
@@ -344,6 +366,18 @@ public class DeathMessageListener implements Listener {
                         return;
                     case SHULKER:
                         event.setDeathMessage(ElementalsUtil.color("&8[&4Info&8] &f&o" + user.getBase().getName() + " &9&oa fost impuscat de un shulker."));
+                        return;
+                    case PIGLIN:
+                        PlayerInventory playerInventory = user.getBase().getInventory();
+                        Material helmet = playerInventory.getHelmet() == null ? Material.AIR : playerInventory.getHelmet().getType();
+                        Material chest_plate = playerInventory.getChestplate() == null ? Material.AIR : playerInventory.getChestplate().getType();
+                        Material leggings = playerInventory.getLeggings() == null ? Material.AIR : playerInventory.getLeggings().getType();
+                        Material boots = playerInventory.getBoots() == null ? Material.AIR : playerInventory.getBoots().getType();
+                        if (helmet == Material.GOLDEN_HELMET || chest_plate == Material.GOLDEN_CHESTPLATE || leggings == Material.GOLDEN_LEGGINGS || boots == Material.GOLDEN_BOOTS) {
+                            event.setDeathMessage(ElementalsUtil.color("&8[&4Info&8] &f&o" + user.getBase().getName() + " &9&oa enervat un piglin si a fost omorat."));
+                            return;
+                        }
+                        event.setDeathMessage(ElementalsUtil.color("&8[&4Info&8] &f&o" + user.getBase().getName() + " &9&onu avea armura de aur echipata si sa intalnit cu un piglin."));
                         return;
                     default:
                         event.setDeathMessage(ElementalsUtil.color("&8[&4Info&8] &f&o" + user.getBase().getName() + " &9&oa fost lovit cu un proiectil."));

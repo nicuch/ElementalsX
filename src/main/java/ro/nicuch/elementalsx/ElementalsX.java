@@ -2,6 +2,8 @@ package ro.nicuch.elementalsx;
 
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
+import emanondev.itemedit.ItemEdit;
+import emanondev.itemedit.storage.ServerStorage;
 import net.milkbowl.vault.economy.Economy;
 import net.milkbowl.vault.permission.Permission;
 import org.bukkit.*;
@@ -43,6 +45,7 @@ public class ElementalsX extends JavaPlugin {
     private static Permission perm;
     private static BukkitTask fieldQueueTask;
     private static FieldQueueRunnable fieldQueueRunnable;
+    private static ServerStorage itemEdit;
 
     @Override
     public void onEnable() {
@@ -52,6 +55,7 @@ public class ElementalsX extends JavaPlugin {
         new File(this.getDataFolder() + File.separator + "regiuni").mkdirs();
         vault = this.getServer().getServicesManager().getRegistration(Economy.class).getProvider();
         perm = this.getServer().getServicesManager().getRegistration(Permission.class).getProvider();
+        itemEdit = ItemEdit.get().getServerStorage();
         new WorldCreator("spawn").environment(Environment.NORMAL).generateStructures(false).createWorld();
         new WorldCreator("dungeon").environment(Environment.NORMAL).generateStructures(false).createWorld();
         createDataBase();
@@ -147,6 +151,10 @@ public class ElementalsX extends JavaPlugin {
 
     public static void removeUser(Player player) {
         removeUser(player.getUniqueId());
+    }
+
+    public static ServerStorage getItemEdit() {
+        return itemEdit;
     }
 
     public static void removeUser(UUID uuid) {

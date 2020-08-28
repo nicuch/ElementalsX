@@ -29,7 +29,7 @@ public class RandomTpCommand implements CommandExecutor {
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
         Optional<User> optionalUser = ElementalsX.getUser((Player) sender);
-        if (!optionalUser.isPresent())
+        if (optionalUser.isEmpty())
             return true;
         User user = optionalUser.get();
         if (!user.canRandomTeleport()) {
@@ -42,6 +42,7 @@ public class RandomTpCommand implements CommandExecutor {
         int z = 0;
         Location loc = new Location(world, x, y, z);
         int tries = 0;
+        Biome biome;
         do {
             x = -20000 + ElementalsUtil.nextInt(40000);
             z = -20000 + ElementalsUtil.nextInt(40000);
@@ -54,18 +55,25 @@ public class RandomTpCommand implements CommandExecutor {
             loc.setY(y);
             loc.setZ(z + .5);
             tries++;
-        } while ((world.getBiome(x, y, z) == Biome.OCEAN || world.getBiome(x, y, z) == Biome.DEEP_OCEAN
-                || world.getBiome(x, y, z) == Biome.NETHER || world.getBiome(x, y, z) == Biome.THE_VOID
-                || world.getBiome(x, y, z) == Biome.THE_END
-                || world.getBiome(x, y, z) == Biome.RIVER
-                || world.getBiome(x, y, z) == Biome.COLD_OCEAN
-                || world.getBiome(x, y, z) == Biome.DEEP_COLD_OCEAN
-                || world.getBiome(x, y, z) == Biome.DEEP_FROZEN_OCEAN
-                || world.getBiome(x, y, z) == Biome.DEEP_LUKEWARM_OCEAN
-                || world.getBiome(x, y, z) == Biome.DEEP_WARM_OCEAN
-                || world.getBiome(x, y, z) == Biome.FROZEN_OCEAN
-                || world.getBiome(x, y, z) == Biome.LUKEWARM_OCEAN
-                || world.getBiome(x, y, z) == Biome.WARM_OCEAN
+            biome = world.getBiome(x, y, z);
+        } while ((biome == Biome.OCEAN
+                || biome == Biome.DEEP_OCEAN
+                || biome == Biome.NETHER_WASTES
+                || biome == Biome.SOUL_SAND_VALLEY
+                || biome == Biome.BASALT_DELTAS
+                || biome == Biome.CRIMSON_FOREST
+                || biome == Biome.WARPED_FOREST
+                || biome == Biome.THE_VOID
+                || biome == Biome.THE_END
+                || biome == Biome.RIVER
+                || biome == Biome.COLD_OCEAN
+                || biome == Biome.DEEP_COLD_OCEAN
+                || biome == Biome.DEEP_FROZEN_OCEAN
+                || biome == Biome.DEEP_LUKEWARM_OCEAN
+                || biome == Biome.DEEP_WARM_OCEAN
+                || biome == Biome.FROZEN_OCEAN
+                || biome == Biome.LUKEWARM_OCEAN
+                || biome == Biome.WARM_OCEAN
                 || FieldUtil.isFieldAtLocation(loc)) && tries < 1);
         loc.getBlock().setType(Material.AIR);
         if (!user.hasPermission("elementals.randomtp.override")) user.toggleRandomTeleport();

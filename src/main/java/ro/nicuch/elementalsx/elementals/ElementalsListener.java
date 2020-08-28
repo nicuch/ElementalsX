@@ -1,12 +1,10 @@
 package ro.nicuch.elementalsx.elementals;
 
-import com.gmail.nossr50.events.fake.FakeBlockBreakEvent;
-import com.shampaggon.crackshot.events.WeaponDamageEntityEvent;
-import com.shampaggon.crackshot.events.WeaponShootEvent;
 import me.clip.placeholderapi.PlaceholderAPI;
 import net.citizensnpcs.api.CitizensAPI;
 import org.bukkit.*;
 import org.bukkit.block.Block;
+import org.bukkit.block.BlockState;
 import org.bukkit.entity.*;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -20,21 +18,54 @@ import org.bukkit.event.hanging.HangingBreakByEntityEvent;
 import org.bukkit.event.hanging.HangingPlaceEvent;
 import org.bukkit.event.player.*;
 import org.bukkit.event.player.PlayerTeleportEvent.TeleportCause;
+import org.bukkit.event.world.TimeSkipEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.inventory.meta.SpawnEggMeta;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 import ro.nicuch.elementalsx.ElementalsX;
 import ro.nicuch.elementalsx.User;
 import ro.nicuch.elementalsx.protection.Field;
 import ro.nicuch.elementalsx.protection.FieldUtil;
-import ro.nicuch.lwjnbtl.CompoundTag;
 import ro.nicuch.tag.TagRegister;
+import ro.nicuch.tag.nbt.CompoundTag;
 
 import java.util.*;
 
 public class ElementalsListener implements Listener {
     private final static List<UUID> interactList = new ArrayList<>();
+
+    @EventHandler
+    public void event0(PlayerInteractEvent event) {
+        if (CitizensAPI.getNPCRegistry().isNPC(event.getPlayer()))
+            return;
+        if (event.getAction() != Action.PHYSICAL)
+            return;
+        Block block = event.getClickedBlock();
+        if (block == null)
+            return;
+        if (block.getType() != Material.FARMLAND)
+            return;
+        String worldName = block.getWorld().getName();
+        if (!(worldName.equals("spawn") || worldName.equals("dungeon")))
+            return;
+        event.setCancelled(true);
+    }
+
+    @EventHandler(ignoreCancelled = true, priority = EventPriority.HIGH)
+    public void event(TimeSkipEvent event) {
+        for (Player player : Bukkit.getOnlinePlayers()) {
+            if (player.getBedSpawnLocation() == null)
+                continue;
+            Location bed = player.getBedSpawnLocation();
+            Location loc = player.getLocation();
+            if (!bed.getWorld().getName().equals(loc.getWorld().getName()))
+                continue;
+            if (bed.distanceSquared(loc) <= 25)
+                player.setStatistic(Statistic.TIME_SINCE_REST, 0);
+        }
+    }
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.HIGH)
     public void event(BlockExplodeEvent event) {
@@ -79,7 +110,7 @@ public class ElementalsListener implements Listener {
                 projectile.getType() == EntityType.SPECTRAL_ARROW ||
                 projectile.getType() == EntityType.FIREBALL))
             return;
-        CompoundTag compoundTag = TagRegister.getStored(projectile).orElseGet(() -> TagRegister.create(projectile));
+        CompoundTag compoundTag = TagRegister.getStored(projectile).orElse(TagRegister.create(projectile));
         compoundTag.putString("projectile-shooter-type", event.getEntity().getType().toString());
         compoundTag.putString("projectile-shooter-uuid", event.getEntity().getUniqueId().toString());
     }
@@ -93,27 +124,9 @@ public class ElementalsListener implements Listener {
             return;
         if (projectile.getShooter() instanceof LivingEntity) {
             LivingEntity thrower = (LivingEntity) projectile.getShooter();
-            CompoundTag compoundTag = TagRegister.getStored(projectile).orElseGet(() -> TagRegister.create(projectile));
+            CompoundTag compoundTag = TagRegister.getStored(projectile).orElse(TagRegister.create(projectile));
             compoundTag.putString("projectile-shooter-type", thrower.getType().toString());
             compoundTag.putString("projectile-shooter-uuid", thrower.getUniqueId().toString());
-        }
-    }
-
-    @EventHandler
-    public void event(WeaponShootEvent event) {
-        Player player = event.getPlayer();
-        if (player == null)
-            return;
-        Entity projectile = event.getProjectile();
-        if (projectile == null)
-            return;
-        CompoundTag compoundTag = TagRegister.getStored(projectile).orElseGet(() -> TagRegister.create(projectile));
-        if (projectile.getType() != EntityType.PRIMED_TNT) {
-            compoundTag.putString("projectile-shooter-type", player.getType().toString());
-            compoundTag.putString("projectile-shooter-uuid", player.getUniqueId().toString());
-        } else {
-            compoundTag.putString("tnt-igniter-type", player.getType().toString());
-            compoundTag.putString("tnt-igniter-uuid", player.getUniqueId().toString());
         }
     }
 
@@ -127,7 +140,7 @@ public class ElementalsListener implements Listener {
             return;
         Optional<CompoundTag> optionalTNTCompoundTag = TagRegister.getStored(tnt);
         if (source instanceof Player) {
-            CompoundTag tntCompoundTag = optionalTNTCompoundTag.orElseGet(() -> TagRegister.create(tnt));
+            CompoundTag tntCompoundTag = optionalTNTCompoundTag.orElse(TagRegister.create(tnt));
             tntCompoundTag.putString("tnt-igniter-type", source.getType().toString());
             tntCompoundTag.putString("tnt-igniter-uuid", source.getUniqueId().toString());
         } else {
@@ -137,7 +150,7 @@ public class ElementalsListener implements Listener {
             CompoundTag sourceCompoundTag = optionalSourceCompoundTag.get();
             if (!(sourceCompoundTag.containsString("projectile-shooter-type") && sourceCompoundTag.containsString("projectile-shooter-uuid")))
                 return;
-            CompoundTag tntCompoundTag = optionalTNTCompoundTag.orElseGet(() -> TagRegister.create(tnt));
+            CompoundTag tntCompoundTag = optionalTNTCompoundTag.orElse(TagRegister.create(tnt));
             tntCompoundTag.putString("tnt-igniter-type", sourceCompoundTag.getString("projectile-shooter-type"));
             tntCompoundTag.putString("tnt-igniter-uuid", sourceCompoundTag.getString("projectile-shooter-uuid"));
         }
@@ -159,7 +172,7 @@ public class ElementalsListener implements Listener {
             if (!tag.containsString("lava-placed"))
                 return;
             String uuid = tag.getString("lava-placed");
-            CompoundTag toTag = TagRegister.getStored(block).orElseGet(() -> TagRegister.create(block));
+            CompoundTag toTag = TagRegister.getOrCreateBlock(block);
             toTag.putString("fire-placed", uuid);
         }
     }
@@ -177,15 +190,13 @@ public class ElementalsListener implements Listener {
         if (!tag.containsString("fire-placed"))
             return;
         String uuid = tag.getString("fire-placed");
-        CompoundTag toTag = TagRegister.getStored(to).orElseGet(() -> TagRegister.create(to));
+        CompoundTag toTag = TagRegister.getOrCreateBlock(to);
         toTag.putString("fire-placed", uuid);
     }
 
     @EventHandler
     public void event(BlockFormEvent event) {
         Block block = event.getBlock();
-        if (event.getBlock().getType() != Material.LAVA)
-            return;
         if (event.getNewState().getType() == Material.LAVA)
             return;
         Optional<CompoundTag> optionalCompoundTag = TagRegister.getStored(block);
@@ -203,7 +214,7 @@ public class ElementalsListener implements Listener {
         Block block = event.getBlock();
         Optional<CompoundTag> optionalCompoundTag = TagRegister.getStored(block);
         if (event.getBucket() == Material.LAVA_BUCKET) {
-            CompoundTag tag = optionalCompoundTag.orElseGet(() -> TagRegister.create(block));
+            CompoundTag tag = optionalCompoundTag.orElse(TagRegister.create(block));
             tag.putString("lava-placed", uuid.toString());
         }
         if (block.getType() == Material.FIRE) {
@@ -237,29 +248,24 @@ public class ElementalsListener implements Listener {
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void event1(BlockPlaceEvent event) {
         Block block = event.getBlock();
+        BlockState replacedState = event.getBlockReplacedState();
         Optional<CompoundTag> optionalCompoundTag = TagRegister.getStored(block);
-        if (block.getType() == Material.LAVA) {
-            if (event.getBlockPlaced().getType() != Material.LAVA)
-                return;
+        if (replacedState.getType() == Material.LAVA || replacedState.getType() == Material.FIRE) {
             if (optionalCompoundTag.isEmpty())
                 return;
             CompoundTag tag = optionalCompoundTag.get();
-            if (!tag.containsString("lava-placed"))
-                return;
-            tag.remove("lava-placed");
+            if (tag.containsString("lava-placed"))
+                tag.remove("lava-placed");
+            if (tag.containsString("fire-placed"))
+                tag.remove("fire-placed");
         } else if (event.getBlockPlaced().getType() == Material.FIRE) {
             UUID uuid = event.getPlayer().getUniqueId();
-            CompoundTag tag = optionalCompoundTag.orElseGet(() -> TagRegister.create(block));
+            CompoundTag tag = optionalCompoundTag.orElse(TagRegister.create(block));
             tag.putString("fire-placed", uuid.toString());
-        } else if (block.getType() == Material.FIRE) {
-            if (event.getBlockPlaced().getType() != Material.FIRE)
-                return;
-            if (optionalCompoundTag.isEmpty())
-                return;
-            CompoundTag tag = optionalCompoundTag.get();
-            if (!tag.containsString("fire-placed"))
-                return;
-            tag.remove("fire-placed");
+        } else if (event.getBlockPlaced().getType() == Material.LAVA) {
+            UUID uuid = event.getPlayer().getUniqueId();
+            CompoundTag tag = optionalCompoundTag.orElse(TagRegister.create(block));
+            tag.putString("lava-placed", uuid.toString());
         }
     }
 
@@ -329,7 +335,7 @@ public class ElementalsListener implements Listener {
             if (!tag.containsString("lava-placed"))
                 return;
             String uuid = tag.getString("lava-placed");
-            CompoundTag toTag = TagRegister.getStored(to).orElseGet(() -> TagRegister.create(to));
+            CompoundTag toTag = TagRegister.getStored(to).orElse(TagRegister.create(to));
             toTag.putString("lava-placed", uuid);
         }
         if (to.getType() == Material.AIR) {
@@ -407,13 +413,6 @@ public class ElementalsListener implements Listener {
                 player.addPotionEffect(new PotionEffect(PotionEffectType.LUCK, 20 * 120, 2));
             }
         }
-    }
-
-    @EventHandler(ignoreCancelled = true)
-    public void event(WeaponDamageEntityEvent event) {
-        if (!event.getVictim().getWorld().getName().equals("spawn"))
-            return;
-        event.setCancelled(true);
     }
 
     @EventHandler(ignoreCancelled = true)
@@ -534,15 +533,15 @@ public class ElementalsListener implements Listener {
         if (!(worldName.equals("spawn") || worldName.equals("dungeon")))
             return;
         Material clickedBlockType = event.getClickedBlock().getType();
-        if (clickedBlockType != Material.FLOWER_POT
-                || clickedBlockType != Material.JUKEBOX
-                || clickedBlockType != Material.NOTE_BLOCK
-                || clickedBlockType != Material.REPEATER
-                || clickedBlockType != Material.COMPARATOR
-                || clickedBlockType != Material.BEACON
-                || clickedBlockType != Material.CAMPFIRE
-                || clickedBlockType != Material.TURTLE_EGG
-                || !Tag.BEDS.isTagged(clickedBlockType))
+        if (!(clickedBlockType == Material.FLOWER_POT
+                || clickedBlockType == Material.JUKEBOX
+                || clickedBlockType == Material.NOTE_BLOCK
+                || clickedBlockType == Material.REPEATER
+                || clickedBlockType == Material.COMPARATOR
+                || clickedBlockType == Material.BEACON
+                || clickedBlockType == Material.CAMPFIRE
+                || clickedBlockType == Material.TURTLE_EGG
+                || Tag.BEDS.isTagged(clickedBlockType)))
             return;
         Optional<User> optionalUser = ElementalsX.getUser(event.getPlayer().getUniqueId());
         if (optionalUser.isEmpty())
@@ -556,39 +555,14 @@ public class ElementalsListener implements Listener {
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void event0(AsyncPlayerChatEvent event) {
         Player player = event.getPlayer();
-        String level = PlaceholderAPI.setPlaceholders(player, "%math_{mcmmo_power_level}/15[precision:0]%");
-        String dragon = PlaceholderAPI.setPlaceholders(player, "%dragonslayer_prefix%");
+        String level = PlaceholderAPI.setPlaceholders(player, "%math_{aureliumskills_power}/15[precision:0]%");
         Set<Player> recipe = event.getRecipients();
         ElementalsX.getOnlineUsers().stream().filter(User::hasSounds).filter(user -> recipe.contains(user.getBase())).forEach(user -> user.getBase().playSound(user.getBase().getLocation(), Sound.ENTITY_ITEM_PICKUP, 1f, 1f));
-        event.setFormat(event.getFormat().replace("{LEVEL}", level).replace("{DRAGON}", dragon));
+        event.setFormat(event.getFormat().replace("{LEVEL}", level));
     }
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void event3(BlockBreakEvent event) {
-        String worldname = event.getBlock().getWorld().getName();
-        if (worldname.equals("spawn") || worldname.equals("dungeon"))
-            return;
-        Optional<User> optionalUser = ElementalsX.getUser(event.getPlayer().getUniqueId());
-        if (optionalUser.isEmpty())
-            return;
-        User user = optionalUser.get();
-        if (FieldUtil.isFieldAtLocation(event.getBlock().getLocation())) {
-            Field field = FieldUtil.getFieldByLocation(event.getBlock().getLocation());
-            if (!(field.isMember(user.getBase().getUniqueId()) || field.isOwner(user.getBase().getUniqueId())
-                    || user.hasPermission("protection.override")))
-                return;
-        }
-        if (!(event.getBlock().getType() == Material.DIAMOND_ORE
-                || event.getBlock().getType() == Material.EMERALD_ORE
-                || event.getBlock().getType() == Material.GOLD_ORE
-                || event.getBlock().getType() == Material.IRON_ORE
-                || event.getBlock().getType() == Material.LAPIS_ORE))
-            return;
-        ElementalsUtil.removeTag(event.getBlock(), "found");
-    }
-
-    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
-    public void event3(FakeBlockBreakEvent event) {
         String worldname = event.getBlock().getWorld().getName();
         if (worldname.equals("spawn") || worldname.equals("dungeon"))
             return;
@@ -894,9 +868,12 @@ public class ElementalsListener implements Listener {
             return;
         if (event.getPlayer().getInventory().getItemInMainHand() == null)
             return;
-        Material handType = event.getPlayer().getInventory().getItemInMainHand().getType();
-        if (handType != Material.BAT_SPAWN_EGG
-                || handType != Material.ARMOR_STAND)
+        ItemStack item = event.getItem();
+        if (item == null)
+            return;
+        Material itemType = item.getType();
+        if (!(item.getItemMeta() instanceof SpawnEggMeta || itemType == Material.FLINT_AND_STEEL
+                || itemType == Material.ARMOR_STAND || itemType == Material.END_CRYSTAL))
             return;
         Optional<User> optionalUser = ElementalsX.getUser(event.getPlayer().getUniqueId());
         if (optionalUser.isEmpty())
