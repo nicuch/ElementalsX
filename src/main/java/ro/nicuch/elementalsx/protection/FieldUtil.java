@@ -2,6 +2,7 @@ package ro.nicuch.elementalsx.protection;
 
 import org.bukkit.*;
 import org.bukkit.block.Block;
+import org.bukkit.command.CommandSender;
 import org.bukkit.event.block.BlockBreakEvent;
 import ro.nicuch.elementalsx.ElementalsX;
 import ro.nicuch.elementalsx.User;
@@ -27,13 +28,11 @@ public class FieldUtil {
         try (PreparedStatement statement = ElementalsX.getDatabase().prepareStatement(query)) {
             statement.setString(1, fieldId.toString());
             try (ResultSet resultSet = statement.executeQuery()) {
-                if (!resultSet.wasNull()) {
-                    Set<String> uuids = new HashSet<>();
-                    while (resultSet.next()) {
-                        uuids.add(resultSet.getString("uuid"));
-                    }
-                    return uuids;
+                Set<String> uuids = new HashSet<>();
+                while (resultSet.next()) {
+                    uuids.add(resultSet.getString("uuid"));
                 }
+                return uuids;
             }
         } catch (SQLException ex) {
             ex.printStackTrace();
@@ -87,12 +86,10 @@ public class FieldUtil {
             statement.setInt(2, chunk.getZ());
             statement.setString(3, chunk.getWorld().getName());
             try (ResultSet resultSet = statement.executeQuery()) {
-                if (resultSet.wasNull()) {
+                if (resultSet.next())
+                    return resultSet.getInt(1) >= 4;
+                else
                     return false;
-                } else {
-                    if (resultSet.next())
-                        return resultSet.getInt(1) >= 4;
-                }
             }
         } catch (SQLException ex) {
             ex.printStackTrace();
@@ -324,7 +321,7 @@ public class FieldUtil {
 
     private static void removeMembersOnProtection(FieldId fieldId) {
         Bukkit.getScheduler().runTaskAsynchronously(ElementalsX.get(), () -> {
-            String query = "DELETE IGNORE FROM protmembers WHERE protid=?;";
+            String query = "DELETE FROM protmembers WHERE protid=?;";
             try (PreparedStatement statement = ElementalsX.getDatabase().prepareStatement(query)) {
                 statement.setString(1, fieldId.toString());
                 statement.executeUpdate();
@@ -347,7 +344,7 @@ public class FieldUtil {
                             if (field.isMember(member.toString()))
                                 field.removeMember(member.toString());
                         } else {
-                            String query1 = "DELETE IGNORE FROM protmembers WHERE protid=? AND uuid=?;";
+                            String query1 = "DELETE FROM protmembers WHERE protid=? AND uuid=?;";
                             try (PreparedStatement statement1 = ElementalsX.getDatabase().prepareStatement(query1)) {
                                 statement1.setString(1, fieldId.toString());
                                 statement1.setString(2, member.toString());
@@ -453,28 +450,28 @@ public class FieldUtil {
         field.getField2D().sendFieldLocate(field.getBlock(), user.getBase(), field.getWorld(), field.getBlockY());
     }
 
-    public static void listFields(User user) {
+    public static void listFields(UUID uuid, CommandSender sendTo) {
         Bukkit.getScheduler().runTaskAsynchronously(ElementalsX.get(), () -> {
             String query = "SELECT x, y, z, world FROM protection WHERE owner=?;";
             try (PreparedStatement statement = ElementalsX.getDatabase().prepareStatement(query)) {
-                statement.setString(1, user.getBase().getUniqueId().toString());
+                statement.setString(1, uuid.toString());
                 try (ResultSet resultSet = statement.executeQuery()) {
-                    if (resultSet.wasNull()) {
-                        Bukkit.getScheduler().runTask(ElementalsX.get(), () -> user.getBase().sendMessage(ElementalsUtil.color("&8[&cProtectie&8] &c&oNu ai nici-o protectie!")));
-                    } else {
-                        while (resultSet.next()) {
-                            String worldName = resultSet.getString("world");
-                            int x = resultSet.getInt("x");
-                            int y = resultSet.getInt("y");
-                            int z = resultSet.getInt("z");
-                            Bukkit.getScheduler().runTask(ElementalsX.get(), () ->
-                                    user.getBase().sendMessage(ElementalsUtil.color("&5&l> &b" + worldName + "&c, &b" + x
-                                            + "&c, &b" + y + "&c, &b" + z)));
-                        }
+                    boolean no_prot = false;
+                    while (resultSet.next()) {
+                        no_prot = true;
+                        String worldName = resultSet.getString("world");
+                        int x = resultSet.getInt("x");
+                        int y = resultSet.getInt("y");
+                        int z = resultSet.getInt("z");
+                        Bukkit.getScheduler().runTask(ElementalsX.get(), () ->
+                                sendTo.sendMessage(ElementalsUtil.color("&5&l> &b" + worldName + "&c, &b" + x
+                                        + "&c, &b" + y + "&c, &b" + z)));
                     }
+                    if (!no_prot)
+                        Bukkit.getScheduler().runTask(ElementalsX.get(), () -> sendTo.sendMessage(ElementalsUtil.color("&8[&cProtectie&8] &c&oNu ai nici-o protectie!")));
                 }
             } catch (SQLException ex) {
-                user.getBase().sendMessage(ElementalsUtil.color("&8[&cProtectie&8] &c&l&oEroare. &a&l&oContacteaza un admin!"));
+                sendTo.sendMessage(ElementalsUtil.color("&8[&cProtectie&8] &c&l&oEroare. &a&l&oContacteaza un admin!"));
                 ex.printStackTrace();
             }
         });

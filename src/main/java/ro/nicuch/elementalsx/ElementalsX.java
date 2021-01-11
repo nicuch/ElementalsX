@@ -2,16 +2,12 @@ package ro.nicuch.elementalsx;
 
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
-import emanondev.itemedit.ItemEdit;
-import emanondev.itemedit.storage.ServerStorage;
 import net.milkbowl.vault.economy.Economy;
 import net.milkbowl.vault.permission.Permission;
 import org.bukkit.*;
 import org.bukkit.World.Environment;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
-import org.bukkit.command.TabExecutor;
-import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.PluginManager;
@@ -26,7 +22,6 @@ import ro.nicuch.elementalsx.protection.FieldListener;
 import ro.nicuch.elementalsx.protection.FieldQueueRunnable;
 import ro.nicuch.elementalsx.protection.FieldUtil;
 
-import java.io.File;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
@@ -45,17 +40,15 @@ public class ElementalsX extends JavaPlugin {
     private static Permission perm;
     private static BukkitTask fieldQueueTask;
     private static FieldQueueRunnable fieldQueueRunnable;
-    private static ServerStorage itemEdit;
 
     @Override
     public void onEnable() {
         fieldQueueTask = Bukkit.getScheduler().runTaskTimerAsynchronously(this, fieldQueueRunnable = new FieldQueueRunnable(), 1L, 1L);
         long start = System.currentTimeMillis();
         getServer().setSpawnRadius(1);
-        new File(this.getDataFolder() + File.separator + "regiuni").mkdirs();
+        this.getDataFolder().mkdirs();
         vault = this.getServer().getServicesManager().getRegistration(Economy.class).getProvider();
         perm = this.getServer().getServicesManager().getRegistration(Permission.class).getProvider();
-        itemEdit = ItemEdit.get().getServerStorage();
         new WorldCreator("spawn").environment(Environment.NORMAL).generateStructures(false).createWorld();
         new WorldCreator("dungeon").environment(Environment.NORMAL).generateStructures(false).createWorld();
         createDataBase();
@@ -98,7 +91,6 @@ public class ElementalsX extends JavaPlugin {
     public void onDisable() {
         fieldQueueTask.cancel();
         fieldQueueRunnable.run(); //run for last time
-        getOnlineUsers().forEach(u -> u.save(true));
         try {
             connection.close();
         } catch (SQLException ex) {
@@ -137,6 +129,14 @@ public class ElementalsX extends JavaPlugin {
         return getUser(player.getUniqueId());
     }
 
+    public static User getUserUnsafe(Player player) {
+        return getUserUnsafe(player.getUniqueId());
+    }
+
+    public static User getUserUnsafe(UUID uuid) {
+        return players.get(uuid);
+    }
+
     public static Optional<User> getUser(UUID uuid) {
         return Optional.ofNullable(players.get(uuid));
     }
@@ -153,15 +153,8 @@ public class ElementalsX extends JavaPlugin {
         removeUser(player.getUniqueId());
     }
 
-    public static ServerStorage getItemEdit() {
-        return itemEdit;
-    }
-
     public static void removeUser(UUID uuid) {
-        if (players.containsKey(uuid)) {
-            players.get(uuid).save(false);
-            players.remove(uuid);
-        }
+        players.remove(uuid);
     }
 
     public static void sendConsoleMessage(String arg) {
@@ -169,35 +162,22 @@ public class ElementalsX extends JavaPlugin {
     }
 
     private void commandsCreator() {
-        TabExecutor te = new ProtectionCommand();
-        this.getCommand("ps").setExecutor(te);
-        this.getCommand("ps").setTabCompleter(te);
-        this.getCommand("adminchat").setExecutor(new AdminChatCommand());
-        this.getCommand("adminchat").setAliases(AdminChatCommand.getAliases());
-
-        this.getCommand("randomtp").setExecutor(new RandomTpCommand());
-        this.getCommand("randomtp").setAliases(RandomTpCommand.getAliases());
-        te = new SoundCommand();
-        this.getCommand("sound").setExecutor(te);
-        this.getCommand("sound").setTabCompleter(te);
-        this.getCommand("giveall").setExecutor(new GiveAllCommand());
-        this.getCommand("test").setExecutor(new TestCommand());
-        te = new SortCommand();
-        this.getCommand("sort").setExecutor(te);
-        this.getCommand("sort").setTabCompleter(te);
+        new ProtectionCommand();
+        new SoundCommand();
+        new GiveAllCommand();
+        new AdminChatCommand();
+        new SortCommand();
     }
 
     private void createDataBase() {
-        this.saveResource("config.yml", false);
-        FileConfiguration cfg = this.getConfig();
-        String username = cfg.getString("db_user");
-        String password = cfg.getString("db_pass");
-        String ip = cfg.getString("db_ip");
-        String db_name = cfg.getString("db_name");
         HikariConfig config = new HikariConfig();
-        config.setJdbcUrl("jdbc:mysql://" + ip + "/" + db_name);
-        config.setUsername(username);
-        config.setPassword(password);
+        config.setPoolName("ElementalsXSQLitePool");
+        config.setDriverClassName("org.sqlite.JDBC");
+        config.setJdbcUrl("jdbc:sqlite:plugins/ElementalsX/database.db");
+        config.setConnectionTestQuery("SELECT 1");
+        config.setMaxLifetime(60000); // 60 Sec
+        config.setIdleTimeout(45000); // 45 Sec
+        config.setMaximumPoolSize(50); // 50 Connections (including idle connections)
         Properties properties = new Properties();
         properties.setProperty("useSSL", "false");
         properties.setProperty("cachePrepStmts", "true");
@@ -208,8 +188,6 @@ public class ElementalsX extends JavaPlugin {
         properties.setProperty("alwaysSendSetIsolation", "false");
         properties.setProperty("enableQueryTimeouts", "false");
         config.setDataSourceProperties(properties);
-        config.setMaximumPoolSize(20);
-        config.setMinimumIdle(2);
         ds = new HikariDataSource(config);
         try {
             connection = ds.getConnection();
@@ -217,20 +195,13 @@ public class ElementalsX extends JavaPlugin {
             ex.printStackTrace();
         }
         try (PreparedStatement statement = getDatabase().prepareStatement(
-                "CREATE TABLE IF NOT EXISTS protection(id VARCHAR(200) PRIMARY KEY, x INT, y INT, z INT, world VARCHAR(50), owner VARCHAR(36), maxx INT, maxz INT, minx INT, minz INT, chunkx INT, chunkz INT);")) {
+                "CREATE TABLE IF NOT EXISTS protection(id VARCHAR(200) PRIMARY KEY NOT NULL, x INTEGER NOT NULL, y INTEGER NOT NULL, z INTEGER NOT NULL, world VARCHAR(50) NOT NULL, owner VARCHAR(36) NOT NULL, maxx INTEGER NOT NULL, maxz INTEGER NOT NULL, minx INTEGER NOT NULL, minz INTEGER NOT NULL, chunkx INTEGER NOT NULL, chunkz INTEGER NOT NULL);")) {
             statement.executeUpdate();
         } catch (SQLException ex) {
             ex.printStackTrace();
         }
 
-        try (PreparedStatement statement = getDatabase().prepareStatement("CREATE TABLE IF NOT EXISTS protmembers(id INT PRIMARY KEY AUTO_INCREMENT, protid VARCHAR(200), uuid VARCHAR(36));")) {
-            statement.executeUpdate();
-        } catch (SQLException ex) {
-            ex.printStackTrace();
-        }
-
-        try (PreparedStatement statement = getDatabase().prepareStatement(
-                "CREATE TABLE IF NOT EXISTS randomtp(uuid VARCHAR(36) PRIMARY KEY, next BIGINT);")) {
+        try (PreparedStatement statement = getDatabase().prepareStatement("CREATE TABLE IF NOT EXISTS protmembers(id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, protid VARCHAR(200) NOT NULL, uuid VARCHAR(36) NOT NULL);")) {
             statement.executeUpdate();
         } catch (SQLException ex) {
             ex.printStackTrace();

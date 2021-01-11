@@ -13,7 +13,7 @@ public class FieldId {
     private final int z;
     private final String world;
 
-    public FieldId(int x, int y, int z, String world) {
+    private FieldId(int x, int y, int z, String world) {
         this.x = x;
         this.y = y;
         this.z = z;

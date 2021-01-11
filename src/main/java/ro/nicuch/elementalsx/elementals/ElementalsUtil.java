@@ -11,6 +11,7 @@ import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.FireworkMeta;
 import org.bukkit.util.BoundingBox;
+import org.jetbrains.annotations.NotNull;
 import ro.nicuch.elementalsx.User;
 import ro.nicuch.elementalsx.protection.Field;
 import ro.nicuch.elementalsx.protection.FieldUtil;
@@ -63,6 +64,7 @@ public class ElementalsUtil {
         return autoMsg;
     }
 
+    @NotNull
     public static String color(String arg) {
         return ChatColor.translateAlternateColorCodes('&', arg);
     }

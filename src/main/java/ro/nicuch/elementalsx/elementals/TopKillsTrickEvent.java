@@ -3,6 +3,7 @@ package ro.nicuch.elementalsx.elementals;
 import org.bukkit.entity.Player;
 import org.bukkit.event.HandlerList;
 import org.bukkit.event.player.PlayerEvent;
+import org.jetbrains.annotations.NotNull;
 
 public class TopKillsTrickEvent extends PlayerEvent {
     private final static HandlerList handlers = new HandlerList();
@@ -11,6 +12,7 @@ public class TopKillsTrickEvent extends PlayerEvent {
         super(player);
     }
 
+    @NotNull
     @Override
     public HandlerList getHandlers() {
         return handlers;

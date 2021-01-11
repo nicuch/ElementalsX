@@ -1,28 +1,9 @@
 name: ElementalsX
 version: ${project.version}
 main: ro.nicuch.elementalsx.ElementalsX
-api-version: 1.14
+api-version: 1.13
 authors: [nicuch]
 description: Elementals 2 for Pikacraft server.
 website: pikacraft.ro
-depend: [Jobs, TagRegisterLib, WorldEdit, Vault, Citizens, PlaceholderAPI, MythicMobs, CitizensBooks, InfernalMobs]
+depend: [Jobs, TagRegisterLib, WorldEdit, Vault, Citizens, PlaceholderAPI, CitizensBooks, CommandAPI]
 loadbefore: [FogusCore, AncientGates]
-commands:
-  randomtp:
-    aliases: [rdtp, rtp]
-    description: Teleportare random.
-  adminchat:
-    aliases: [ac]
-    description: Chat pentru staff.
-  ps:
-    description: Comanda pentru protectie.
-  sound:
-    description: Comanda pentru sunete.
-  giveall:
-    description: Comanda pentru giveall.
-  test:
-    description: Comanda folosita pentru test.
-  achivements:
-    description: Comanda pentru achivementuri.
-  sort:
-    description: Comanda pentru sortare.
