@@ -10,8 +10,6 @@ import ro.nicuch.citizensbooks.CitizensBooksPlugin;
 import ro.nicuch.elementalsx.elementals.ElementalsUtil;
 
 import java.util.UUID;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicLong;
 
 public class User {
     private final UUID uuid;
@@ -23,18 +21,10 @@ public class User {
     private int thirstLevel;
     private boolean pack;
     private boolean messages;
-    private final AtomicLong lastRandomTeleport = new AtomicLong(0);
+    private boolean canRightClickOnChairs;
 
     public boolean hasMsgActive() {
         return this.messages;
-    }
-
-    public boolean canRandomTeleport() {
-        return (this.lastRandomTeleport.get() + TimeUnit.MILLISECONDS.convert(30, TimeUnit.MINUTES) < System.currentTimeMillis());
-    }
-
-    public void toggleRandomTeleport() {
-        this.lastRandomTeleport.set(System.currentTimeMillis());
     }
 
     public void toggleMsgActive(boolean b) {
@@ -173,5 +163,13 @@ public class User {
     @Override
     public int hashCode() {
         return this.uuid.hashCode() * 757;
+    }
+
+    public boolean hasChairsDisabled() {
+        return !this.canRightClickOnChairs;
+    }
+
+    public void canClickOnChairs(boolean canRightClickOnChairs) {
+        this.canRightClickOnChairs = canRightClickOnChairs;
     }
 }

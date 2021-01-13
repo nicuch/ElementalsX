@@ -13,6 +13,8 @@ import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitTask;
+import ro.nicuch.elementalsx.chair.ChairListener;
+import ro.nicuch.elementalsx.chair.ChairUtil;
 import ro.nicuch.elementalsx.deathmessage.DeathMessageListener;
 import ro.nicuch.elementalsx.elementals.ElementalsListener;
 import ro.nicuch.elementalsx.elementals.ElementalsUtil;
@@ -98,6 +100,7 @@ public class ElementalsX extends JavaPlugin {
         }
         if (ds != null)
             ds.close();
+        ChairUtil.unsitAllPlayers();
         sendConsoleMessage("&bPluginul s-a oprit!");
     }
 
@@ -167,6 +170,8 @@ public class ElementalsX extends JavaPlugin {
         new GiveAllCommand();
         new AdminChatCommand();
         new SortCommand();
+        new GamemodeCommand();
+        new ChairCommand();
     }
 
     private void createDataBase() {
@@ -213,6 +218,7 @@ public class ElementalsX extends JavaPlugin {
         manager.registerEvents(new ElementalsListener(), this);
         manager.registerEvents(new FieldListener(), this);
         manager.registerEvents(new DeathMessageListener(), this);
+        manager.registerEvents(new ChairListener(), this);
     }
 
     private void randomMsg() {
