@@ -8,6 +8,8 @@ import org.bukkit.block.data.Directional;
 import org.bukkit.entity.ArmorStand;
 import org.bukkit.entity.Player;
 import ro.nicuch.elementalsx.elementals.ElementalsUtil;
+import ro.nicuch.elementalsx.protection.Field;
+import ro.nicuch.elementalsx.protection.FieldUtil;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -19,11 +21,20 @@ public class ChairUtil {
     public final static Map<UUID, Block> occupiedChairs = new HashMap<>();
     public final static Map<UUID, Block> occupiedSits = new HashMap<>();
 
+    public static boolean canSitInProtection(Player player, Location sitLocation) {
+        if (!FieldUtil.isFieldAtLocation(sitLocation))
+            return true;
+        Field field = FieldUtil.getFieldByLocation(sitLocation);
+        if (field.hasFun())
+            return true;
+        return field.isOwner(player.getUniqueId()) || field.isMember(player.getUniqueId());
+    }
+
     public static void sitPlayerOnGround(Player player) {
         if (player.isSneaking() || player.isGliding() || player.isRiptiding())
             return;
         Block above = player.getLocation().getBlock();
-        if (!above.getType().isAir()) {
+        if (above.getType().isSolid()) {
             player.sendMessage(ElementalsUtil.color("&cNu te poti aseza aici!"));
             return;
         }
@@ -36,7 +47,7 @@ public class ChairUtil {
             player.sendMessage(ElementalsUtil.color("&cTe aflii deja intr-un scaun!"));
             return;
         }
-        if (player.isInsideVehicle() || player.isSneaking()) {
+        if (player.isInsideVehicle()) {
             player.sendMessage(ElementalsUtil.color("&cNu te poti aseza jos acum!"));
             return;
         }
@@ -48,11 +59,14 @@ public class ChairUtil {
             player.sendMessage(ElementalsUtil.color("&cCineva sta deja pe scaun!"));
             return;
         }
+        //noinspection deprecation
         if (!player.isOnGround()) {
             player.sendMessage(ElementalsUtil.color("&cNu te poti aseza cat timp esti in aer!"));
             return;
         }
         Location armorStandLocation = block.getLocation().clone().add(.5, .05, .5);
+        armorStandLocation.setYaw(player.getLocation().getYaw());
+        armorStandLocation.setPitch(0f);
         ArmorStand chair = createChair(armorStandLocation);
         sits.put(player.getUniqueId(), chair);
         occupiedSits.put(player.getUniqueId(), block);
@@ -64,7 +78,7 @@ public class ChairUtil {
         if (player.isSneaking() || player.isGliding() || player.isRiptiding())
             return;
         Block above = block.getRelative(BlockFace.UP);
-        if (!above.getType().isAir()) {
+        if (above.getType().isSolid()) {
             player.sendMessage(ElementalsUtil.color("&cNu te poti aseza aici!"));
             return;
         }
@@ -76,7 +90,7 @@ public class ChairUtil {
             player.sendMessage(ElementalsUtil.color("&cTe aflii deja intr-un scaun!"));
             return;
         }
-        if (player.isInsideVehicle() || player.isSneaking()) {
+        if (player.isInsideVehicle()) {
             player.sendMessage(ElementalsUtil.color("&cNu te poti aseza jos acum!"));
             return;
         }
@@ -88,11 +102,14 @@ public class ChairUtil {
             player.sendMessage(ElementalsUtil.color("&cCineva sta deja pe scaun!"));
             return;
         }
+        //noinspection deprecation
         if (!player.isOnGround()) {
             player.sendMessage(ElementalsUtil.color("&cNu te poti aseza cat timp esti in aer!"));
             return;
         }
-        Location armorStandLocation = block.getLocation().clone().add(.5, -.9, .5);
+        Location armorStandLocation = block.getLocation().clone().add(.5, -.875, .5);
+        armorStandLocation.setYaw(player.getLocation().getYaw() + 180);
+        armorStandLocation.setPitch(0f);
         ArmorStand chair = createChair(armorStandLocation);
         sits.put(player.getUniqueId(), chair);
         occupiedSits.put(player.getUniqueId(), block);
@@ -104,7 +121,11 @@ public class ChairUtil {
         if (player.isSneaking() || player.isGliding() || player.isRiptiding())
             return;
         Block above = block.getRelative(BlockFace.UP);
-        if (!above.getType().isAir()) {
+        if (above.getType().isSolid()) {
+            return;
+        }
+        if (!canSitInProtection(player, block.getLocation())) {
+            player.sendMessage(ElementalsUtil.color("&cNu te poti aseza pe scaun in protectia altcuiva!"));
             return;
         }
         if (chairs.containsKey(player.getUniqueId())) {
@@ -115,7 +136,7 @@ public class ChairUtil {
             player.sendMessage(ElementalsUtil.color("&cStai deja jos!"));
             return;
         }
-        if (player.isInsideVehicle() || player.isSneaking()) {
+        if (player.isInsideVehicle()) {
             player.sendMessage(ElementalsUtil.color("&cNu te poti aseza jos acum!"));
             return;
         }
@@ -127,6 +148,7 @@ public class ChairUtil {
             player.sendMessage(ElementalsUtil.color("&cCineva sta deja pe scaun!"));
             return;
         }
+        //noinspection deprecation
         if (!player.isOnGround()) {
             player.sendMessage(ElementalsUtil.color("&cNu te poti aseza cat timp esti in aer!"));
             return;
@@ -170,7 +192,11 @@ public class ChairUtil {
         if (player.isSneaking() || player.isGliding() || player.isRiptiding())
             return;
         Block above = block.getRelative(BlockFace.UP);
-        if (!above.getType().isAir()) {
+        if (above.getType().isSolid()) {
+            return;
+        }
+        if (!canSitInProtection(player, block.getLocation())) {
+            player.sendMessage(ElementalsUtil.color("&cNu te poti aseza pe scaun in protectia altcuiva!"));
             return;
         }
         if (chairs.containsKey(player.getUniqueId())) {
@@ -181,7 +207,7 @@ public class ChairUtil {
             player.sendMessage(ElementalsUtil.color("&cStai deja jos!"));
             return;
         }
-        if (player.isInsideVehicle() || player.isSneaking()) {
+        if (player.isInsideVehicle()) {
             player.sendMessage(ElementalsUtil.color("&cNu te poti aseza jos acum!"));
             return;
         }
@@ -193,13 +219,15 @@ public class ChairUtil {
             player.sendMessage(ElementalsUtil.color("&cCineva sta deja pe scaun!"));
             return;
         }
+        //noinspection deprecation
         if (!player.isOnGround()) {
             player.sendMessage(ElementalsUtil.color("&cNu te poti aseza cat timp esti in aer!"));
             return;
         }
         Location armorStandLocation = block.getLocation().clone().add(.5, -.45, .5);
+        armorStandLocation.setYaw(player.getLocation().getYaw() + 180);
         armorStandLocation.setPitch(0f);
-        armorStandLocation.setYaw(0f);
+        armorStandLocation.setPitch(0f);
         ArmorStand chair = createChair(armorStandLocation);
         chairs.put(player.getUniqueId(), chair);
         occupiedChairs.put(player.getUniqueId(), block);
